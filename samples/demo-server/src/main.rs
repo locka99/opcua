@@ -24,11 +24,13 @@ use std::{path::PathBuf, sync::Arc};
 
 use tokio;
 
-use opcua::server::{http, prelude::*};
-use opcua::sync::RwLock;
+use opcua::server::{
+    node_manager::memory::{NamespaceMetadata, SimpleNodeManager},
+    ServerBuilder,
+};
+use tokio_util::sync::CancellationToken;
 
 mod control;
-mod historical;
 mod machine;
 mod methods;
 mod scalar;
@@ -107,70 +109,60 @@ Usage:
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let args = Args::parse_args().unwrap();
     if args.help {
         Args::usage();
     } else {
         // More powerful logging than a console logger
         log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+        let ns = 2;
+
+        let node_manager = Arc::new(SimpleNodeManager::new_simple(
+            NamespaceMetadata {
+                namespace_index: ns,
+                namespace_uri: "urn:DemoServer".to_owned(),
+                ..Default::default()
+            },
+            "demo",
+        ));
 
         // Create an OPC UA server with sample configuration and default node set
-        let mut server = Server::new(ServerConfig::load(&args.config_path).unwrap());
-
-        let ns = {
-            let address_space = server.address_space();
-            let mut address_space = address_space.write();
-            address_space.register_namespace("urn:demo-server").unwrap()
-        };
-
-        // Add some objects representing machinery
-        machine::add_machinery(&mut server, ns, args.raise_events);
-
-        // Add some scalar variables
-        scalar::add_scalar_variables(&mut server, ns);
-
-        // Add some rapidly changing values
-        scalar::add_stress_variables(&mut server, ns);
-
-        // Add some control switches, e.g. abort flag
-        control::add_control_switches(&mut server, ns);
-
-        // Add some methods
-        methods::add_methods(&mut server, ns);
-
-        // Add historical data providers
-        historical::add_providers(&mut server);
-
-        // OPCUA and Actix are sharing tokio runtime, so create it first
-        let runtime = tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
+        let (server, handle) = ServerBuilder::new()
+            .with_config_from(&args.config_path)
+            .with_node_manager(node_manager.clone())
             .build()
             .unwrap();
 
-        // Start the http server, used for metrics
-        start_http_server(&runtime, &server, args.content_path.to_str().unwrap());
+        let token = CancellationToken::new();
 
-        // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-        Server::run_server_on_runtime(
-            runtime,
-            Server::new_server_task(Arc::new(RwLock::new(server))),
-            true,
+        // Add some objects representing machinery
+        machine::add_machinery(
+            ns,
+            node_manager.clone(),
+            handle.subscriptions().clone(),
+            args.raise_events,
+            token.clone(),
         );
-    }
-}
 
-fn start_http_server(runtime: &tokio::runtime::Runtime, server: &Server, content_path: &str) {
-    let server_state = server.server_state();
-    let connections = server.connections();
-    let metrics = server.server_metrics();
-    // The index.html is in a path relative to the working dir.
-    let _ = http::run_http_server(
-        runtime,
-        "127.0.0.1:8585",
-        content_path,
-        server_state,
-        connections,
-        metrics,
-    );
+        // Add some scalar variables
+        scalar::add_scalar_variables(node_manager.clone(), handle.subscriptions().clone(), ns);
+
+        // Add some rapidly changing values
+        scalar::add_stress_variables(node_manager.clone(), handle.subscriptions().clone(), ns);
+
+        // Add some control switches, e.g. abort flag
+        control::add_control_switches(
+            ns,
+            node_manager.clone(),
+            handle.subscriptions().clone(),
+            token.clone(),
+        );
+
+        // Add some methods
+        methods::add_methods(node_manager, ns);
+
+        server.run(token).await.unwrap();
+    }
 }

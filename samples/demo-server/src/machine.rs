@@ -2,25 +2,38 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2024 Adam Lock
 
-use std::sync::{
-    atomic::{AtomicU16, AtomicU32, Ordering},
-    Arc,
-};
-
-use chrono;
-use rand;
-
-use opcua::server::{
-    address_space::{
-        types::{ObjectBuilder, ObjectTypeBuilder, VariableBuilder},
-        AddressSpace, AttrFnGetter,
+use std::{
+    sync::{
+        atomic::{AtomicU16, AtomicU32, Ordering},
+        Arc,
     },
-    events::event::*,
-    prelude::*,
+    time::Duration,
 };
 
-pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
-    let address_space = server.address_space();
+use opcua::{
+    crypto::random,
+    server::{
+        address_space::{
+            AddressSpace, EventNotifier, ObjectBuilder, ObjectTypeBuilder, VariableBuilder,
+        },
+        node_manager::memory::SimpleNodeManager,
+        BaseEventType, Event, SubscriptionCache,
+    },
+    types::{
+        DataTypeId, DataValue, DateTime, NodeId, ObjectId, ObjectTypeId, UAString, VariableTypeId,
+    },
+};
+use rand;
+use tokio_util::sync::CancellationToken;
+
+pub fn add_machinery(
+    ns: u16,
+    manager: Arc<SimpleNodeManager>,
+    subscriptions: Arc<SubscriptionCache>,
+    raise_event: bool,
+    token: CancellationToken,
+) {
+    let address_space = manager.address_space();
     let machine1_counter = Arc::new(AtomicU16::new(0));
     let machine2_counter = Arc::new(AtomicU16::new(50));
 
@@ -29,12 +42,16 @@ pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
         add_machinery_model(&mut address_space, ns);
 
         // Create a folder under static folder
-        let devices_folder_id = address_space
-            .add_folder("Devices", "Devices", &NodeId::objects_folder_id())
-            .unwrap();
+        let devices_folder_id = NodeId::new(ns, "devices");
+        address_space.add_folder(
+            &devices_folder_id,
+            "Devices",
+            "Devices",
+            &NodeId::objects_folder_id(),
+        );
 
         // Create the machine events folder
-        let _ = address_space.add_folder_with_id(
+        let _ = address_space.add_folder(
             &machine_events_folder_id(ns),
             "Events",
             "Events",
@@ -44,6 +61,7 @@ pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
         // Create an object representing a machine that cycles from 0 to 100. Each time it cycles it will create an event
         let machine1_id = add_machine(
             &mut address_space,
+            &manager,
             ns,
             devices_folder_id.clone(),
             "Machine 1",
@@ -51,6 +69,7 @@ pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
         );
         let machine2_id = add_machine(
             &mut address_space,
+            &manager,
             ns,
             devices_folder_id,
             "Machine 2",
@@ -59,23 +78,28 @@ pub fn add_machinery(server: &mut Server, ns: u16, raise_event: bool) {
         (machine1_id, machine2_id)
     };
 
-    // Increment counters
-    server.add_polling_action(300, move || {
-        let mut address_space = address_space.write();
-        increment_counter(
-            &mut address_space,
-            ns,
-            machine1_counter.clone(),
-            &machine1_id,
-            raise_event,
-        );
-        increment_counter(
-            &mut address_space,
-            ns,
-            machine2_counter.clone(),
-            &machine2_id,
-            raise_event,
-        );
+    tokio::task::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_millis(300));
+        while !token.is_cancelled() {
+            interval.tick().await;
+
+            increment_counter(
+                &manager,
+                &subscriptions,
+                ns,
+                machine1_counter.clone(),
+                &machine1_id,
+                raise_event,
+            );
+            increment_counter(
+                &manager,
+                &subscriptions,
+                ns,
+                machine2_counter.clone(),
+                &machine2_id,
+                raise_event,
+            );
+        }
     });
 }
 
@@ -119,6 +143,7 @@ fn add_machinery_model(address_space: &mut AddressSpace, ns: u16) {
 
 fn add_machine(
     address_space: &mut AddressSpace,
+    manager: &SimpleNodeManager,
     ns: u16,
     folder_id: NodeId,
     name: &str,
@@ -137,30 +162,41 @@ fn add_machine(
         .property_of(machine_id.clone())
         .data_type(DataTypeId::UInt16)
         .has_type_definition(VariableTypeId::PropertyType)
-        .value_getter(AttrFnGetter::new_boxed(
-            move |_, _, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
-                let value = counter.load(Ordering::Relaxed);
-                Ok(Some(DataValue::new_now(value)))
-            },
-        ))
         .insert(address_space);
+
+    manager
+        .inner()
+        .add_read_callback(counter_id, move |_, _, _| {
+            let value = counter.load(Ordering::Relaxed);
+            Ok(DataValue::new_now(value))
+        });
 
     machine_id
 }
 
 pub struct MachineCycledEventType {
     base: BaseEventType,
+    ns: u16,
 }
 
 impl Event for MachineCycledEventType {
-    type Err = ();
-
-    fn is_valid(&self) -> bool {
-        self.base.is_valid()
+    fn get_field(
+        &self,
+        type_definition_id: &NodeId,
+        browse_path: &[opcua::types::QualifiedName],
+        attribute_id: opcua::types::AttributeId,
+        index_range: opcua::types::NumericRange,
+    ) -> opcua::types::Variant {
+        self.base
+            .get_field(type_definition_id, browse_path, attribute_id, index_range)
     }
 
-    fn raise(&mut self, address_space: &mut AddressSpace) -> Result<NodeId, Self::Err> {
-        self.base.raise(address_space)
+    fn time(&self) -> &opcua::types::DateTime {
+        self.base.time()
+    }
+
+    fn matches_type_id(&self, id: &NodeId) -> bool {
+        self.base.matches_type_id(id) || id != &Self::event_type_id(self.ns)
     }
 }
 
@@ -175,88 +211,52 @@ lazy_static! {
 }
 
 impl MachineCycledEventType {
-    fn new<R, S, T, U, V>(
-        machine_name: &str,
-        ns: u16,
-        node_id: R,
-        browse_name: S,
-        display_name: T,
-        parent_node: U,
-        source_node: V,
-        time: DateTime,
-    ) -> Self
-    where
-        R: Into<NodeId>,
-        S: Into<QualifiedName>,
-        T: Into<LocalizedText>,
-        U: Into<NodeId>,
-        V: Into<NodeId>,
-    {
+    fn new(machine_name: &str, ns: u16, source_node: impl Into<NodeId>, time: DateTime) -> Self {
         let event_type_id = MachineCycledEventType::event_type_id(ns);
         let source_node: NodeId = source_node.into();
         MachineCycledEventType {
             base: BaseEventType::new(
-                node_id,
                 event_type_id,
-                browse_name,
-                display_name,
-                parent_node,
+                random::byte_string(128),
+                format!("A machine cycled event from machine {}", source_node),
                 time,
             )
-            .source_node(source_node.clone())
-            .source_name(UAString::from(machine_name))
-            .message(LocalizedText::from(format!(
-                "A machine cycled event from machine {}",
-                source_node
-            )))
-            .severity(rand::random::<u16>() % 999u16 + 1u16),
+            .set_source_node(source_node.clone())
+            .set_source_name(UAString::from(machine_name))
+            .set_severity(rand::random::<u16>() % 999u16 + 1u16),
+            ns,
         }
     }
 }
 
 fn raise_machine_cycled_event(
-    address_space: &mut AddressSpace,
+    manager: &SimpleNodeManager,
+    subscriptions: &SubscriptionCache,
     ns: u16,
     source_machine_id: &NodeId,
 ) {
-    // Remove old events
-    let now = chrono::Utc::now();
-    let happened_before = now - chrono::Duration::minutes(5);
-    purge_events(
-        source_machine_id,
-        MachineCycledEventType::event_type_id(ns),
-        address_space,
-        &happened_before,
-    );
-
-    let machine_name = if let Some(node) = address_space.find_node(source_machine_id) {
-        format!("{}", node.as_node().display_name().text)
-    } else {
-        "Machine ???".to_string()
+    let machine_name = {
+        let address_space = manager.address_space();
+        let address_space_lck = address_space.read();
+        if let Some(node) = address_space_lck.find_node(source_machine_id) {
+            format!("{}", node.as_node().display_name().text)
+        } else {
+            "Machine ???".to_string()
+        }
     };
 
     // New event
-    let event_node_id = NodeId::next_numeric(ns);
-    let event_id = MACHINE_CYCLED_EVENT_ID.fetch_add(1, Ordering::Relaxed);
-    let event_name = format!("Event{}", event_id);
     let now = DateTime::now();
-    let mut event = MachineCycledEventType::new(
-        &machine_name,
-        ns,
-        &event_node_id,
-        event_name.clone(),
-        event_name,
-        machine_events_folder_id(ns),
-        source_machine_id,
-        now,
-    );
+    let event = MachineCycledEventType::new(&machine_name, ns, source_machine_id, now);
 
     // create an event object in a folder with the
-    let _ = event.raise(address_space);
+
+    subscriptions.notify_events([(&event as &dyn Event, &ObjectId::Server.into())].into_iter());
 }
 
 fn increment_counter(
-    address_space: &mut AddressSpace,
+    manager: &SimpleNodeManager,
+    subscriptions: &SubscriptionCache,
     ns: u16,
     machine_counter: Arc<AtomicU16>,
     machine_id: &NodeId,
@@ -268,7 +268,7 @@ fn increment_counter(
     } else {
         if raise_event {
             // Raise new event
-            raise_machine_cycled_event(address_space, ns, machine_id);
+            raise_machine_cycled_event(manager, subscriptions, ns, machine_id);
         }
         0
     };

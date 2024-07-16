@@ -55,7 +55,7 @@ async fn main() -> Result<(), ()> {
         opcua::console_logging::init();
 
         // The client API has a simple `find_servers` function that connects and returns servers for us.
-        let mut client = Client::new(ClientConfig::new("DiscoveryClient", "urn:DiscoveryClient"));
+        let client = Client::new(ClientConfig::new("DiscoveryClient", "urn:DiscoveryClient"));
         match client.find_servers(url).await {
             Ok(servers) => {
                 println!("Discovery server responded with {} servers:", servers.len());

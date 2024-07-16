@@ -151,4 +151,24 @@ impl BaseEventType {
             ..Default::default()
         }
     }
+
+    pub fn set_source_node(mut self, source_node: NodeId) -> Self {
+        self.source_node = source_node;
+        self
+    }
+
+    pub fn set_source_name(mut self, source_name: UAString) -> Self {
+        self.source_name = source_name;
+        self
+    }
+
+    pub fn set_receive_time(mut self, receive_time: DateTime) -> Self {
+        self.receive_time = receive_time;
+        self
+    }
+
+    pub fn set_severity(mut self, severity: u16) -> Self {
+        self.severity = severity;
+        self
+    }
 }

@@ -2,34 +2,48 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2024 Adam Lock
 
-use opcua::server::address_space::types::VariableBuilder;
+use std::sync::Arc;
+
+use opcua::server::address_space::VariableBuilder;
+use opcua::server::node_manager::memory::SimpleNodeManager;
+use opcua::server::SubscriptionCache;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
 
 use opcua::types::*;
 
-pub fn add_scalar_variables(server: &mut Server, ns: u16) {
-    let (static_folder_id, dynamic_folder_id) = {
-        let address_space = server.address_space();
+pub fn add_scalar_variables(
+    manager: Arc<SimpleNodeManager>,
+    subscriptions: Arc<SubscriptionCache>,
+    ns: u16,
+) {
+    let static_folder_id = NodeId::new(ns, "static");
+    let dynamic_folder_id = NodeId::new(ns, "dynamic");
+    {
+        let address_space = manager.address_space();
         let mut address_space = address_space.write();
-        (
-            address_space
-                .add_folder("Static", "Static", &NodeId::objects_folder_id())
-                .unwrap(),
-            address_space
-                .add_folder("Dynamic", "Dynamic", &NodeId::objects_folder_id())
-                .unwrap(),
-        )
+        address_space.add_folder(
+            &static_folder_id,
+            "Static",
+            "Static",
+            &NodeId::objects_folder_id(),
+        );
+        address_space.add_folder(
+            &dynamic_folder_id,
+            "Dynamic",
+            "Dynamic",
+            &NodeId::objects_folder_id(),
+        );
     };
 
     // Add static scalar values
-    add_static_scalar_variables(server, ns, &static_folder_id);
-    add_static_array_variables(server, ns, &static_folder_id);
+    add_static_scalar_variables(&manager, ns, &static_folder_id);
+    add_static_array_variables(&manager, ns, &static_folder_id);
 
     // Add dynamically changing scalar values
-    add_dynamic_scalar_variables(server, ns, &dynamic_folder_id);
-    add_dynamic_array_variables(server, ns, &dynamic_folder_id);
-    set_dynamic_timers(server, ns);
+    add_dynamic_scalar_variables(&manager, ns, &dynamic_folder_id);
+    add_dynamic_array_variables(&manager, ns, &dynamic_folder_id);
+    set_dynamic_timers(manager, ns, subscriptions);
 }
 
 const SCALAR_TYPES: [DataTypeId; 14] = [
@@ -168,15 +182,14 @@ pub fn scalar_random_value(id: DataTypeId) -> Variant {
 }
 
 /// Creates some sample variables, and some push / pull examples that update them
-fn add_static_scalar_variables(server: &mut Server, ns: u16, static_folder_id: &NodeId) {
+fn add_static_scalar_variables(manager: &SimpleNodeManager, ns: u16, static_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
-    let address_space = server.address_space();
+    let address_space = manager.address_space();
     let mut address_space = address_space.write();
 
     // Create a folder under static folder
-    let folder_id = address_space
-        .add_folder("Scalar", "Scalar", &static_folder_id)
-        .unwrap();
+    let scalar_folder_id = NodeId::new(ns, "static_scalar");
+    address_space.add_folder(&scalar_folder_id, "Scalar", "Scalar", &static_folder_id);
 
     for sn in SCALAR_TYPES.iter() {
         let name = scalar_name(*sn);
@@ -184,21 +197,20 @@ fn add_static_scalar_variables(server: &mut Server, ns: u16, static_folder_id: &
         VariableBuilder::new(&node_id, name, name)
             .data_type(sn)
             .value(scalar_default_value(*sn))
-            .organized_by(&folder_id)
+            .organized_by(&scalar_folder_id)
             .writable()
             .insert(&mut address_space);
     }
 }
 
-fn add_static_array_variables(server: &mut Server, ns: u16, static_folder_id: &NodeId) {
+fn add_static_array_variables(manager: &SimpleNodeManager, ns: u16, static_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
-    let address_space = server.address_space();
+    let address_space = manager.address_space();
     let mut address_space = address_space.write();
 
     // Create a folder under static folder
-    let folder_id = address_space
-        .add_folder("Array", "Array", &static_folder_id)
-        .unwrap();
+    let array_folder_id = NodeId::new(ns, "static_array");
+    address_space.add_folder(&array_folder_id, "Array", "Array", &static_folder_id);
 
     SCALAR_TYPES.iter().for_each(|sn| {
         let node_id = scalar_node_id(ns, *sn, false, true);
@@ -212,21 +224,20 @@ fn add_static_array_variables(server: &mut Server, ns: u16, static_folder_id: &N
             .data_type(*sn)
             .value_rank(1)
             .value((value_type, values))
-            .organized_by(&folder_id)
+            .organized_by(&array_folder_id)
             .writable()
             .insert(&mut address_space);
     });
 }
 
-fn add_dynamic_scalar_variables(server: &mut Server, ns: u16, dynamic_folder_id: &NodeId) {
+fn add_dynamic_scalar_variables(manager: &SimpleNodeManager, ns: u16, dynamic_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
-    let address_space = server.address_space();
+    let address_space = manager.address_space();
     let mut address_space = address_space.write();
 
     // Create a folder under static folder
-    let folder_id = address_space
-        .add_folder("Scalar", "Scalar", &dynamic_folder_id)
-        .unwrap();
+    let scalar_folder_id = NodeId::new(ns, "dynamic_scalar");
+    address_space.add_folder(&scalar_folder_id, "Scalar", "Scalar", &dynamic_folder_id);
 
     SCALAR_TYPES.iter().for_each(|sn| {
         let node_id = scalar_node_id(ns, *sn, true, false);
@@ -234,20 +245,19 @@ fn add_dynamic_scalar_variables(server: &mut Server, ns: u16, dynamic_folder_id:
         VariableBuilder::new(&node_id, name, name)
             .data_type(*sn)
             .value(scalar_default_value(*sn))
-            .organized_by(&folder_id)
+            .organized_by(&scalar_folder_id)
             .insert(&mut address_space);
     });
 }
 
-fn add_dynamic_array_variables(server: &mut Server, ns: u16, dynamic_folder_id: &NodeId) {
+fn add_dynamic_array_variables(manager: &SimpleNodeManager, ns: u16, dynamic_folder_id: &NodeId) {
     // The address space is guarded so obtain a lock to change it
-    let address_space = server.address_space();
+    let address_space = manager.address_space();
     let mut address_space = address_space.write();
 
     // Create a folder under static folder
-    let folder_id = address_space
-        .add_folder("Array", "Array", &dynamic_folder_id)
-        .unwrap();
+    let array_folder_id = NodeId::new(ns, "dynamic_array");
+    address_space.add_folder(&array_folder_id, "Array", "Array", &dynamic_folder_id);
 
     SCALAR_TYPES.iter().for_each(|sn| {
         let node_id = scalar_node_id(ns, *sn, true, true);
@@ -260,72 +270,99 @@ fn add_dynamic_array_variables(server: &mut Server, ns: u16, dynamic_folder_id: 
             .data_type(*sn)
             .value_rank(1)
             .value((value_type, values))
-            .organized_by(&folder_id)
+            .organized_by(&array_folder_id)
             .insert(&mut address_space);
     });
 }
 
-fn set_dynamic_timers(server: &mut Server, ns: u16) {
-    let address_space = server.address_space();
-
+fn set_dynamic_timers(
+    manager: Arc<SimpleNodeManager>,
+    ns: u16,
+    subscriptions: Arc<SubscriptionCache>,
+) {
     // Standard change timers
-    server.add_polling_action(250, move || {
-        let mut address_space = address_space.write();
-        // Scalar
-        let now = DateTime::now();
-        SCALAR_TYPES.iter().for_each(|sn| {
-            let node_id = scalar_node_id(ns, *sn, true, false);
-            let _ = address_space.set_variable_value_by_ref(
-                &node_id,
-                scalar_random_value(*sn),
-                &now,
-                &now,
-            );
+    tokio::task::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_millis(250));
 
-            let node_id = scalar_node_id(ns, *sn, true, true);
-            let values = (0..10)
-                .map(|_| scalar_random_value(*sn))
-                .collect::<Vec<Variant>>();
-            let value_type = values.get(0).unwrap().type_id();
-            let _ =
-                address_space.set_variable_value_by_ref(&node_id, (value_type, values), &now, &now);
-        });
+        loop {
+            interval.tick().await;
+
+            let now = DateTime::now();
+            for sn in SCALAR_TYPES {
+                let sc_node_id = scalar_node_id(ns, sn, true, false);
+                let scalar_val = DataValue::new_at(scalar_random_value(sn), now);
+
+                let arr_node_id = scalar_node_id(ns, sn, true, true);
+                let arr = (0..10).map(|_| scalar_random_value(sn)).collect::<Vec<_>>();
+                let type_id = arr[0].type_id();
+                let array_val = DataValue::new_at(Array::new(type_id, arr).unwrap(), now);
+
+                manager
+                    .set_values(
+                        &subscriptions,
+                        [
+                            (&sc_node_id, None, scalar_val),
+                            (&arr_node_id, None, array_val),
+                        ]
+                        .into_iter(),
+                    )
+                    .unwrap();
+            }
+        }
     });
 }
 
-pub fn add_stress_variables(server: &mut Server, ns: u16) {
+pub fn add_stress_variables(
+    manager: Arc<SimpleNodeManager>,
+    subscriptions: Arc<SubscriptionCache>,
+    ns: u16,
+) {
     let node_ids = (0..1000)
         .map(|i| NodeId::new(ns, format!("v{:04}", i)))
         .collect::<Vec<NodeId>>();
 
-    let address_space = server.address_space();
-    let mut address_space = address_space.write();
+    {
+        let address_space = manager.address_space();
+        let mut address_space = address_space.write();
 
-    let folder_id = address_space
-        .add_folder("Stress", "Stress", &NodeId::objects_folder_id())
-        .unwrap();
+        let folder_id = NodeId::new(ns, "stress");
+        address_space.add_folder(&folder_id, "Stress", "Stress", &NodeId::objects_folder_id());
 
-    node_ids.iter().enumerate().for_each(|(i, node_id)| {
-        let name = format!("v{:04}", i);
-        VariableBuilder::new(&node_id, &name, &name)
-            .data_type(DataTypeId::Int32)
-            .value(0i32)
-            .organized_by(&folder_id)
-            .insert(&mut address_space);
-    });
+        node_ids.iter().enumerate().for_each(|(i, node_id)| {
+            let name = format!("v{:04}", i);
+            VariableBuilder::new(&node_id, &name, &name)
+                .data_type(DataTypeId::Int32)
+                .value(0i32)
+                .organized_by(&folder_id)
+                .insert(&mut address_space);
+        });
+    }
 
-    set_stress_timer(server, node_ids);
+    set_stress_timer(manager, subscriptions, node_ids);
 }
 
-fn set_stress_timer(server: &mut Server, node_ids: Vec<NodeId>) {
-    let address_space = server.address_space();
-    server.add_polling_action(100, move || {
-        let mut rng = rand::thread_rng();
-        let mut address_space = address_space.write();
-        let now = DateTime::now();
-        node_ids.iter().for_each(|node_id| {
-            let value: Variant = rng.gen::<i32>().into();
-            let _ = address_space.set_variable_value_by_ref(node_id, value, &now, &now);
-        });
+fn set_stress_timer(
+    manager: Arc<SimpleNodeManager>,
+    subscriptions: Arc<SubscriptionCache>,
+    node_ids: Vec<NodeId>,
+) {
+    // Update 1000 variables.
+    // Note that for large servers you will typically want to avoid using the simple node manager in this way,
+    // instead using callbacks.
+    tokio::task::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_millis(100));
+        loop {
+            interval.tick().await;
+            let mut rng = rand::thread_rng();
+            let now = DateTime::now();
+            manager
+                .set_values(
+                    &subscriptions,
+                    node_ids
+                        .iter()
+                        .map(|id| (id, None, DataValue::new_at(rng.gen::<i32>(), now))),
+                )
+                .unwrap();
+        }
     });
 }

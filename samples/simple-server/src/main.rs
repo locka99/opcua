@@ -25,9 +25,10 @@ async fn main() {
 
     // Create an OPC UA server with sample configuration and default node set
 
+    let ns = 2;
     let node_manager = Arc::new(SimpleNodeManager::new_simple(
         NamespaceMetadata {
-            namespace_index: 2,
+            namespace_index: ns,
             namespace_uri: "urn:SimpleServer".to_owned(),
             ..Default::default()
         },
@@ -41,7 +42,7 @@ async fn main() {
         .unwrap();
 
     // Add some variables of our own
-    add_example_variables(2, node_manager, handle.subscriptions().clone());
+    add_example_variables(ns, node_manager, handle.subscriptions().clone());
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
     server.run(CancellationToken::new()).await.unwrap();
