@@ -5,6 +5,8 @@ authors = ["Adam Lock <locka99@gmail.com>"]
 edition = "2021"
 
 [dependencies]
+tokio = { version = "1.38.0", features = ["full"] }
+tokio-util = "0.7.11"
 uci = "0.1.1"
 
 [dependencies.opcua]

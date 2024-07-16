@@ -34,7 +34,7 @@ dependencies = [
  "derive_more",
  "futures-core",
  "http-range",
- "log",
+ "log 0.4.22",
  "mime",
  "mime_guess",
  "percent-encoding 2.3.1",
@@ -178,7 +178,7 @@ dependencies = [
  "futures-util",
  "itoa",
  "language-tags",
- "log",
+ "log 0.4.22",
  "mime",
  "once_cell",
  "pin-project-lite",
@@ -298,7 +298,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "ctrlc",
- "log",
+ "log 0.4.22",
  "opcua",
  "tokio",
  "tokio-util",
@@ -590,7 +590,7 @@ checksum = "4cd405aab171cb85d6735e5c8d9db038c17d3ca007a4d2c25f337935c3d90580"
 dependencies = [
  "humantime",
  "is-terminal",
- "log",
+ "log 0.4.22",
  "regex",
  "termcolor",
 ]
@@ -990,6 +990,15 @@ dependencies = [
 
 [[package]]
 name = "log"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e19e8d5c34a3e0e2223db8e060f9e8264aeeb5c5fc64a4ee9965c062211c024b"
+dependencies = [
+ "log 0.4.22",
+]
+
+[[package]]
+name = "log"
 version = "0.4.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
@@ -1038,7 +1047,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a650543ca06a924e8b371db273b2756685faae30f8487da1b56505a8f78b0c"
 dependencies = [
  "libc",
- "log",
+ "log 0.4.22",
  "wasi",
  "windows-sys 0.48.0",
 ]
@@ -1117,7 +1126,7 @@ dependencies = [
  "hashbrown",
  "lazy_static",
  "libc",
- "log",
+ "log 0.4.22",
  "opcua",
  "openssl",
  "openssl-sys",
@@ -1141,6 +1150,16 @@ version = "0.13.0"
 dependencies = [
  "opcua",
  "pico-args",
+]
+
+[[package]]
+name = "opcua-chess-server"
+version = "0.13.0"
+dependencies = [
+ "opcua",
+ "tokio",
+ "tokio-util",
+ "uci",
 ]
 
 [[package]]
@@ -1185,7 +1204,7 @@ name = "opcua-simple-server"
 version = "0.13.0"
 dependencies = [
  "chrono",
- "log",
+ "log 0.4.22",
  "opcua",
  "tokio",
  "tokio-util",
@@ -1478,7 +1497,7 @@ dependencies = [
  "bytes",
  "flume",
  "futures-util",
- "log",
+ "log 0.4.22",
  "rustls-native-certs",
  "rustls-pemfile",
  "rustls-webpki",
@@ -1508,7 +1527,7 @@ version = "0.21.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f9d5a6813c0759e4609cd494e8e725babae6a2ca7b62a5536a13daaec6fcb7ba"
 dependencies = [
- "log",
+ "log 0.4.22",
  "ring",
  "rustls-webpki",
  "sct",
@@ -1881,7 +1900,7 @@ version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c3523ab5a71916ccf420eebdf5521fcef02141234bbc0b8a49f2fdc4544364ef"
 dependencies = [
- "log",
+ "log 0.4.22",
  "pin-project-lite",
  "tracing-core",
 ]
@@ -1900,6 +1919,15 @@ name = "typenum"
 version = "1.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "42ff0bf0c66b8238c6f3b578df37d0b7848e55df8577b3f74f92a69acceeb825"
+
+[[package]]
+name = "uci"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "17a740d6bc20b5cb1c740fe8e531fd948fe1be0f53095cae09c21778db5cef4f"
+dependencies = [
+ "log 0.3.9",
+]
 
 [[package]]
 name = "unicase"
@@ -2015,7 +2043,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "614d787b966d3989fa7bb98a654e369c762374fd3213d212cfc0251257e747da"
 dependencies = [
  "bumpalo",
- "log",
+ "log 0.4.22",
  "once_cell",
  "proc-macro2",
  "quote",
