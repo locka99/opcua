@@ -28,7 +28,7 @@ use self::view::ExternalReferenceRequest;
 use super::{info::ServerInfo, subscriptions::CreateMonitoredItem, SubscriptionCache};
 
 pub use {
-    attributes::{ParsedReadValueId, ReadNode, WriteNode},
+    attributes::{ParsedReadValueId, ParsedWriteValue, ReadNode, WriteNode},
     context::RequestContext,
     history::{HistoryNode, HistoryResult, HistoryUpdateDetails, HistoryUpdateNode},
     method::MethodCall,

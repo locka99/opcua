@@ -20,8 +20,8 @@ use opcua::{
     trace_read_lock, trace_write_lock,
     types::{
         AttributeId, DataValue, DateTime, ExpandedNodeId, MonitoringMode, NodeClass, NodeId,
-        PerformUpdateType, QualifiedName, ReadRawModifiedDetails, ReferenceTypeId,
-        StatusCode, TimestampsToReturn, Variant,
+        PerformUpdateType, QualifiedName, ReadRawModifiedDetails, ReferenceTypeId, StatusCode,
+        TimestampsToReturn, Variant,
     },
 };
 use tokio::sync::OnceCell;
@@ -281,27 +281,24 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
         {
             let mut call_info = self.call_info.lock();
             for node in nodes_to_write.iter() {
-                call_info.write.push((
-                    node.value().node_id.clone(),
-                    AttributeId::from_u32(node.value().attribute_id)
-                        .unwrap_or(AttributeId::DisplayName),
-                ));
+                call_info
+                    .write
+                    .push((node.value().node_id.clone(), node.value().attribute_id));
             }
         }
         let mut address_space = trace_write_lock!(address_space);
         let type_tree = trace_read_lock!(context.type_tree);
 
         for write in nodes_to_write {
-            let (node, attribute_id, index_range) =
-                match address_space.validate_node_write(context, write.value(), &type_tree) {
-                    Ok(v) => v,
-                    Err(e) => {
-                        write.set_status(e);
-                        continue;
-                    }
-                };
+            let node = match address_space.validate_node_write(context, write.value(), &type_tree) {
+                Ok(v) => v,
+                Err(e) => {
+                    write.set_status(e);
+                    continue;
+                }
+            };
 
-            if matches!(attribute_id, AttributeId::Value)
+            if matches!(write.value().attribute_id, AttributeId::Value)
                 && node.node_class() == NodeClass::Variable
             {
                 let NodeType::Variable(var) = node else {
@@ -309,7 +306,7 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
                     continue;
                 };
                 if let Err(e) = var.set_value(
-                    index_range,
+                    write.value().index_range.clone(),
                     write.value().value.value.clone().unwrap_or(Variant::Empty),
                 ) {
                     write.set_status(e);
@@ -330,7 +327,7 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
                 }
             } else {
                 if let Err(e) = node.as_mut_node().set_attribute(
-                    attribute_id,
+                    write.value().attribute_id,
                     write.value().value.value.clone().unwrap_or(Variant::Empty),
                 ) {
                     write.set_status(e);
@@ -346,7 +343,7 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
                 [(
                     write.value().value.clone(),
                     &write.value().node_id,
-                    attribute_id,
+                    write.value().attribute_id,
                 )]
                 .into_iter(),
             );

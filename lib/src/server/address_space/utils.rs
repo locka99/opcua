@@ -1,8 +1,8 @@
 use crate::{
-    server::node_manager::{ParsedReadValueId, RequestContext, TypeTree},
+    server::node_manager::{ParsedReadValueId, ParsedWriteValue, RequestContext, TypeTree},
     types::{
         AttributeId, DataTypeId, DataValue, NumericRange, QualifiedName, StatusCode,
-        TimestampsToReturn, Variant, WriteMask, WriteValue,
+        TimestampsToReturn, Variant, WriteMask,
     },
 };
 
@@ -162,24 +162,12 @@ pub fn validate_value_to_write(
 pub fn validate_node_write(
     node: &NodeType,
     context: &RequestContext,
-    node_to_write: &WriteValue,
+    node_to_write: &ParsedWriteValue,
     type_tree: &TypeTree,
-) -> Result<(AttributeId, NumericRange), StatusCode> {
-    let Ok(attribute_id) = AttributeId::from_u32(node_to_write.attribute_id) else {
-        debug!(
-            "read_node_value result for write node id {}, attribute {} is invalid",
-            node_to_write.node_id, node_to_write.attribute_id
-        );
-        return Err(StatusCode::BadAttributeIdInvalid);
-    };
+) -> Result<(), StatusCode> {
+    is_writable(context, node, node_to_write.attribute_id)?;
 
-    let Ok(index_range) = node_to_write.index_range.as_ref().parse::<NumericRange>() else {
-        return Err(StatusCode::BadIndexRangeInvalid);
-    };
-
-    is_writable(context, node, attribute_id)?;
-
-    if attribute_id != AttributeId::Value && index_range.has_range() {
+    if node_to_write.attribute_id != AttributeId::Value && node_to_write.index_range.has_range() {
         return Err(StatusCode::BadWriteNotSupported);
     }
 
@@ -188,11 +176,11 @@ pub fn validate_node_write(
     };
 
     // TODO: We should do type validation for every attribute, not just value.
-    if let (NodeType::Variable(var), AttributeId::Value) = (node, attribute_id) {
+    if let (NodeType::Variable(var), AttributeId::Value) = (node, node_to_write.attribute_id) {
         validate_value_to_write(var, &value, type_tree)?;
     }
 
-    Ok((attribute_id, index_range))
+    Ok(())
 }
 
 pub fn is_supported_data_encoding(data_encoding: &QualifiedName) -> bool {

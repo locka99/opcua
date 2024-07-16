@@ -277,16 +277,16 @@ impl SimpleNodeManagerImpl {
         type_tree: &TypeTree,
         write: &mut WriteNode,
     ) {
-        let (node, attribute_id, index_range) =
-            match address_space.validate_node_write(context, write.value(), &type_tree) {
-                Ok(v) => v,
-                Err(e) => {
-                    write.set_status(e);
-                    return;
-                }
-            };
+        let node = match address_space.validate_node_write(context, write.value(), &type_tree) {
+            Ok(v) => v,
+            Err(e) => {
+                write.set_status(e);
+                return;
+            }
+        };
 
-        let (NodeType::Variable(var), AttributeId::Value) = (node, attribute_id) else {
+        let (NodeType::Variable(var), AttributeId::Value) = (node, write.value().attribute_id)
+        else {
             write.set_status(StatusCode::BadNotWritable);
             return;
         };
@@ -296,7 +296,10 @@ impl SimpleNodeManagerImpl {
             return;
         };
 
-        write.set_status(cb(write.value().value.clone(), index_range));
+        write.set_status(cb(
+            write.value().value.clone(),
+            write.value().index_range.clone(),
+        ));
     }
 
     pub fn add_write_callback(

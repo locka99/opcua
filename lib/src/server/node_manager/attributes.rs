@@ -96,17 +96,64 @@ impl ReadNode {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct ParsedWriteValue {
+    pub node_id: NodeId,
+    pub attribute_id: AttributeId,
+    pub index_range: NumericRange,
+    pub value: DataValue,
+}
+
+impl ParsedWriteValue {
+    pub fn parse(val: WriteValue) -> Result<Self, StatusCode> {
+        let attribute_id = AttributeId::from_u32(val.attribute_id)
+            .map_err(|_| StatusCode::BadAttributeIdInvalid)?;
+        let index_range: NumericRange = val
+            .index_range
+            .as_ref()
+            .parse()
+            .map_err(|_| StatusCode::BadIndexRangeInvalid)?;
+
+        Ok(Self {
+            node_id: val.node_id,
+            attribute_id,
+            index_range,
+            value: val.value,
+        })
+    }
+
+    pub fn null() -> Self {
+        Self {
+            node_id: NodeId::null(),
+            attribute_id: AttributeId::NodeId,
+            index_range: NumericRange::None,
+            value: DataValue::null(),
+        }
+    }
+
+    pub fn is_null(&self) -> bool {
+        self.node_id.is_null()
+    }
+}
+
 pub struct WriteNode {
-    value: WriteValue,
+    value: ParsedWriteValue,
     status: StatusCode,
 }
 
 impl WriteNode {
     pub fn new(value: WriteValue) -> Self {
-        Self {
-            value,
-            status: StatusCode::BadNodeIdUnknown,
-        }
+        let mut status = StatusCode::BadNodeIdUnknown;
+
+        let value = match ParsedWriteValue::parse(value) {
+            Ok(r) => r,
+            Err(e) => {
+                status = e;
+                ParsedWriteValue::null()
+            }
+        };
+
+        Self { value, status }
     }
 
     pub fn status(&self) -> StatusCode {
@@ -117,7 +164,7 @@ impl WriteNode {
         self.status = status;
     }
 
-    pub fn value(&self) -> &WriteValue {
+    pub fn value(&self) -> &ParsedWriteValue {
         &self.value
     }
 }

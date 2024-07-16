@@ -91,7 +91,10 @@ pub async fn write(node_managers: NodeManagers, request: Request<WriteRequest>) 
         context.current_node_manager_index = idx;
         let mut batch: Vec<_> = results
             .iter_mut()
-            .filter(|n| node_manager.owns_node(&n.value().node_id))
+            .filter(|n| {
+                node_manager.owns_node(&n.value().node_id)
+                    && n.status() == StatusCode::BadNodeIdUnknown
+            })
             .collect();
 
         if batch.is_empty() {

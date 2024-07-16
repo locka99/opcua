@@ -3,10 +3,10 @@ use std::collections::VecDeque;
 use hashbrown::{Equivalent, HashMap, HashSet};
 
 use crate::{
-    server::node_manager::{ParsedReadValueId, RequestContext, TypeTree},
+    server::node_manager::{ParsedReadValueId, ParsedWriteValue, RequestContext, TypeTree},
     types::{
-        AttributeId, BrowseDirection, DataValue, NodeClass, NodeId, NumericRange, QualifiedName,
-        ReferenceTypeId, StatusCode, TimestampsToReturn, WriteValue,
+        BrowseDirection, DataValue, NodeClass, NodeId, QualifiedName, ReferenceTypeId, StatusCode,
+        TimestampsToReturn,
     },
 };
 
@@ -659,21 +659,20 @@ impl AddressSpace {
     pub fn validate_node_write<'a>(
         &'a mut self,
         context: &RequestContext,
-        node_to_write: &WriteValue,
+        node_to_write: &ParsedWriteValue,
         type_tree: &TypeTree,
-    ) -> Result<(&'a mut NodeType, AttributeId, NumericRange), StatusCode> {
+    ) -> Result<&'a mut NodeType, StatusCode> {
         let Some(node) = self.find_mut(&node_to_write.node_id) else {
             debug!(
-                "write_node_value result for read node id {}, attribute {} cannot find node",
+                "write_node_value result for read node id {}, attribute {:?} cannot find node",
                 node_to_write.node_id, node_to_write.attribute_id
             );
             return Err(StatusCode::BadNodeIdUnknown);
         };
 
-        let (attribute_id, index_range) =
-            validate_node_write(node, context, node_to_write, type_tree)?;
+        validate_node_write(node, context, node_to_write, type_tree)?;
 
-        Ok((node, attribute_id, index_range))
+        Ok(node)
     }
 
     pub fn delete(&mut self, node_id: &NodeId, delete_target_references: bool) -> Option<NodeType> {
