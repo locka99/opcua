@@ -12,12 +12,11 @@ use std::{
     time::{Duration, Instant},
 };
 
-use actix_web::{
-    actix::{Actor, ActorContext, AsyncContext, Handler, Message, Running, StreamHandler},
-    fs, http,
-    server::HttpServer,
-    ws, App, Error, HttpRequest, HttpResponse,
-};
+use actix::{Actor, ActorContext, AsyncContext, Handler, Message, Running, StreamHandler};
+use actix_files as fs;
+use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer};
+use actix_web_actors::ws;
+
 use futures_util::StreamExt;
 use opcua::{
     client::{
@@ -63,7 +62,8 @@ Usage:
 
 const DEFAULT_HTTP_PORT: u16 = 8686;
 
-fn main() -> Result<(), ()> {
+#[actix_web::main]
+async fn main() -> Result<(), ()> {
     let args = Args::parse_args().map_err(|_| Args::usage())?;
     if args.help {
         Args::usage();
@@ -77,7 +77,9 @@ fn main() -> Result<(), ()> {
     // Optional - enable OPC UA logging
     opcua::console_logging::init();
     // Run the http server
-    run_server(format!("127.0.0.1:{}", args.http_port), Arc::new(runtime));
+    run_server(format!("127.0.0.1:{}", args.http_port), Arc::new(runtime))
+        .await
+        .map_err(|_err| ())?;
     Ok(())
 }
 
@@ -93,6 +95,7 @@ impl Message for DataChangeEvent {
 }
 
 #[derive(Serialize, Message)]
+#[rtype(result = "()")]
 enum Event {
     ConnectionStatusChange(bool),
     DataChange(Vec<DataChangeEvent>),
@@ -115,7 +118,7 @@ struct OPCUASession {
 }
 
 impl Actor for OPCUASession {
-    type Context = ws::WebsocketContext<Self, HttpServerState>;
+    type Context = ws::WebsocketContext<Self>;
 
     /// Method is called on actor start. We start the heartbeat process here.
     fn started(&mut self, ctx: &mut Self::Context) {
@@ -152,20 +155,20 @@ impl Handler<Event> for OPCUASession {
 }
 
 /// Handler for `ws::Message`
-impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
-    fn handle(&mut self, msg: ws::Message, ctx: &mut Self::Context) {
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for OPCUASession {
+    fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         // process websocket messages
         println!("WS: {:?}", msg);
         let rt = self.rt.clone();
         match msg {
-            ws::Message::Ping(msg) => {
+            Ok(ws::Message::Ping(msg)) => {
                 self.hb = Instant::now();
                 ctx.pong(&msg);
             }
-            ws::Message::Pong(_) => {
+            Ok(ws::Message::Pong(_)) => {
                 self.hb = Instant::now();
             }
-            ws::Message::Text(msg) => {
+            Ok(ws::Message::Text(msg)) => {
                 let msg = msg.trim();
                 if let Some(msg) = msg.strip_prefix("connect ") {
                     rt.block_on(self.connect(ctx, msg));
@@ -182,10 +185,11 @@ impl StreamHandler<ws::Message, ws::ProtocolError> for OPCUASession {
                     println!("add event complete");
                 }
             }
-            ws::Message::Binary(bin) => ctx.binary(bin),
-            ws::Message::Close(_) => {
+            Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
+            Ok(ws::Message::Close(_)) => {
                 ctx.stop();
             }
+            _ => (),
         }
     }
 }
@@ -198,7 +202,7 @@ impl OPCUASession {
                 println!("Context is stopping for client timeout");
                 ctx.stop();
             } else {
-                ctx.ping("");
+                ctx.ping(b"");
             }
         });
     }
@@ -480,7 +484,11 @@ impl OPCUASession {
 }
 
 /// Handler for creating a new websocket
-fn ws_create_request(r: &HttpRequest<HttpServerState>) -> Result<HttpResponse, Error> {
+async fn ws_create_request(
+    req: HttpRequest,
+    stream: web::Payload,
+    state: web::Data<HttpServerState>,
+) -> Result<HttpResponse, Error> {
     let client = ClientBuilder::new()
         .application_name("WebSocketClient")
         .application_uri("urn:WebSocketClient")
@@ -490,15 +498,14 @@ fn ws_create_request(r: &HttpRequest<HttpServerState>) -> Result<HttpResponse, E
         .client()
         .unwrap();
 
-    ws::start(
-        r,
-        OPCUASession {
-            hb: Instant::now(),
-            client,
-            session: None,
-            rt: r.state().runtime.clone(),
-        },
-    )
+    let session = OPCUASession {
+        hb: Instant::now(),
+        client,
+        session: None,
+        rt: state.runtime.clone(),
+    };
+
+    ws::start(session, &req, stream)
 }
 
 #[derive(Clone)]
@@ -506,24 +513,19 @@ struct HttpServerState {
     runtime: Arc<Runtime>,
 }
 
-fn run_server(address: String, rt: Arc<Runtime>) {
+async fn run_server(address: String, rt: Arc<Runtime>) -> Result<(), std::io::Error> {
     HttpServer::new(move || {
         let base_path = "./html";
-        let state = HttpServerState {
+        let state = web::Data::new(HttpServerState {
             runtime: rt.clone(),
-        };
-        App::with_state(state)
-            // Websocket
-            .resource("/ws/", |r| r.method(http::Method::GET).f(ws_create_request))
-            // Static content
-            .handler(
-                "/",
-                fs::StaticFiles::new(base_path)
-                    .unwrap()
-                    .index_file("index.html"),
-            )
+        });
+        App::new()
+            .app_data(state)
+            .route("/ws/", web::get().to(ws_create_request))
+            .service(fs::Files::new("/", base_path).index_file("index.html"))
     })
     .bind(address)
     .unwrap()
-    .run();
+    .run()
+    .await
 }
