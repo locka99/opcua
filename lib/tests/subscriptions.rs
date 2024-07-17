@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use opcua::{
-    server::address_space::{AccessLevel, UserAccessLevel, VariableBuilder},
     client::OnSubscriptionNotification,
+    server::address_space::{AccessLevel, UserAccessLevel, VariableBuilder},
     types::{
         AttributeId, DataTypeId, DataValue, DateTime, MonitoredItemCreateRequest,
         MonitoredItemModifyRequest, MonitoringMode, MonitoringParameters, NodeId, ObjectId,
@@ -483,3 +483,6 @@ async fn subscription_limits() {
         .unwrap_err();
     assert_eq!(e, StatusCode::BadTooManyOperations);
 }
+
+// TODO: Add tests for transfer subscriptions and more detailed high level tests on
+// subscriptions. Would be much easier to do with a low-level client.

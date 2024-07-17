@@ -136,6 +136,7 @@ impl ServerCore {
             type_tree: type_tree.clone(),
             subscription_id_handle: AtomicHandle::new(1),
             monitored_item_id_handle: AtomicHandle::new(1),
+            secure_channel_id_handle: Arc::new(AtomicHandle::new(1)),
             capabilities: ServerCapabilities::default(),
             service_level: service_level.clone(),
             port: AtomicU16::new(0),

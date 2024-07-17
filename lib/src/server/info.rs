@@ -77,6 +77,8 @@ pub struct ServerInfo {
     pub subscription_id_handle: AtomicHandle,
     /// Generator for monitored item IDs.
     pub monitored_item_id_handle: AtomicHandle,
+    /// Generator for secure channel IDs.
+    pub secure_channel_id_handle: Arc<AtomicHandle>,
     /// Server capabilities
     pub capabilities: ServerCapabilities,
     /// Service level observer.

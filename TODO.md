@@ -5,7 +5,7 @@ This is a pending rewrite of the OPC-UA stack, following up on the rewrite of th
 The following is a list of tasks, with progress indicated where relevant.
 
  - Rewrite the server to be async, and a great deal more flexible, making it possible to create _really_ advanced servers using this SDK.
-   - **~80%** done with the initial scope. Mostly just writing more tests remaining.
+   - **~95%** done with the initial scope. Mostly just writing more tests remaining.
      - Some features are left out:
      - Diagnostics, both as diagnosticsInfo from services, and general session diagnostics. There's a skeleton for this in the DiagnosticsNodeManager.
      - Events are _implemented_ but incredibly cumbersome to write, so there is nothing fancy implemented for them. See below.

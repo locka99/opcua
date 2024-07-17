@@ -8,7 +8,7 @@ use opcua::{
     crypto::SecurityPolicy,
     types::{
         ApplicationType, DecodingOptions, MessageSecurityMode, NodeId, ReadValueId, StatusCode,
-        TimestampsToReturn, VariableId,
+        TimestampsToReturn, VariableId, Variant,
     },
 };
 use tokio::{
@@ -289,4 +289,68 @@ async fn discovery_test() {
         .await
         .unwrap();
     assert_eq!(endpoints.len(), 11);
+}
+
+#[tokio::test]
+async fn multi_client_test() {
+    // Simple multi-client test, checking that we can send and receive requests with multiple clients
+    // to the same server, and also that the client SDK can handle multiple sessions in the same client.
+    let mut tester = Tester::new_default_server(true).await;
+
+    let c1 = tester
+        .connect_and_wait(
+            SecurityPolicy::Basic128Rsa15,
+            MessageSecurityMode::SignAndEncrypt,
+            IdentityToken::UserName(
+                CLIENT_USERPASS_ID.to_owned(),
+                format!("{CLIENT_USERPASS_ID}_password"),
+            ),
+        )
+        .await
+        .unwrap();
+    // Same user token, should still be fine
+    let c2 = tester
+        .connect_and_wait(
+            SecurityPolicy::Basic256,
+            MessageSecurityMode::SignAndEncrypt,
+            IdentityToken::UserName(
+                CLIENT_USERPASS_ID.to_owned(),
+                format!("{CLIENT_USERPASS_ID}_password"),
+            ),
+        )
+        .await
+        .unwrap();
+
+    // Different user, anonymous
+    let c3 = tester
+        .connect_and_wait(
+            SecurityPolicy::None,
+            MessageSecurityMode::None,
+            IdentityToken::Anonymous,
+        )
+        .await
+        .unwrap();
+
+    // Read the service level a few times
+    let mut val = 100;
+    for _ in 0..5 {
+        val += 10;
+        tester.handle.set_service_level(val);
+        for session in &[c1.clone(), c2.clone(), c3.clone()] {
+            let value = session
+                .read(
+                    &[ReadValueId::from(<VariableId as Into<NodeId>>::into(
+                        VariableId::Server_ServiceLevel,
+                    ))],
+                    TimestampsToReturn::Both,
+                    0.0,
+                )
+                .await
+                .unwrap();
+            let Some(Variant::Byte(v)) = value[0].value else {
+                panic!("Wrong result type");
+            };
+            assert_eq!(val, v);
+        }
+    }
 }

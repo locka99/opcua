@@ -377,13 +377,7 @@ impl SecureChannel {
     }
 
     pub fn token_renewal_deadline(&self) -> Instant {
-        let r = self.token_created_at + Duration::from_secs((self.token_lifetime as u64) * 3 / 4);
-        println!(
-            "Deadline in {:?} {}",
-            r - Instant::now(),
-            self.token_lifetime
-        );
-        r
+        self.token_created_at + Duration::from_secs((self.token_lifetime as u64) * 3 / 4)
     }
 
     /// Calculates the signature size for a message depending on the supplied security header
@@ -1286,7 +1280,7 @@ impl SecureChannel {
             }
         }
     }
-    
+
     pub fn set_token_lifetime(&mut self, token_lifetime: u32) {
         self.token_lifetime = token_lifetime;
     }

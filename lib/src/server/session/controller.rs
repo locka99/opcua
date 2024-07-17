@@ -8,7 +8,7 @@ use futures::{future::Either, stream::FuturesUnordered, Future, StreamExt};
 use tokio::net::TcpStream;
 
 use crate::{
-    core::{comms::{secure_channel::SecureChannel, security_header::SecurityHeader, tcp_types::ErrorMessage}, config::Config, supported_message::SupportedMessage}, crypto::{CertificateStore, SecurityPolicy}, server::{
+    core::{comms::{secure_channel::SecureChannel, security_header::SecurityHeader, tcp_types::ErrorMessage}, config::Config, handle::AtomicHandle, supported_message::SupportedMessage}, crypto::{CertificateStore, SecurityPolicy}, server::{
         authenticator::UserToken,
         info::ServerInfo,
         node_manager::NodeManagers,
@@ -121,7 +121,7 @@ impl SessionController {
         Self {
             channel,
             transport,
-            secure_channel_state: SecureChannelState::new(),
+            secure_channel_state: SecureChannelState::new(info.secure_channel_id_handle.clone()),
             session_manager,
             certificate_store,
             message_handler: MessageHandler::new(info.clone(), node_managers, subscriptions),
@@ -588,15 +588,15 @@ struct SecureChannelState {
     // Renew count, debugging
     renew_count: usize,
     // Last secure channel id
-    last_secure_channel_id: u32,
+    secure_channel_id: Arc<AtomicHandle>,
     /// Last token id number
     last_token_id: u32,
 }
 
 impl SecureChannelState {
-    pub fn new() -> SecureChannelState {
+    pub fn new(handle: Arc<AtomicHandle>) -> SecureChannelState {
         SecureChannelState {
-            last_secure_channel_id: 0,
+            secure_channel_id: handle,
             issued: false,
             renew_count: 0,
             last_token_id: 0,
@@ -604,8 +604,7 @@ impl SecureChannelState {
     }
 
     pub fn create_secure_channel_id(&mut self) -> u32 {
-        self.last_secure_channel_id += 1;
-        self.last_secure_channel_id
+        self.secure_channel_id.next()
     }
 
     pub fn create_token_id(&mut self) -> u32 {

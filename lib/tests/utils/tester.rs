@@ -9,12 +9,12 @@ use std::{
 };
 
 use opcua::{
+    client::{Client, ClientBuilder, IdentityToken, Session, SessionEventLoop},
+    crypto::SecurityPolicy,
     server::{
         node_manager::memory::InMemoryNodeManager, ServerBuilder, ServerHandle, ServerUserToken,
         ANONYMOUS_USER_TOKEN_ID,
     },
-    client::{Client, ClientBuilder, IdentityToken, Session, SessionEventLoop},
-    crypto::SecurityPolicy,
     types::{MessageSecurityMode, StatusCode},
 };
 use tokio::net::TcpListener;
@@ -341,6 +341,34 @@ impl Tester {
                 user_identity,
             )
             .await
+    }
+
+    #[allow(unused)]
+    pub async fn connect_and_wait(
+        &mut self,
+        security_policy: SecurityPolicy,
+        security_mode: MessageSecurityMode,
+        user_identity: IdentityToken,
+    ) -> Result<Arc<Session>, StatusCode> {
+        let (session, evt_loop) = self
+            .client
+            .new_session_from_endpoint(
+                (
+                    &self.endpoint() as &str,
+                    security_policy.to_str(),
+                    security_mode,
+                ),
+                user_identity,
+            )
+            .await?;
+
+        evt_loop.spawn();
+
+        tokio::time::timeout(Duration::from_millis(10_000), session.wait_for_connection())
+            .await
+            .unwrap();
+
+        Ok(session)
     }
 
     #[allow(unused)]
