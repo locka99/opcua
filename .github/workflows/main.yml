@@ -11,9 +11,16 @@ env:
 
 jobs:
   build-linux:
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Provision toolchain
+        run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - name: Build
         run: cargo build --features test-vendored-openssl
       - name: Run tests
@@ -24,11 +31,18 @@ jobs:
           sh ./run.sh
 
   build-windows:
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
     runs-on: windows-latest
     env:
       VCPKGRS_DYNAMIC: 1
     steps:
       - uses: actions/checkout@v3
+      - name: Provision toolchain
+        run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - name: Build
         run: cargo build --features test-vendored-openssl
       - name: Run tests
