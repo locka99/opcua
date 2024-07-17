@@ -74,6 +74,8 @@ actix-web = { version = "4.4", optional = true }
 actix-files = { version = "0.6", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 arc-swap = "1.6.0"
+# https://github.com/rust-lang/rust/issues/125319
+time = "0.3.36"
 
 [dev-dependencies]
 tempdir = "0.3"
