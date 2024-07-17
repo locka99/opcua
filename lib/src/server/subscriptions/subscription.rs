@@ -33,7 +33,7 @@ pub(crate) struct SubscriptionStateParams {
     pub publishing_req_queued: bool,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum UpdateStateAction {
     None,
     // Return a keep alive
@@ -44,6 +44,13 @@ pub enum UpdateStateAction {
     SubscriptionCreated,
     // The subscription has expired and must be closed
     SubscriptionExpired,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(super) enum TickResult {
+    Expired,
+    Enqueued,
+    None,
 }
 
 /// This is for debugging purposes. It allows the caller to validate the output state if required.
@@ -431,13 +438,13 @@ impl Subscription {
         }
     }
 
-    pub(crate) fn tick(
+    pub(super) fn tick(
         &mut self,
         now: &DateTimeUtc,
         now_instant: Instant,
         tick_reason: TickReason,
         publishing_req_queued: bool,
-    ) {
+    ) -> TickResult {
         let publishing_interval_elapsed = match tick_reason {
             TickReason::ReceivePublishRequest => false,
             TickReason::TickTimerFired => {
@@ -451,7 +458,7 @@ impl Subscription {
 
         // We're not actually doing anything in this case.
         if matches!(tick_reason, TickReason::TickTimerFired) && !publishing_interval_elapsed {
-            return;
+            return TickResult::None;
         }
         // First, get the actual state transition we're in.
         let transition = self.get_state_transition(
@@ -465,13 +472,14 @@ impl Subscription {
         let action = self.handle_state_transition(transition);
 
         match action {
-            UpdateStateAction::None => {}
+            UpdateStateAction::None => TickResult::None,
             UpdateStateAction::ReturnKeepAlive => {
                 let notification = NotificationMessage::keep_alive(
                     self.sequence_number.next(),
                     DateTime::from(*now),
                 );
                 self.enqueue_notification(notification);
+                TickResult::Enqueued
             }
             UpdateStateAction::ReturnNotifications => {
                 let resend_data = std::mem::take(&mut self.resend_data);
@@ -479,8 +487,9 @@ impl Subscription {
                 for msg in messages {
                     self.enqueue_notification(msg);
                 }
+                TickResult::Enqueued
             }
-            UpdateStateAction::SubscriptionCreated => {}
+            UpdateStateAction::SubscriptionCreated => TickResult::None,
             UpdateStateAction::SubscriptionExpired => {
                 debug!("Subscription status change to closed / timeout");
                 self.monitored_items.clear();
@@ -490,6 +499,7 @@ impl Subscription {
                     StatusCode::BadTimeout,
                 );
                 self.enqueue_notification(notification);
+                TickResult::Expired
             }
         }
     }

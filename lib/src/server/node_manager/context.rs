@@ -7,8 +7,8 @@ use crate::{
         session::instance::Session,
         SubscriptionCache,
     },
-    types::{BrowseDescriptionResultMask, NodeId},
     sync::RwLock,
+    types::{BrowseDescriptionResultMask, NodeId},
 };
 
 use super::{
@@ -16,6 +16,7 @@ use super::{
     NodeManagers, TypeTree,
 };
 
+#[derive(Clone)]
 pub struct RequestContext {
     pub session: Arc<RwLock<Session>>,
     pub session_id: u32,

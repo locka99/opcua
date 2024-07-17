@@ -28,7 +28,9 @@ use crate::{
 use super::{
     authenticator::UserToken,
     info::ServerInfo,
-    node_manager::{MonitoredItemRef, MonitoredItemUpdateRef, TypeTree},
+    node_manager::{
+        MonitoredItemRef, MonitoredItemUpdateRef, RequestContext, ServerContext, TypeTree,
+    },
     session::instance::Session,
     Event, SubscriptionLimits,
 };
@@ -92,15 +94,19 @@ impl SubscriptionCache {
         inner.session_subscriptions.get(&session_id).cloned()
     }
 
-    pub(crate) fn periodic_tick(&self) {
+    pub(crate) async fn periodic_tick(&self, context: &ServerContext) {
         let mut to_delete = Vec::new();
+        let mut items_to_delete = Vec::new();
         {
             let now = Utc::now();
             let now_instant = Instant::now();
             let lck = trace_read_lock!(self.inner);
             for (session_id, sub) in lck.session_subscriptions.iter() {
                 let mut sub_lck = sub.lock();
-                sub_lck.tick(&now, now_instant, TickReason::TickTimerFired);
+                items_to_delete.push((
+                    sub_lck.session().clone(),
+                    sub_lck.tick(&now, now_instant, TickReason::TickTimerFired),
+                ));
                 if sub_lck.is_ready_to_delete() {
                     to_delete.push(*session_id);
                 }
@@ -110,6 +116,51 @@ impl SubscriptionCache {
             let mut lck = trace_write_lock!(self.inner);
             for id in to_delete {
                 lck.session_subscriptions.remove(&id);
+            }
+        }
+        if !items_to_delete.is_empty() {
+            Self::delete_expired_monitored_items(context, items_to_delete).await;
+        }
+    }
+
+    async fn delete_expired_monitored_items(
+        context: &ServerContext,
+        items_to_delete: Vec<(Arc<RwLock<Session>>, Vec<MonitoredItemRef>)>,
+    ) {
+        for (session, items) in items_to_delete {
+            // Create a local request context, since we need to call delete monitored items.
+
+            let (id, token) = {
+                let lck = session.read();
+                let Some(token) = lck.user_token() else {
+                    error!("Active session missing user token, this should be impossible");
+                    continue;
+                };
+
+                (lck.session_id_numeric(), token.clone())
+            };
+            let ctx = RequestContext {
+                session,
+                session_id: id,
+                authenticator: context.authenticator.clone(),
+                token,
+                current_node_manager_index: 0,
+                type_tree: context.type_tree.clone(),
+                subscriptions: context.subscriptions.clone(),
+                info: context.info.clone(),
+            };
+
+            for mgr in context.node_managers.iter() {
+                let owned: Vec<_> = items
+                    .iter()
+                    .filter(|n| mgr.owns_node(n.node_id()))
+                    .collect();
+
+                if owned.is_empty() {
+                    continue;
+                }
+
+                mgr.delete_monitored_items(&ctx, &owned).await;
             }
         }
     }
@@ -132,7 +183,7 @@ impl SubscriptionCache {
     pub(crate) fn create_subscription(
         &self,
         session_id: u32,
-        session: &RwLock<Session>,
+        session: &Arc<RwLock<Session>>,
         request: &CreateSubscriptionRequest,
         info: &ServerInfo,
     ) -> Result<CreateSubscriptionResponse, StatusCode> {
@@ -144,6 +195,7 @@ impl SubscriptionCache {
                 Arc::new(Mutex::new(SessionSubscriptions::new(
                     self.limits,
                     Self::get_key(session),
+                    session.clone(),
                 )))
             })
             .clone();
@@ -583,7 +635,7 @@ impl SubscriptionCache {
         &self,
         req: &TransferSubscriptionsRequest,
         session_id: u32,
-        session: &RwLock<Session>,
+        session: &Arc<RwLock<Session>>,
     ) -> TransferSubscriptionsResponse {
         let mut results: Vec<_> = req
             .subscription_ids
@@ -610,6 +662,7 @@ impl SubscriptionCache {
                     Arc::new(Mutex::new(SessionSubscriptions::new(
                         self.limits,
                         key.clone(),
+                        session.clone(),
                     )))
                 })
                 .clone();

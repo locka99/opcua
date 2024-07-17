@@ -432,7 +432,7 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
                     continue;
                 };
 
-                let user_access_level = user_access_level(context, node, AttributeId::Value);
+                let user_access_level = user_access_level(context, node);
 
                 if !user_access_level.contains(UserAccessLevel::HISTORY_READ) {
                     history_node.set_status(StatusCode::BadUserAccessDenied);
@@ -486,7 +486,7 @@ impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
                     continue;
                 };
 
-                let user_access_level = user_access_level(context, node, AttributeId::Value);
+                let user_access_level = user_access_level(context, node);
 
                 if !user_access_level.contains(UserAccessLevel::HISTORY_WRITE) {
                     history_node.set_status(StatusCode::BadUserAccessDenied);

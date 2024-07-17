@@ -1,11 +1,12 @@
 use std::{
     collections::VecDeque,
+    sync::Arc,
     time::{Duration, Instant},
 };
 
 use super::{
     monitored_item::MonitoredItem,
-    subscription::{MonitoredItemHandle, Subscription, TickReason},
+    subscription::{MonitoredItemHandle, Subscription, TickReason, TickResult},
     CreateMonitoredItem, NonAckedPublish, PendingPublish, PersistentSessionKey,
 };
 use hashbrown::{HashMap, HashSet};
@@ -14,8 +15,10 @@ use crate::{
     server::{
         info::ServerInfo,
         node_manager::{MonitoredItemRef, MonitoredItemUpdateRef, TypeTree},
+        session::instance::Session,
         Event, SubscriptionLimits,
     },
+    sync::RwLock,
     types::{
         AttributeId, CreateSubscriptionRequest, CreateSubscriptionResponse, DataValue, DateTime,
         DateTimeUtc, ExtensionObject, ModifySubscriptionRequest, ModifySubscriptionResponse,
@@ -39,16 +42,24 @@ pub struct SessionSubscriptions {
     retransmission_queue: VecDeque<NonAckedPublish>,
     /// Configured limits on subscriptions.
     limits: SubscriptionLimits,
+
+    /// Static reference to the session owning this, required to cleanly handle deletion.
+    session: Arc<RwLock<Session>>,
 }
 
 impl SessionSubscriptions {
-    pub(super) fn new(limits: SubscriptionLimits, user_token: PersistentSessionKey) -> Self {
+    pub(super) fn new(
+        limits: SubscriptionLimits,
+        user_token: PersistentSessionKey,
+        session: Arc<RwLock<Session>>,
+    ) -> Self {
         Self {
             user_token,
             subscriptions: HashMap::new(),
             publish_request_queue: VecDeque::new(),
             retransmission_queue: VecDeque::new(),
             limits,
+            session,
         }
     }
 
@@ -559,7 +570,8 @@ impl SessionSubscriptions {
         now: &DateTimeUtc,
         now_instant: Instant,
         tick_reason: TickReason,
-    ) {
+    ) -> Vec<MonitoredItemRef> {
+        let mut to_delete = Vec::new();
         if self.subscriptions.is_empty() {
             for pb in self.publish_request_queue.drain(..) {
                 let _ = pb.response.send(
@@ -567,7 +579,7 @@ impl SessionSubscriptions {
                         .into(),
                 );
             }
-            return;
+            return to_delete;
         }
 
         self.remove_expired_publish_requests(now_instant);
@@ -588,7 +600,7 @@ impl SessionSubscriptions {
 
         for sub_id in subscription_ids {
             let subscription = self.subscriptions.get_mut(&sub_id).unwrap();
-            subscription.tick(
+            let res = subscription.tick(
                 now,
                 now_instant,
                 tick_reason,
@@ -605,6 +617,21 @@ impl SessionSubscriptions {
             }
             // Make sure to note if there are more notifications in any subscription.
             more_notifications |= subscription.more_notifications();
+
+            // If the subscription expired, make sure to collect any deleted monitored items.
+
+            if matches!(res, TickResult::Expired) {
+                to_delete.extend(subscription.drain().map(|item| {
+                    MonitoredItemRef::new(
+                        MonitoredItemHandle {
+                            subscription_id: sub_id,
+                            monitored_item_id: item.1.id(),
+                        },
+                        item.1.item_to_monitor().node_id.clone(),
+                        item.1.item_to_monitor().attribute_id,
+                    )
+                }))
+            }
 
             if subscription.ready_to_remove() {
                 self.subscriptions.remove(&sub_id);
@@ -647,6 +674,8 @@ impl SessionSubscriptions {
                 .into(),
             );
         }
+
+        to_delete
     }
 
     fn find_notification_message(
@@ -754,5 +783,9 @@ impl SessionSubscriptions {
 
     pub(super) fn get_monitored_item_count(&self, subscription_id: u32) -> Option<usize> {
         self.subscriptions.get(&subscription_id).map(|s| s.len())
+    }
+
+    pub fn session(&self) -> &Arc<RwLock<Session>> {
+        &self.session
     }
 }

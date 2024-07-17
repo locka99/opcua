@@ -17,7 +17,11 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use crate::{
-    core::{config::Config, handle::AtomicHandle}, crypto::CertificateStore, server::{node_manager::ServerContext, session::controller::SessionController}, sync::RwLock, types::{DateTime, LocalizedText, ServerState, UAString}
+    core::{config::Config, handle::AtomicHandle},
+    crypto::CertificateStore,
+    server::{node_manager::ServerContext, session::controller::SessionController},
+    sync::RwLock,
+    types::{DateTime, LocalizedText, ServerState, UAString},
 };
 
 use super::{
@@ -170,7 +174,7 @@ impl ServerCore {
         self.subscriptions.clone()
     }
 
-    async fn initialize_node_managers(&self) -> Result<(), String> {
+    async fn initialize_node_managers(&self, context: &ServerContext) -> Result<(), String> {
         info!("Initializing node managers");
         {
             if self.node_managers.is_empty() {
@@ -178,11 +182,7 @@ impl ServerCore {
             }
 
             let mut type_tree = trace_write_lock!(self.info.type_tree);
-            let context = ServerContext {
-                node_managers: self.node_managers.as_weak(),
-                subscriptions: self.subscriptions.clone(),
-                info: self.info.clone(),
-            };
+
             for mgr in self.node_managers.iter() {
                 mgr.init(&mut *type_tree, context.clone()).await;
             }
@@ -213,7 +213,15 @@ impl ServerCore {
         listener: TcpListener,
         token: CancellationToken,
     ) -> Result<(), String> {
-        self.initialize_node_managers().await?;
+        let context = ServerContext {
+            node_managers: self.node_managers.as_weak(),
+            subscriptions: self.subscriptions.clone(),
+            info: self.info.clone(),
+            authenticator: self.info.authenticator.clone(),
+            type_tree: self.info.type_tree.clone(),
+        };
+
+        self.initialize_node_managers(&context).await?;
 
         self.info.set_state(ServerState::Running);
         self.info.start_time.store(Arc::new(DateTime::now()));
@@ -251,7 +259,7 @@ impl ServerCore {
                         Err(e) => error!("Connection panic! {e}")
                     }
                 }
-                _ = Self::run_subscription_ticks(self.config.subscription_poll_interval_ms, self.subscriptions.clone()) => {
+                _ = Self::run_subscription_ticks(self.config.subscription_poll_interval_ms, &context) => {
                     unreachable!()
                 }
                 _ = Self::run_discovery_server_registration(self.info.clone()) => {
@@ -295,8 +303,6 @@ impl ServerCore {
 
     /// Run the server.
     pub async fn run(self, token: CancellationToken) -> Result<(), String> {
-        self.log_endpoint_info();
-
         let addr = self.get_socket_address();
 
         let Some(addr) = addr else {
@@ -316,16 +322,17 @@ impl ServerCore {
         self.run_with(listener, token).await
     }
 
-    async fn run_subscription_ticks(interval: u64, subscriptions: Arc<SubscriptionCache>) -> Never {
+    async fn run_subscription_ticks(interval: u64, context: &ServerContext) -> Never {
         if interval == 0 {
             futures::future::pending().await
         } else {
+            let context = context.clone();
             let mut tick = tokio::time::interval(Duration::from_millis(interval));
             tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
             loop {
                 tick.tick().await;
 
-                subscriptions.periodic_tick();
+                context.subscriptions.periodic_tick(&context).await;
             }
         }
     }

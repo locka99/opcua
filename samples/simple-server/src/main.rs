@@ -59,6 +59,7 @@ fn add_example_variables(
     let v2_node = NodeId::new(ns, "v2");
     let v3_node = NodeId::new(ns, "v3");
     let v4_node = NodeId::new(ns, "v4");
+    let v5_node = NodeId::new(ns, "v5");
 
     let address_space = manager.address_space();
 
@@ -82,6 +83,7 @@ fn add_example_variables(
                 Variable::new(&v2_node, "v2", "v2", false),
                 Variable::new(&v3_node, "v3", "v3", UAString::from("")),
                 Variable::new(&v4_node, "v4", "v4", 0f64),
+                Variable::new(&v5_node, "v5", "v5", "Static Value"),
             ],
             &sample_folder_id,
         );

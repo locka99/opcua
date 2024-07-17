@@ -4,9 +4,13 @@ use std::{
     sync::{Arc, Weak},
 };
 
-use crate::types::{
-    ExpandedNodeId, MonitoringMode, NodeId, ReadAnnotationDataDetails, ReadAtTimeDetails,
-    ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode, TimestampsToReturn,
+use crate::{
+    sync::RwLock,
+    types::{
+        ExpandedNodeId, MonitoringMode, NodeId, ReadAnnotationDataDetails, ReadAtTimeDetails,
+        ReadEventDetails, ReadProcessedDetails, ReadRawModifiedDetails, StatusCode,
+        TimestampsToReturn,
+    },
 };
 use async_trait::async_trait;
 use memory::NamespaceMetadata;
@@ -25,7 +29,10 @@ mod view;
 
 use self::view::ExternalReferenceRequest;
 
-use super::{info::ServerInfo, subscriptions::CreateMonitoredItem, SubscriptionCache};
+use super::{
+    authenticator::AuthManager, info::ServerInfo, subscriptions::CreateMonitoredItem,
+    SubscriptionCache,
+};
 
 pub use {
     attributes::{ParsedReadValueId, ParsedWriteValue, ReadNode, WriteNode},
@@ -190,6 +197,8 @@ pub struct ServerContext {
     pub node_managers: NodeManagersRef,
     pub subscriptions: Arc<SubscriptionCache>,
     pub info: Arc<ServerInfo>,
+    pub authenticator: Arc<dyn AuthManager>,
+    pub type_tree: Arc<RwLock<TypeTree>>,
 }
 
 /// This trait is a workaround for the lack of

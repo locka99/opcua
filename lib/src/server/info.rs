@@ -14,7 +14,6 @@ use crate::core::handle::AtomicHandle;
 use crate::crypto::{user_identity, PrivateKey, SecurityPolicy, X509};
 use crate::server::authenticator::Password;
 use crate::sync::RwLock;
-use crate::types::{ByteString, DateTime, DecodingOptions, ExtensionObject, LocalizedText, MessageSecurityMode, UAString};
 use crate::types::{
     profiles,
     service_types::{
@@ -23,6 +22,10 @@ use crate::types::{
         UserNameIdentityToken, UserTokenPolicy, UserTokenType, X509IdentityToken,
     },
     status_code::StatusCode,
+};
+use crate::types::{
+    ByteString, DateTime, DecodingOptions, ExtensionObject, LocalizedText, MessageSecurityMode,
+    UAString,
 };
 
 use crate::server::config::{ServerConfig, ServerEndpoint};
@@ -33,7 +36,7 @@ use super::identity_token::{
     POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509,
 };
 use super::node_manager::TypeTree;
-use super::{OperationalLimits, ServerCapabilities};
+use super::{OperationalLimits, ServerCapabilities, ANONYMOUS_USER_TOKEN_ID};
 
 /// Server state is any configuration associated with the server as a whole that individual sessions might
 /// be interested in.
@@ -448,7 +451,9 @@ impl ServerInfo {
         }
         self.authenticator
             .authenticate_anonymous_token(endpoint)
-            .await
+            .await?;
+
+        Ok(UserToken(ANONYMOUS_USER_TOKEN_ID.to_string()))
     }
 
     /// Authenticates the username identity token with the supplied endpoint. The function returns the user token identifier
@@ -552,7 +557,7 @@ impl ServerInfo {
             let signing_thumbprint = signing_cert.thumbprint();
 
             self.authenticator
-                .authenticate_x509_identity_token(&signing_thumbprint, endpoint)
+                .authenticate_x509_identity_token(endpoint, &signing_thumbprint)
                 .await
         }
     }

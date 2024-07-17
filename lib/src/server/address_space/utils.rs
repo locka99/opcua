@@ -8,12 +8,8 @@ use crate::{
 
 use super::{HasNodeId, NodeType, UserAccessLevel, Variable};
 
-pub fn is_readable(
-    context: &RequestContext,
-    node: &NodeType,
-    attribute_id: AttributeId,
-) -> Result<(), StatusCode> {
-    if !user_access_level(context, node, attribute_id).contains(UserAccessLevel::CURRENT_READ) {
+pub fn is_readable(context: &RequestContext, node: &NodeType) -> Result<(), StatusCode> {
+    if !user_access_level(context, node).contains(UserAccessLevel::CURRENT_READ) {
         Err(StatusCode::BadUserAccessDenied)
     } else {
         Ok(())
@@ -26,8 +22,7 @@ pub fn is_writable(
     attribute_id: AttributeId,
 ) -> Result<(), StatusCode> {
     if let (NodeType::Variable(_), AttributeId::Value) = (node, attribute_id) {
-        if !user_access_level(context, node, attribute_id).contains(UserAccessLevel::CURRENT_WRITE)
-        {
+        if !user_access_level(context, node).contains(UserAccessLevel::CURRENT_WRITE) {
             return Err(StatusCode::BadUserAccessDenied);
         }
 
@@ -71,11 +66,7 @@ pub fn is_writable(
     }
 }
 
-pub fn user_access_level(
-    context: &RequestContext,
-    node: &NodeType,
-    attribute_id: AttributeId,
-) -> UserAccessLevel {
+pub fn user_access_level(context: &RequestContext, node: &NodeType) -> UserAccessLevel {
     let user_access_level = if let NodeType::Variable(ref node) = node {
         node.user_access_level()
     } else {
@@ -85,7 +76,6 @@ pub fn user_access_level(
         &context.token,
         user_access_level,
         &node.node_id(),
-        attribute_id,
     )
 }
 
@@ -94,7 +84,7 @@ pub fn validate_node_read(
     context: &RequestContext,
     node_to_read: &ParsedReadValueId,
 ) -> Result<(), StatusCode> {
-    is_readable(context, node, node_to_read.attribute_id)?;
+    is_readable(context, node)?;
 
     if node_to_read.attribute_id != AttributeId::Value
         && node_to_read.index_range != NumericRange::None
@@ -219,7 +209,6 @@ pub fn read_node_value(
                     &context.token,
                     access_level,
                     &node.node_id(),
-                    node_to_read.attribute_id,
                 );
                 Some(Variant::from(access_level.bits()))
             }
