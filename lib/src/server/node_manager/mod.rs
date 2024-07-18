@@ -44,21 +44,26 @@ pub use {
     query::{ParsedNodeTypeDescription, ParsedQueryDataDescription, QueryRequest},
     type_tree::{TypePropertyInverseRef, TypeTree, TypeTreeNode},
     utils::*,
-    view::{BrowseContinuationPoint, BrowseNode, BrowsePathItem, RegisterNodeItem},
+    view::{BrowseNode, BrowsePathItem, RegisterNodeItem},
 };
 
 pub(crate) use context::resolve_external_references;
 pub(crate) use history::HistoryReadDetails;
 pub(crate) use query::QueryContinuationPoint;
-pub(crate) use view::ExternalReferencesContPoint;
+pub(crate) use view::{BrowseContinuationPoint, ExternalReferencesContPoint};
 
+/// Trait for a collection of node managers, to allow abstracting over
+/// weak or strong references to the node manager collection.
 pub trait NodeManagerCollection {
+    /// Iterate over the node managers on the server.
     fn iter_node_managers(&self) -> impl Iterator<Item = Arc<DynNodeManager>>;
 }
 
+/// Type alias for a dyn reference to a node manager.
 pub type DynNodeManager = dyn NodeManager + Send + Sync + 'static;
 
 #[derive(Clone)]
+/// Wrapper around the server managed list of node managers.
 pub struct NodeManagers {
     node_managers: Arc<Vec<Arc<DynNodeManager>>>,
 }
@@ -70,24 +75,29 @@ impl NodeManagerCollection for NodeManagers {
 }
 
 impl NodeManagers {
+    /// Iterate by reference over the node managers.
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a Arc<DynNodeManager>> {
         (&self).into_iter()
     }
 
+    /// Get the length of the node manager collection.
     pub fn len(&self) -> usize {
         self.node_managers.len()
     }
 
+    /// Return `true` if the node manager collection is empty.
     pub fn is_empty(&self) -> bool {
         self.node_managers.is_empty()
     }
 
+    /// Create a new node manager collection from a vector of node managers.
     pub fn new(node_managers: Vec<Arc<DynNodeManager>>) -> Self {
         Self {
             node_managers: Arc::new(node_managers),
         }
     }
 
+    /// Get a node manager by index.
     pub fn get(&self, index: usize) -> Option<&Arc<DynNodeManager>> {
         self.node_managers.get(index)
     }
@@ -120,6 +130,10 @@ impl NodeManagers {
         None
     }
 
+    /// Create a weak reference to the node managers.
+    /// A node manager should avoid holding a copy of the `NodeManagers` object since that
+    /// results in a circular reference which will leak memory once dropped.
+    /// (This does not really matter if you don't care about memory leaks when the server is dropped.)
     pub fn as_weak(&self) -> NodeManagersRef {
         NodeManagersRef {
             node_managers: Arc::downgrade(&self.node_managers),
@@ -146,6 +160,7 @@ impl<'a> IntoIterator for &'a NodeManagers {
 }
 
 #[derive(Clone)]
+/// A weak reference to the node manager collection.
 pub struct NodeManagersRef {
     node_managers: Weak<Vec<Arc<DynNodeManager>>>,
 }
@@ -187,16 +202,23 @@ impl NodeManagersRef {
         self.upgrade().and_then(|m| m.get_by_name(name))
     }
 
+    /// Get the node manager at the specified index.
     pub fn get(&self, index: usize) -> Option<Arc<DynNodeManager>> {
         self.upgrade().and_then(|m| m.get(index).cloned())
     }
 }
 
 #[derive(Clone)]
+/// General server context, passed when requests are made to the node managers on
+/// behalf of the server itself, and not a user.
 pub struct ServerContext {
+    /// Weak reference to the node manager collection.
     pub node_managers: NodeManagersRef,
+    /// Cache containing the subscriptions managed by the server.
     pub subscriptions: Arc<SubscriptionCache>,
+    /// General server state and configuration.
     pub info: Arc<ServerInfo>,
+    /// Global authenticator object.
     pub authenticator: Arc<dyn AuthManager>,
     pub type_tree: Arc<RwLock<TypeTree>>,
 }

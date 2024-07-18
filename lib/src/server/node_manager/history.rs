@@ -4,16 +4,17 @@ use crate::{
     types::{
         BinaryEncoder, ByteString, DecodingOptions, DeleteAtTimeDetails, DeleteEventDetails,
         DeleteRawModifiedDetails, ExtensionObject, HistoryData, HistoryEvent, HistoryModifiedData,
-        HistoryReadResult, HistoryReadValueId, HistoryUpdateResult, NodeId, ObjectId,
+        HistoryReadResult, HistoryReadValueId, HistoryUpdateResult, NodeId, NumericRange, ObjectId,
         QualifiedName, ReadAnnotationDataDetails, ReadAtTimeDetails, ReadEventDetails,
-        ReadProcessedDetails, ReadRawModifiedDetails, StatusCode, UAString, UpdateDataDetails,
+        ReadProcessedDetails, ReadRawModifiedDetails, StatusCode, UpdateDataDetails,
         UpdateEventDetails, UpdateStructureDataDetails,
     },
 };
 
+/// Container for a single node in a history read request.
 pub struct HistoryNode {
     node_id: NodeId,
-    index_range: UAString,
+    index_range: NumericRange,
     data_encoding: QualifiedName,
     input_continuation_point: Option<ContinuationPoint>,
     next_continuation_point: Option<ContinuationPoint>,
@@ -58,6 +59,8 @@ impl HistoryReadDetails {
     }
 }
 
+/// Details object for history updates.
+#[derive(Debug, Clone)]
 pub enum HistoryUpdateDetails {
     UpdateData(UpdateDataDetails),
     UpdateStructureData(UpdateStructureDataDetails),
@@ -68,6 +71,7 @@ pub enum HistoryUpdateDetails {
 }
 
 impl HistoryUpdateDetails {
+    /// Try to create a `HistoryUpdateDetails` object from an extension object.
     pub fn from_extension_object(
         obj: ExtensionObject,
         decoding_options: &DecodingOptions,
@@ -98,6 +102,7 @@ impl HistoryUpdateDetails {
         }
     }
 
+    /// Get the node ID of the details object, independent of type.
     pub fn node_id(&self) -> &NodeId {
         match self {
             HistoryUpdateDetails::UpdateData(d) => &d.node_id,
@@ -110,8 +115,12 @@ impl HistoryUpdateDetails {
     }
 }
 
+/// Trait for values storable as history data.
 pub trait HistoryResult: BinaryEncoder<Self> + Sized {
+    /// The object ID of the object encoding.
     const OBJECT_ID: ObjectId;
+
+    /// Return an extension object containing the encoded data for the current object.
     fn as_extension_object(&self) -> ExtensionObject {
         ExtensionObject::from_encodable(Self::OBJECT_ID, self)
     }
@@ -129,50 +138,76 @@ impl HistoryResult for HistoryEvent {
 // impl HistoryResult for HistoryModifiedEvent {}
 
 impl HistoryNode {
-    pub(crate) fn new(node: HistoryReadValueId, cp: Option<ContinuationPoint>) -> Self {
+    pub(crate) fn new(
+        node: HistoryReadValueId,
+        is_events: bool,
+        cp: Option<ContinuationPoint>,
+    ) -> Self {
+        let mut status = StatusCode::BadNodeIdUnknown;
+        let index_range = match node.index_range.as_ref().parse::<NumericRange>() {
+            Err(_) => {
+                status = StatusCode::BadIndexRangeInvalid;
+                NumericRange::None
+            }
+            Ok(r) => r,
+        };
+
+        if !matches!(index_range, NumericRange::None) && is_events {
+            status = StatusCode::BadIndexRangeDataMismatch;
+        }
+
         Self {
             node_id: node.node_id,
-            index_range: node.index_range,
+            index_range,
             data_encoding: node.data_encoding,
             input_continuation_point: cp,
             next_continuation_point: None,
             result: None,
-            status: StatusCode::BadNodeIdUnknown,
+            status,
         }
     }
 
+    /// Get the node ID to read history from.
     pub fn node_id(&self) -> &NodeId {
         &self.node_id
     }
 
-    pub fn index_range(&self) -> &UAString {
+    /// Get the index range to read.
+    pub fn index_range(&self) -> &NumericRange {
         &self.index_range
     }
 
+    /// Get the specified data encoding to read.
     pub fn data_encoding(&self) -> &QualifiedName {
         &self.data_encoding
     }
 
+    /// Get the current continuation point.
     pub fn continuation_point(&self) -> Option<&ContinuationPoint> {
         self.input_continuation_point.as_ref()
     }
 
+    /// Get the next continuation point.
     pub fn next_continuation_point(&self) -> Option<&ContinuationPoint> {
         self.next_continuation_point.as_ref()
     }
 
+    /// Set the next continuation point.
     pub fn set_next_continuation_point(&mut self, continuation_point: Option<ContinuationPoint>) {
         self.next_continuation_point = continuation_point;
     }
 
+    /// Set the result to some history data object.
     pub fn set_result<T: HistoryResult>(&mut self, result: &T) {
         self.result = Some(result.as_extension_object());
     }
 
+    /// Set the result status.
     pub fn set_status(&mut self, status: StatusCode) {
         self.status = status;
     }
 
+    /// Get the current result status.
     pub fn status(&self) -> StatusCode {
         self.status
     }
@@ -199,6 +234,7 @@ impl HistoryNode {
     }
 }
 
+/// History update details for one node.
 pub struct HistoryUpdateNode {
     details: HistoryUpdateDetails,
     status: StatusCode,
@@ -206,7 +242,7 @@ pub struct HistoryUpdateNode {
 }
 
 impl HistoryUpdateNode {
-    pub fn new(details: HistoryUpdateDetails) -> Self {
+    pub(crate) fn new(details: HistoryUpdateDetails) -> Self {
         Self {
             details,
             status: StatusCode::BadNodeIdUnknown,
@@ -214,19 +250,23 @@ impl HistoryUpdateNode {
         }
     }
 
+    /// Set the result status of this history operation.
     pub fn set_status(&mut self, status: StatusCode) {
         self.status = status;
     }
 
+    /// Get the current status.
     pub fn status(&self) -> StatusCode {
         self.status
     }
 
+    /// Set the operation results. If present the length must match
+    /// the length of the entries in the history update details.
     pub fn set_operation_results(&mut self, operation_results: Option<Vec<StatusCode>>) {
         self.operation_results = operation_results;
     }
 
-    pub fn into_result(self) -> HistoryUpdateResult {
+    pub(crate) fn into_result(self) -> HistoryUpdateResult {
         HistoryUpdateResult {
             diagnostic_infos: None,
             status_code: self.status,
@@ -234,6 +274,8 @@ impl HistoryUpdateNode {
         }
     }
 
+    /// Get a reference to the history update details describing the history update
+    /// to execute.
     pub fn details(&self) -> &HistoryUpdateDetails {
         &self.details
     }

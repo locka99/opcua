@@ -11,20 +11,24 @@ pub async fn delete_subscriptions(
     node_managers: NodeManagers,
     request: Request<DeleteSubscriptionsRequest>,
 ) -> Response {
-    let context = request.context();
+    let mut context = request.context();
     let items = take_service_items!(
         request,
         request.request.subscription_ids,
         request.info.operational_limits.max_subscriptions_per_call
     );
 
-    let results =
-        match delete_subscriptions_inner(node_managers, items, &request.subscriptions, &context)
-            .await
-        {
-            Ok(r) => r,
-            Err(e) => return service_fault!(request, e),
-        };
+    let results = match delete_subscriptions_inner(
+        node_managers,
+        items,
+        &request.subscriptions,
+        &mut context,
+    )
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => return service_fault!(request, e),
+    };
 
     Response {
         message: DeleteSubscriptionsResponse {
@@ -41,11 +45,12 @@ pub async fn delete_subscriptions_inner(
     node_managers: NodeManagers,
     to_delete: Vec<u32>,
     subscriptions: &SubscriptionCache,
-    context: &RequestContext,
+    context: &mut RequestContext,
 ) -> Result<Vec<StatusCode>, StatusCode> {
     let results = subscriptions.delete_subscriptions(context.session_id, &to_delete)?;
 
-    for mgr in &node_managers {
+    for (idx, mgr) in node_managers.iter().enumerate() {
+        context.current_node_manager_index = idx;
         let owned: Vec<_> = results
             .iter()
             .filter(|f| f.0.is_good())

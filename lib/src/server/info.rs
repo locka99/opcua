@@ -24,8 +24,8 @@ use crate::types::{
     status_code::StatusCode,
 };
 use crate::types::{
-    ByteString, DateTime, DecodingOptions, ExtensionObject, LocalizedText, MessageSecurityMode,
-    UAString,
+    AttributeId, ByteString, DataValue, DateTime, DecodingOptions, ExtensionObject, LocalizedText,
+    MessageSecurityMode, UAString, VariableId,
 };
 
 use crate::server::config::{ServerConfig, ServerEndpoint};
@@ -36,7 +36,7 @@ use super::identity_token::{
     POLICY_ID_USER_PASS_RSA_OAEP, POLICY_ID_X509,
 };
 use super::node_manager::TypeTree;
-use super::{OperationalLimits, ServerCapabilities, ANONYMOUS_USER_TOKEN_ID};
+use super::{OperationalLimits, ServerCapabilities, SubscriptionCache, ANONYMOUS_USER_TOKEN_ID};
 
 /// Server state is any configuration associated with the server as a whole that individual sessions might
 /// be interested in.
@@ -88,6 +88,7 @@ pub struct ServerInfo {
 }
 
 impl ServerInfo {
+    /// Get the list of endpoints that match the provided filters.
     pub fn endpoints(
         &self,
         endpoint_url: &UAString,
@@ -139,6 +140,8 @@ impl ServerInfo {
         }
     }
 
+    /// Check if the endpoint given by `endpoint_url`, `security_policy`, and `security_mode`
+    /// exists on the server.
     pub fn endpoint_exists(
         &self,
         endpoint_url: &str,
@@ -304,6 +307,7 @@ impl ServerInfo {
         }
     }
 
+    /// Get the list of discovery URLs on the server.
     pub fn discovery_urls(&self) -> Option<Vec<UAString>> {
         if self.config.discovery_urls.is_empty() {
             None
@@ -318,26 +322,41 @@ impl ServerInfo {
         }
     }
 
+    /// Get the application type, will be `Server`.
     pub fn application_type(&self) -> ApplicationType {
         ApplicationType::Server
     }
 
+    /// Get the gateway server URI.
     pub fn gateway_server_uri(&self) -> UAString {
         UAString::null()
     }
 
+    /// Get the current server state.
     pub fn state(&self) -> ServerStateType {
         **self.state.load()
     }
 
-    pub fn set_state(&self, state: ServerStateType) {
+    /// Set the server state. Note that this does not actually affect the server, it is purely
+    /// informative.
+    pub(crate) fn set_state(&self, state: ServerStateType, subs: &SubscriptionCache) {
         self.state.store(Arc::new(state));
+        subs.notify_data_change(
+            [(
+                DataValue::new_now(state as i32),
+                &VariableId::Server_ServerStatus.into(),
+                AttributeId::Value,
+            )]
+            .into_iter(),
+        );
     }
 
+    /// Check if the server state indicates the server is running.
     pub fn is_running(&self) -> bool {
         self.state() == ServerStateType::Running
     }
 
+    /// Get the base endpoint, i.e. the configured host + current port.
     pub fn base_endpoint(&self) -> String {
         format!(
             "opc.tcp://{}:{}",
@@ -346,6 +365,7 @@ impl ServerInfo {
         )
     }
 
+    /// Get the server certificate as a byte string.
     pub fn server_certificate_as_byte_string(&self) -> ByteString {
         if let Some(ref server_certificate) = self.server_certificate {
             server_certificate.as_byte_string()
@@ -354,6 +374,7 @@ impl ServerInfo {
         }
     }
 
+    /// Get a representation of this server as a `RegisteredServer` object.
     pub fn registered_server(&self) -> RegisteredServer {
         let server_uri = self.application_uri.clone();
         let product_uri = self.product_uri.clone();

@@ -161,7 +161,7 @@ bitflags! {
 
 // Bits that control the reference description coming back from browse()
 bitflags! {
-    #[derive(Copy, Clone)]
+    #[derive(Debug, Copy, Clone)]
     pub struct BrowseDescriptionResultMask: u32 {
         const RESULT_MASK_REFERENCE_TYPE = 1;
         const RESULT_MASK_IS_FORWARD = 1 << 1;

@@ -27,6 +27,7 @@ impl ContinuationPoint {
         self.payload.downcast_mut()
     }
 
+    /// Consume this continuation point and return a specific type.
     pub fn take<T: Send + Sync + 'static>(self) -> Option<Box<T>> {
         self.payload.downcast().ok()
     }

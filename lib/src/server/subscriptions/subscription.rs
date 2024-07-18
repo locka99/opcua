@@ -79,6 +79,7 @@ pub(crate) enum HandledState {
 }
 
 #[derive(Debug)]
+/// A single subscription maintained by the server.
 pub struct Subscription {
     id: u32,
     publishing_interval: Duration,
@@ -129,7 +130,7 @@ pub(crate) enum TickReason {
 }
 
 impl Subscription {
-    pub fn new(
+    pub(super) fn new(
         id: u32,
         publishing_enabled: bool,
         publishing_interval: Duration,
@@ -164,6 +165,7 @@ impl Subscription {
         }
     }
 
+    /// Get the number of monitored items in this subscription.
     pub fn len(&self) -> usize {
         self.monitored_items.len()
     }
@@ -172,10 +174,12 @@ impl Subscription {
         self.monitored_items.get_mut(id)
     }
 
+    /// Get a reference to a monitored item managed by this subscription.
     pub fn get(&self, id: &u32) -> Option<&MonitoredItem> {
         self.monitored_items.get(id)
     }
 
+    /// Return whether the subscription contains the given monitored item ID.
     pub fn contains_key(&self, id: &u32) -> bool {
         self.monitored_items.contains_key(id)
     }
@@ -197,6 +201,7 @@ impl Subscription {
         self.notified_monitored_items.insert(id);
     }
 
+    /// Notify the given monitored item of a new data value.
     pub fn notify_data_value(&mut self, id: &u32, value: DataValue) {
         if let Some(item) = self.monitored_items.get_mut(id) {
             if item.notify_data_value(value) {
@@ -205,6 +210,7 @@ impl Subscription {
         }
     }
 
+    /// Notify the given monitored item of a new event.
     pub fn notify_event(&mut self, id: &u32, event: &dyn Event) {
         if let Some(item) = self.monitored_items.get_mut(id) {
             if item.notify_event(event) {
@@ -704,10 +710,12 @@ impl Subscription {
         trace!("Decrementing life time counter {}", self.lifetime_counter);
     }
 
+    /// The ID of this subscription.
     pub fn id(&self) -> u32 {
         self.id
     }
 
+    /// The priority of this subscription.
     pub fn priority(&self) -> u8 {
         self.priority
     }
@@ -737,22 +745,28 @@ impl Subscription {
         self.publishing_enabled = publishing_enabled;
     }
 
+    /// The publishing interval of this subscription.
     pub fn publishing_interval(&self) -> Duration {
         self.publishing_interval
     }
 
+    /// Whether publishing is enabled on this subscription.
     pub fn publishing_enabled(&self) -> bool {
         self.publishing_enabled
     }
 
+    /// The maximum number of notification messages queued for this subscription.
     pub fn max_queued_notifications(&self) -> usize {
         self.max_queued_notifications
     }
 
+    /// The maximum number of notifications per notification message for this
+    /// subscription.
     pub fn max_notifications_per_publish(&self) -> usize {
         self.max_notifications_per_publish
     }
 
+    /// The current state of the subscription.
     pub fn state(&self) -> SubscriptionState {
         self.state
     }

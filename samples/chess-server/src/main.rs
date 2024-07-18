@@ -11,7 +11,6 @@ use opcua::server::node_manager::memory::{NamespaceMetadata, SimpleNodeManager};
 use opcua::server::{ServerBuilder, SubscriptionCache};
 use opcua::sync::Mutex;
 use opcua::types::*;
-use tokio_util::sync::CancellationToken;
 
 mod game;
 
@@ -137,7 +136,7 @@ async fn main() {
     });
 
     // Run the server.
-    server.run(CancellationToken::new()).await.unwrap();
+    server.run().await.unwrap();
 }
 
 fn update_board_state(

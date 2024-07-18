@@ -20,14 +20,20 @@ impl Borrow<[QualifiedName]> for TypePropertyKey {
 }
 
 #[derive(Clone, Debug)]
+/// A single property of a type in the type tree.
 pub struct TypeProperty {
+    /// Node ID of the property.
     pub node_id: NodeId,
+    /// Node class of the property.
     pub node_class: NodeClass,
 }
 
 #[derive(Clone, Debug)]
+/// Inverse reference to a type from a property.
 pub struct TypePropertyInverseRef {
+    /// Node ID of the type.
     pub type_id: NodeId,
+    /// Path to the property.
     pub path: Vec<QualifiedName>,
 }
 
@@ -46,12 +52,17 @@ pub struct TypeTree {
 }
 
 #[derive(Clone, Debug)]
+/// A node in the type tree.
 pub enum TypeTreeNode<'a> {
+    /// A registered type.
     Type(NodeClass),
+    /// A property of a type.
     Property(&'a TypePropertyInverseRef),
 }
 
 impl TypeTree {
+    /// Return `true` if `child` is a subtype of `ancestor`, or if `child` and
+    /// `ancestor` is the same node, i.e. subtype in the OPC-UA sense.
     pub fn is_subtype_of(&self, child: &NodeId, ancestor: &NodeId) -> bool {
         let mut node = child;
         loop {
@@ -80,6 +91,7 @@ impl TypeTree {
         }
     }
 
+    /// Get a reference to a node in the type tree.
     pub fn get_node<'a>(&'a self, node: &NodeId) -> Option<TypeTreeNode<'a>> {
         if let Some(n) = self.nodes.get(node) {
             return Some(TypeTreeNode::Type(*n));
@@ -90,10 +102,12 @@ impl TypeTree {
         None
     }
 
+    /// Get a type from the type tree.
     pub fn get(&self, node: &NodeId) -> Option<NodeClass> {
         self.nodes.get(node).cloned()
     }
 
+    /// Create a new type tree with just the root nodes added.
     pub fn new() -> Self {
         let mut type_tree = Self {
             nodes: HashMap::new(),
@@ -118,6 +132,7 @@ impl TypeTree {
         type_tree
     }
 
+    /// Add a new type to the type tree.
     pub fn add_type_node(&mut self, id: &NodeId, parent: &NodeId, node_class: NodeClass) {
         self.nodes.insert(id.clone(), node_class);
         self.subtypes_by_source
@@ -127,6 +142,7 @@ impl TypeTree {
         self.subtypes_by_target.insert(id.clone(), parent.clone());
     }
 
+    /// Add a new property to the type tree.
     pub fn add_type_property(
         &mut self,
         id: &NodeId,
@@ -160,6 +176,7 @@ impl TypeTree {
         );
     }
 
+    /// Find a property by browse and type ID.
     pub fn find_type_prop_by_browse_path(
         &self,
         type_id: &NodeId,
@@ -168,6 +185,7 @@ impl TypeTree {
         self.type_properties.get(type_id).and_then(|p| p.get(path))
     }
 
+    /// Remove a node from the type tree.
     pub fn remove(&mut self, node_id: &NodeId) -> bool {
         if self.nodes.remove(node_id).is_some() {
             let props = self.type_properties.remove(node_id);

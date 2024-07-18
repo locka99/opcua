@@ -2,11 +2,10 @@ use std::{path::PathBuf, time::Duration};
 
 use log::info;
 use opcua::{
-    server::{ServerBuilder, ServerHandle},
     client::{Client, ClientConfig},
     core::config::Config,
+    server::{ServerBuilder, ServerHandle},
 };
-use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
 async fn main() {
@@ -17,11 +16,10 @@ async fn main() {
         .build()
         .unwrap();
 
-    let token = CancellationToken::new();
-    let token_clone = token.clone();
+    let token = handle.token().clone();
     ctrlc::set_handler(move || token.cancel()).unwrap();
 
-    let join_handle = tokio::task::spawn(server.run(token_clone));
+    let join_handle = tokio::task::spawn(server.run());
 
     let mut client = Client::new(ClientConfig::load(&PathBuf::from("../client.conf")).unwrap());
 

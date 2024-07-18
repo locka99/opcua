@@ -89,10 +89,13 @@ impl SessionSubscriptions {
         Ok(())
     }
 
+    /// Return `true` if the session has a subscription with ID given by
+    /// `sub_id`.
     pub fn contains(&self, sub_id: u32) -> bool {
         self.subscriptions.contains_key(&sub_id)
     }
 
+    /// Return a vector of all the subscription IDs in this session.
     pub fn subscription_ids(&self) -> Vec<u32> {
         self.subscriptions.keys().copied().collect()
     }
@@ -114,10 +117,12 @@ impl SessionSubscriptions {
         (self.subscriptions.remove(&subscription_id), notifs)
     }
 
+    /// Get a mutable reference to a subscription by ID.
     pub fn get_mut(&mut self, subscription_id: u32) -> Option<&mut Subscription> {
         self.subscriptions.get_mut(&subscription_id)
     }
 
+    /// Get a reference to a subscription by ID.
     pub fn get(&self, subscription_id: u32) -> Option<&Subscription> {
         self.subscriptions.get(&subscription_id)
     }
@@ -785,6 +790,7 @@ impl SessionSubscriptions {
         self.subscriptions.get(&subscription_id).map(|s| s.len())
     }
 
+    /// Get a reference to the session this subscription collection is owned by.
     pub fn session(&self) -> &Arc<RwLock<Session>> {
         &self.session
     }

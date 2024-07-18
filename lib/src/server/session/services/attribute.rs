@@ -125,7 +125,7 @@ pub async fn history_read(
     node_managers: NodeManagers,
     request: Request<HistoryReadRequest>,
 ) -> Response {
-    let context = request.context();
+    let mut context = request.context();
     let Some(items) = request.request.nodes_to_read else {
         return service_fault!(request, StatusCode::BadNothingToDo);
     };
@@ -140,7 +140,9 @@ pub async fn history_read(
         Err(e) => return service_fault!(request, e),
     };
 
-    if matches!(details, HistoryReadDetails::Events(_)) {
+    let is_events = matches!(details, HistoryReadDetails::Events(_));
+
+    if is_events {
         if items.len()
             > request
                 .info
@@ -163,7 +165,7 @@ pub async fn history_read(
             .into_iter()
             .map(|node| {
                 if node.continuation_point.is_null() {
-                    let mut node = HistoryNode::new(node, None);
+                    let mut node = HistoryNode::new(node, is_events, None);
                     if request.request.release_continuation_points {
                         node.set_status(StatusCode::Good);
                     }
@@ -171,7 +173,7 @@ pub async fn history_read(
                 } else {
                     let cp = session.remove_history_continuation_point(&node.continuation_point);
                     let cp_missing = cp.is_none();
-                    let mut node = HistoryNode::new(node, cp);
+                    let mut node = HistoryNode::new(node, is_events, cp);
                     if cp_missing {
                         node.set_status(StatusCode::BadContinuationPointInvalid);
                     } else if request.request.release_continuation_points {
@@ -205,14 +207,15 @@ pub async fn history_read(
         };
     }
 
-    for manager in &node_managers {
+    for (idx, manager) in node_managers.into_iter().enumerate() {
+        context.current_node_manager_index = idx;
         let mut batch: Vec<_> = nodes
             .iter_mut()
             .filter(|n| {
                 if n.node_id() == &ObjectId::Server.into()
                     && matches!(details, HistoryReadDetails::Events(_))
                 {
-                    manager.owns_server_events()
+                    manager.owns_server_events() && n.status() == StatusCode::BadNodeIdUnknown
                 } else {
                     manager.owns_node(n.node_id()) && n.status() == StatusCode::BadNodeIdUnknown
                 }
@@ -305,7 +308,7 @@ pub async fn history_update(
     node_managers: NodeManagers,
     request: Request<HistoryUpdateRequest>,
 ) -> Response {
-    let context = request.context();
+    let mut context = request.context();
     let items = take_service_items!(
         request,
         request.request.history_update_details,
@@ -335,7 +338,8 @@ pub async fn history_update(
         })
         .collect();
 
-    for manager in &node_managers {
+    for (idx, manager) in node_managers.into_iter().enumerate() {
+        context.current_node_manager_index = idx;
         let mut batch: Vec<_> = nodes
             .iter_mut()
             .filter(|n| {

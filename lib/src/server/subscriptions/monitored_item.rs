@@ -35,6 +35,7 @@ impl From<EventFieldList> for Notification {
 }
 
 #[derive(Debug, Clone)]
+/// Parsed filter type for a monitored item.
 pub enum FilterType {
     None,
     DataChangeFilter(DataChangeFilter),
@@ -42,6 +43,8 @@ pub enum FilterType {
 }
 
 impl FilterType {
+    /// Try to create a filter from an extension object, returning
+    /// an `EventFilterResult` if the filter is for events.
     pub fn from_filter(
         filter: &ExtensionObject,
         decoding_options: &DecodingOptions,
@@ -87,6 +90,8 @@ impl FilterType {
     }
 }
 
+#[derive(Debug)]
+/// Container for a request to create a single monitored item.
 pub struct CreateMonitoredItem {
     id: u32,
     subscription_id: u32,
@@ -145,7 +150,7 @@ fn sanitize_queue_size(info: &ServerInfo, requested_queue_size: usize) -> usize 
 }
 
 impl CreateMonitoredItem {
-    pub fn new(
+    pub(crate) fn new(
         req: MonitoredItemCreateRequest,
         id: u32,
         sub_id: u32,
@@ -192,6 +197,7 @@ impl CreateMonitoredItem {
         }
     }
 
+    /// Get the monitored item handle of this create request.
     pub fn handle(&self) -> MonitoredItemHandle {
         MonitoredItemHandle {
             monitored_item_id: self.id,
@@ -199,40 +205,56 @@ impl CreateMonitoredItem {
         }
     }
 
+    /// Set the initial value of the monitored item.
     pub fn set_initial_value(&mut self, value: DataValue) {
         self.initial_value = Some(value);
     }
 
+    /// Set the status of the monitored item create request.
+    /// If this is an error after all node managers have been evulated, the
+    /// monitored item will not be created on the server.
+    ///
+    /// Note: Only consider a monitored item to be created if this is set to a
+    /// `Good` status code.
     pub fn set_status(&mut self, status: StatusCode) {
         self.status_code = status;
     }
 
+    /// Attribute to monitor.
     pub fn item_to_monitor(&self) -> &ParsedReadValueId {
         &self.item_to_monitor
     }
 
+    /// Requested monitoring mode.
     pub fn monitoring_mode(&self) -> MonitoringMode {
         self.monitoring_mode
     }
 
+    /// Requested sampling interval in milliseconds.
     pub fn sampling_interval(&self) -> f64 {
         self.sampling_interval
     }
 
+    /// Requested queue size.
     pub fn queue_size(&self) -> usize {
         self.queue_size
     }
 
+    /// Requested filter type.
     pub fn filter(&self) -> &FilterType {
         &self.filter
     }
 
+    /// Revise the queue size, setting it equal to the given `queue_size` if it is smaller
+    /// or if the requested queue size is 0.
     pub fn revise_queue_size(&mut self, queue_size: usize) {
         if queue_size < self.queue_size && queue_size > 0 || self.queue_size == 0 {
             self.queue_size = queue_size;
         }
     }
 
+    /// Revise the sampling interval, settign it equal to the given `sampling_interval` if
+    /// it is larger.
     pub fn revise_sampling_interval(&mut self, sampling_interval: f64) {
         if sampling_interval < self.sampling_interval && sampling_interval > 0.0
             || self.sampling_interval == 0.0
@@ -241,10 +263,12 @@ impl CreateMonitoredItem {
         }
     }
 
+    /// Requested timestamps to return.
     pub fn timestamps_to_return(&self) -> TimestampsToReturn {
         self.timestamps_to_return
     }
 
+    /// Get the current result status code.
     pub fn status_code(&self) -> StatusCode {
         self.status_code
     }
@@ -255,6 +279,7 @@ impl CreateMonitoredItem {
 }
 
 #[derive(Debug)]
+/// State of an active monitored item on the server.
 pub struct MonitoredItem {
     id: u32,
     item_to_monitor: ParsedReadValueId,
@@ -275,7 +300,7 @@ pub struct MonitoredItem {
 }
 
 impl MonitoredItem {
-    pub fn new(request: &CreateMonitoredItem) -> Self {
+    pub(super) fn new(request: &CreateMonitoredItem) -> Self {
         let mut v = Self {
             id: request.id,
             item_to_monitor: request.item_to_monitor.clone(),
@@ -310,7 +335,7 @@ impl MonitoredItem {
 
     /// Modifies the existing item with the values of the modify request. On success, the result
     /// holds the filter result.
-    pub fn modify(
+    pub(super) fn modify(
         &mut self,
         info: &ServerInfo,
         timestamps_to_return: TimestampsToReturn,
@@ -368,7 +393,7 @@ impl MonitoredItem {
         elapsed >= sampling_interval
     }
 
-    pub fn notify_data_value(&mut self, mut value: DataValue) -> bool {
+    pub(super) fn notify_data_value(&mut self, mut value: DataValue) -> bool {
         if self.monitoring_mode == MonitoringMode::Disabled {
             return false;
         }
@@ -432,7 +457,7 @@ impl MonitoredItem {
         true
     }
 
-    pub fn notify_event(&mut self, event: &dyn Event) -> bool {
+    pub(super) fn notify_event(&mut self, event: &dyn Event) -> bool {
         if self.monitoring_mode == MonitoringMode::Disabled {
             return false;
         }
@@ -493,11 +518,15 @@ impl MonitoredItem {
         ));
     }
 
+    /// Return `true` if this item has a stored last value.
     pub fn has_last_value(&self) -> bool {
         self.last_data_value.is_some()
     }
 
-    pub fn has_new_notifications(&mut self) -> bool {
+    /// Return `true` if this item has any new notifications.
+    /// Note that this clears the `any_new_notification` flag and should
+    /// be used with care.
+    pub(super) fn has_new_notifications(&mut self) -> bool {
         let any_new = self.any_new_notification;
         self.any_new_notification = false;
         any_new
@@ -522,10 +551,12 @@ impl MonitoredItem {
         self.triggered_items.remove(&id);
     }
 
+    /// Whether this monitored item is currently reporting new values.
     pub fn is_reporting(&self) -> bool {
         matches!(self.monitoring_mode, MonitoringMode::Reporting)
     }
 
+    /// Whether this monitored item is currently storing new values.
     pub fn is_sampling(&self) -> bool {
         matches!(
             self.monitoring_mode,
@@ -533,26 +564,32 @@ impl MonitoredItem {
         )
     }
 
+    /// Items that are triggered by updates to this monitored item.
     pub fn triggered_items(&self) -> &BTreeSet<u32> {
         &self.triggered_items
     }
 
+    /// Whether this monitored item has enqueued notifications.
     pub fn has_notifications(&self) -> bool {
         !self.notification_queue.is_empty()
     }
 
+    /// Monitored item ID.
     pub fn id(&self) -> u32 {
         self.id
     }
 
+    /// Sampling interval.
     pub fn sampling_interval(&self) -> f64 {
         self.sampling_interval
     }
 
+    /// Current maximum queue size.
     pub fn queue_size(&self) -> usize {
         self.queue_size
     }
 
+    /// Item being monitored.
     pub fn item_to_monitor(&self) -> &ParsedReadValueId {
         &self.item_to_monitor
     }
@@ -561,10 +598,13 @@ impl MonitoredItem {
         self.monitoring_mode = monitoring_mode;
     }
 
+    /// Current monitoring mode.
     pub fn monitoring_mode(&self) -> MonitoringMode {
         self.monitoring_mode
     }
 
+    /// Whether oldest or newest values are discarded when the queue
+    /// overflows.
     pub fn discard_oldest(&self) -> bool {
         self.discard_oldest
     }

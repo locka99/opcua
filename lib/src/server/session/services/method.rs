@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub async fn call(node_managers: NodeManagers, request: Request<CallRequest>) -> Response {
-    let context = request.context();
+    let mut context = request.context();
     let method_calls = take_service_items!(
         request,
         request.request.methods_to_call,
@@ -16,7 +16,8 @@ pub async fn call(node_managers: NodeManagers, request: Request<CallRequest>) ->
 
     let mut calls: Vec<_> = method_calls.into_iter().map(MethodCall::new).collect();
 
-    for node_manager in &node_managers {
+    for (idx, node_manager) in node_managers.into_iter().enumerate() {
+        context.current_node_manager_index = idx;
         let mut owned: Vec<_> = calls
             .iter_mut()
             .filter(|c| {

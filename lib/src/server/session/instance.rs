@@ -16,6 +16,7 @@ use crate::types::{
     ApplicationDescription, ByteString, MessageSecurityMode, NodeId, StatusCode, UAString,
 };
 
+/// An instance of an OPC-UA session.
 pub struct Session {
     /// The session identifier
     session_id: NodeId,
@@ -68,7 +69,8 @@ pub struct Session {
 }
 
 impl Session {
-    pub fn create(
+    /// Create a new session object.
+    pub(crate) fn create(
         info: &ServerInfo,
         authentication_token: NodeId,
         secure_channel_id: u32,
@@ -117,7 +119,8 @@ impl Session {
         }
     }
 
-    pub fn validate_timed_out(&self) -> Result<(), StatusCode> {
+    /// Check whether this session has timed out and return the appropriate error if it has.
+    pub(crate) fn validate_timed_out(&self) -> Result<(), StatusCode> {
         let elapsed = Instant::now() - **self.last_service_request.load();
 
         self.last_service_request.store(Arc::new(Instant::now()));
@@ -131,11 +134,13 @@ impl Session {
         }
     }
 
+    /// Get the session timeout deadline.
     pub fn deadline(&self) -> Instant {
         **self.last_service_request.load() + self.session_timeout
     }
 
-    pub fn validate_activated(&self) -> Result<&UserToken, StatusCode> {
+    /// Check whether this session is validated and return the appropriate error if not.
+    pub(crate) fn validate_activated(&self) -> Result<&UserToken, StatusCode> {
         if let Some(token) = &self.user_token {
             Ok(token)
         } else {
@@ -143,7 +148,12 @@ impl Session {
         }
     }
 
-    pub fn validate_secure_channel_id(&self, secure_channel_id: u32) -> Result<(), StatusCode> {
+    /// Check whether this session is associated with the secure channel given by
+    /// `secure_channel_id` and return the appropriate error fi not.
+    pub(crate) fn validate_secure_channel_id(
+        &self,
+        secure_channel_id: u32,
+    ) -> Result<(), StatusCode> {
         if secure_channel_id != self.secure_channel_id {
             Err(StatusCode::BadSecureChannelIdInvalid)
         } else {
@@ -151,7 +161,8 @@ impl Session {
         }
     }
 
-    pub fn activate(
+    /// Activate the session.
+    pub(crate) fn activate(
         &mut self,
         secure_channel_id: u32,
         server_nonce: ByteString,
@@ -166,26 +177,36 @@ impl Session {
         self.locale_ids = locale_ids;
     }
 
+    /// Get the session ID of this session, this is known to the client, and is what they
+    /// use to refer to this session.
+    ///
+    /// Note: Do not use this for access control, instead you should almost always use the
+    /// `UserToken` to refer to the _user_, rather than the session.
     pub fn session_id(&self) -> &NodeId {
         &self.session_id
     }
 
+    /// Get the endpoint this session was created on.
     pub fn endpoint_url(&self) -> &UAString {
         &self.endpoint_url
     }
 
+    /// Get the client certificate, if it is set.
     pub fn client_certificate(&self) -> Option<&X509> {
         self.client_certificate.as_ref()
     }
 
+    /// Get the session nonce.
     pub fn session_nonce(&self) -> &ByteString {
         &self.session_nonce
     }
 
+    /// Whether this session is activated.
     pub fn is_activated(&self) -> bool {
         self.user_token.is_some()
     }
 
+    /// Get the secure channel ID of this session.
     pub fn secure_channel_id(&self) -> u32 {
         self.secure_channel_id
     }
@@ -255,34 +276,43 @@ impl Session {
         self.query_continuation_points.remove(id)
     }
 
+    /// Get the application description of the client that created this session.
     pub fn application_description(&self) -> &ApplicationDescription {
         &self.application_description
     }
 
+    /// Get the user token, if set. This will be present if the session
+    /// is activated.
     pub fn user_token(&self) -> Option<&UserToken> {
         self.user_token.as_ref()
     }
 
+    /// Get the message security mode used by this session.
     pub fn message_security_mode(&self) -> MessageSecurityMode {
         self.message_security_mode
     }
 
+    /// Get a numeric representation of the session ID.
     pub fn session_id_numeric(&self) -> u32 {
         self.session_id_numeric
     }
 
+    /// Get the negotiated max request message size.
     pub fn max_request_message_size(&self) -> u32 {
         self.max_request_message_size
     }
 
+    /// Get the negotiated max response message size.
     pub fn max_response_message_size(&self) -> u32 {
         self.max_response_message_size
     }
 
+    /// Get the name of this session as set by the client.
     pub fn session_name(&self) -> &str {
         self.session_name.as_ref()
     }
 
+    /// Get the security policy URI of this session.
     pub fn security_policy_uri(&self) -> &str {
         &self.security_policy_uri
     }

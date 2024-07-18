@@ -4,6 +4,7 @@ use crate::types::{
 };
 
 #[derive(Debug, Clone)]
+/// Parsed and validated version of a raw ReadValueId from OPC-UA.
 pub struct ParsedReadValueId {
     pub node_id: NodeId,
     pub attribute_id: AttributeId,
@@ -12,6 +13,7 @@ pub struct ParsedReadValueId {
 }
 
 impl ParsedReadValueId {
+    /// Try to parse from a `ReadValueId`.
     pub fn parse(val: ReadValueId) -> Result<Self, StatusCode> {
         let attribute_id = AttributeId::from_u32(val.attribute_id)
             .map_err(|_| StatusCode::BadAttributeIdInvalid)?;
@@ -30,6 +32,7 @@ impl ParsedReadValueId {
         })
     }
 
+    /// Create a "null" `ParsedReadValueId`, with no node ID.
     pub fn null() -> Self {
         Self {
             node_id: NodeId::null(),
@@ -39,18 +42,28 @@ impl ParsedReadValueId {
         }
     }
 
+    /// Check whether this `ParsedReadValueId` is null.
     pub fn is_null(&self) -> bool {
         self.node_id.is_null()
     }
 }
 
+impl Default for ParsedReadValueId {
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
+#[derive(Debug)]
+/// Container for a single item in a `Read` service call.
 pub struct ReadNode {
     node: ParsedReadValueId,
     pub(crate) result: DataValue,
 }
 
 impl ReadNode {
-    pub fn new(node: ReadValueId) -> Self {
+    /// Create a `ReadNode` from a `ReadValueId`.
+    pub(crate) fn new(node: ReadValueId) -> Self {
         let mut status = StatusCode::BadNodeIdUnknown;
 
         let node = match ParsedReadValueId::parse(node) {
@@ -71,18 +84,24 @@ impl ReadNode {
         }
     }
 
+    /// Get the current result status code.
     pub fn status(&self) -> StatusCode {
         self.result.status()
     }
 
+    /// Get the node/attribute pair to read.
     pub fn node(&self) -> &ParsedReadValueId {
         &self.node
     }
 
+    /// Set the result of this read operation.
     pub fn set_result(&mut self, result: DataValue) {
         self.result = result;
     }
 
+    /// Set the result of this read operation to an error with no value or
+    /// timestamp. Use this not if the value is an error, but if the read
+    /// failed.
     pub fn set_error(&mut self, status: StatusCode) {
         self.result = DataValue {
             status: Some(status),
@@ -97,6 +116,7 @@ impl ReadNode {
 }
 
 #[derive(Debug, Clone)]
+/// Parsed and validated version of the raw OPC-UA `WriteValue`.
 pub struct ParsedWriteValue {
     pub node_id: NodeId,
     pub attribute_id: AttributeId,
@@ -105,6 +125,7 @@ pub struct ParsedWriteValue {
 }
 
 impl ParsedWriteValue {
+    /// Try to parse from a `WriteValue`.
     pub fn parse(val: WriteValue) -> Result<Self, StatusCode> {
         let attribute_id = AttributeId::from_u32(val.attribute_id)
             .map_err(|_| StatusCode::BadAttributeIdInvalid)?;
@@ -122,6 +143,7 @@ impl ParsedWriteValue {
         })
     }
 
+    /// Create a "null" `ParsedWriteValue`.
     pub fn null() -> Self {
         Self {
             node_id: NodeId::null(),
@@ -131,18 +153,28 @@ impl ParsedWriteValue {
         }
     }
 
+    /// Check if this `ParsedWriteValue` is null.
     pub fn is_null(&self) -> bool {
         self.node_id.is_null()
     }
 }
 
+impl Default for ParsedWriteValue {
+    fn default() -> Self {
+        Self::null()
+    }
+}
+
+/// Container for a single item in a `Write` service call.
+#[derive(Debug)]
 pub struct WriteNode {
     value: ParsedWriteValue,
     status: StatusCode,
 }
 
 impl WriteNode {
-    pub fn new(value: WriteValue) -> Self {
+    /// Create a `WriteNode` from a raw OPC-UA `WriteValue`.
+    pub(crate) fn new(value: WriteValue) -> Self {
         let mut status = StatusCode::BadNodeIdUnknown;
 
         let value = match ParsedWriteValue::parse(value) {
@@ -156,14 +188,17 @@ impl WriteNode {
         Self { value, status }
     }
 
+    /// Get the current status.
     pub fn status(&self) -> StatusCode {
         self.status
     }
 
+    /// Set the status code result of this operation.
     pub fn set_status(&mut self, status: StatusCode) {
         self.status = status;
     }
 
+    /// Get the value to write.
     pub fn value(&self) -> &ParsedWriteValue {
         &self.value
     }

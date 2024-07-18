@@ -25,9 +25,13 @@ pub(crate) struct QueryContinuationPoint {
 }
 
 #[derive(Debug)]
+/// Parsed and validated version of the OPC-UA `QueryDataDescription`.
 pub struct ParsedQueryDataDescription {
+    /// The relative path to the node being referenced.
     pub relative_path: RelativePath,
+    /// Attribute ID of the attribute being referenced.
     pub attribute_id: AttributeId,
+    /// Index range for the read.
     pub index_range: NumericRange,
 }
 
@@ -50,9 +54,13 @@ impl ParsedQueryDataDescription {
 }
 
 #[derive(Debug)]
+/// Parsed and validated version of the OPC-UA `NodeTypeDescription`.
 pub struct ParsedNodeTypeDescription {
+    /// Type definition to query.
     pub type_definition_node: ExpandedNodeId,
+    /// Whether to include sub types of the type definition.
     pub include_sub_types: bool,
+    /// List of values to return.
     pub data_to_return: Vec<ParsedQueryDataDescription>,
 }
 
@@ -101,6 +109,7 @@ impl ParsedNodeTypeDescription {
     }
 }
 
+/// Container for a `Query` service call.
 pub struct QueryRequest {
     node_types: Vec<ParsedNodeTypeDescription>,
     filter: ParsedContentFilter,
@@ -115,7 +124,7 @@ pub struct QueryRequest {
 }
 
 impl QueryRequest {
-    pub fn new(
+    pub(crate) fn new(
         node_types: Vec<ParsedNodeTypeDescription>,
         filter: ParsedContentFilter,
         max_data_sets_to_return: usize,
@@ -148,30 +157,37 @@ impl QueryRequest {
         }
     }
 
+    /// Data sets to query.
     pub fn data_sets(&self) -> &[QueryDataSet] {
         &self.data_sets
     }
 
+    /// Continuation point, if present.
     pub fn continuation_point(&self) -> Option<&ContinuationPoint> {
         self.continuation_point.as_ref()
     }
 
+    /// Maximum number of references to return.
     pub fn max_references_to_return(&self) -> usize {
         self.max_references_to_return
     }
 
+    /// Maximum number of data sets to return.
     pub fn max_data_sets_to_return(&self) -> usize {
         self.max_data_sets_to_return
     }
 
+    /// Content filter that the results must match.
     pub fn filter(&self) -> &ParsedContentFilter {
         &self.filter
     }
 
+    /// Node types to query.
     pub fn node_types(&self) -> &[ParsedNodeTypeDescription] {
         &self.node_types
     }
 
+    /// Space for data sets left.
     pub fn remaining_data_sets(&self) -> usize {
         if self.data_sets.len() >= self.max_data_sets_to_return {
             0
@@ -180,6 +196,7 @@ impl QueryRequest {
         }
     }
 
+    /// Whether this query is completed.
     pub fn is_completed(&self) -> bool {
         self.remaining_data_sets() == 0 || self.next_continuation_point.is_some()
     }
@@ -241,14 +258,17 @@ impl QueryRequest {
         (self.data_sets, cp_id, status)
     }
 
+    /// Current result status code.
     pub fn status(&self) -> StatusCode {
         self.status
     }
 
+    /// Set the general result of this query.
     pub fn set_status(&mut self, status: StatusCode) {
         self.status = status;
     }
 
+    /// Set the next continuation point for this query.
     pub fn set_next_continuation_point(
         &mut self,
         next_continuation_point: Option<ContinuationPoint>,

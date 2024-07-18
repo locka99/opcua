@@ -19,14 +19,23 @@ use crate::{
 use super::type_tree::TypeTree;
 
 #[derive(Debug, Clone)]
+/// Object describing a node with sufficient context to construct
+/// a `ReferenceDescription`.
 pub struct NodeMetadata {
+    /// Node ID of the node.
     pub node_id: ExpandedNodeId,
+    /// Type definition of the node.
     pub type_definition: ExpandedNodeId,
+    /// Browse name of the node.
     pub browse_name: QualifiedName,
+    /// Display name of the node.
     pub display_name: LocalizedText,
+    /// Node class of the node.
     pub node_class: NodeClass,
 }
 
+#[derive(Debug)]
+/// Container for a request for the metadata of a single node.
 pub struct ExternalReferenceRequest {
     node_id: NodeId,
     result_mask: BrowseDescriptionResultMask,
@@ -34,6 +43,8 @@ pub struct ExternalReferenceRequest {
 }
 
 impl ExternalReferenceRequest {
+    /// Create a new external reference request from the node ID of the node being requested
+    /// and a result mask.
     pub fn new(reference: &NodeId, result_mask: BrowseDescriptionResultMask) -> Self {
         Self {
             node_id: reference.clone(),
@@ -42,23 +53,29 @@ impl ExternalReferenceRequest {
         }
     }
 
+    /// Node ID of the node being requested.
     pub fn node_id(&self) -> &NodeId {
         &self.node_id
     }
 
+    /// Set the result to a `NodeMetadata` object.
     pub fn set(&mut self, reference: NodeMetadata) {
         self.item = Some(reference);
     }
 
+    /// Get the mask for fields that should be included in the returned `NodeMetadata`.
     pub fn result_mask(&self) -> BrowseDescriptionResultMask {
         self.result_mask
     }
 
+    /// Consume this request and return the result.
     pub fn into_inner(self) -> Option<NodeMetadata> {
         self.item
     }
 }
 
+#[derive(Debug)]
+/// A reference pointing to some node in a different node manager.
 pub struct ExternalReference {
     target_id: ExpandedNodeId,
     reference_type_id: NodeId,
@@ -66,6 +83,7 @@ pub struct ExternalReference {
 }
 
 impl ExternalReference {
+    /// Create a new external reference.
     pub fn new(
         target_id: ExpandedNodeId,
         reference_type_id: NodeId,
@@ -78,6 +96,7 @@ impl ExternalReference {
         }
     }
 
+    /// Create a reference description from this and a `NodeMetadata` object.
     pub fn into_reference(self, meta: NodeMetadata) -> ReferenceDescription {
         ReferenceDescription {
             reference_type_id: self.reference_type_id,
@@ -91,6 +110,8 @@ impl ExternalReference {
     }
 }
 
+#[derive(Debug)]
+/// Result of adding a reference to a browse node.
 pub enum AddReferenceResult {
     /// The reference was added
     Added,
@@ -126,7 +147,7 @@ pub struct BrowseNode {
     external_references: Vec<ExternalReference>,
 }
 
-pub struct BrowseContinuationPoint {
+pub(crate) struct BrowseContinuationPoint {
     pub node_manager_index: usize,
     pub continuation_point: ContinuationPoint,
     pub id: ByteString,
@@ -144,7 +165,7 @@ pub struct BrowseContinuationPoint {
 
 impl BrowseNode {
     /// Create a new empty browse node
-    pub fn new(
+    pub(crate) fn new(
         description: BrowseDescription,
         max_references_per_node: usize,
         input_index: usize,
@@ -242,6 +263,7 @@ impl BrowseNode {
         self.references.push(reference);
     }
 
+    /// Return `true` if nodes with the given reference type ID should be returned.
     pub fn allows_reference_type(&self, ty: &NodeId, type_tree: &TypeTree) -> bool {
         if self.reference_type_id.is_null() {
             return true;
@@ -265,6 +287,7 @@ impl BrowseNode {
         true
     }
 
+    /// Return `true` if nodes with the given node class should be returned.
     pub fn allows_node_class(&self, node_class: NodeClass) -> bool {
         if !self.node_class_mask.is_empty()
             && !self
@@ -277,6 +300,7 @@ impl BrowseNode {
         }
     }
 
+    /// Return `true` if the given reference should be returned.
     pub fn matches_filter(&self, type_tree: &TypeTree, reference: &ReferenceDescription) -> bool {
         if reference.node_id.is_null() {
             warn!("Skipping reference with null NodeId");
@@ -311,9 +335,10 @@ impl BrowseNode {
         self.allows_reference_type(&reference.reference_type_id, type_tree)
     }
 
-    /// Add a reference, validating that it matches the filters, and returning `true` if it was added.
-    /// Note that you are still responsible for not exceeding the `requested_max_references_per_node`
-    /// parameter, and producing a continuation point if needed.
+    /// Add a reference, validating that it matches the filters, and returning `Added` if it was added.
+    /// If the browse node is full, this will return `Full` containing the given reference if
+    /// `max_references_per_node` would be exceeded. In this case you are responsible for
+    /// setting a `ContinuationPoint` to ensure all references are included.
     /// This will clear any fields not required by ResultMask.
     pub fn add(
         &mut self,
@@ -368,26 +393,32 @@ impl BrowseNode {
         }
     }
 
+    /// Whether to include subtypes of the `reference_type_id`.
     pub fn include_subtypes(&self) -> bool {
         self.include_subtypes
     }
 
+    /// Node ID to browse.
     pub fn node_id(&self) -> &NodeId {
         &self.node_id
     }
 
+    /// Direction to browse.
     pub fn browse_direction(&self) -> BrowseDirection {
         self.browse_direction
     }
 
+    /// Mask for node classes to return. If this is empty, all node classes should be returned.
     pub fn node_class_mask(&self) -> &NodeClassMask {
         &self.node_class_mask
     }
 
+    /// Mask for attributes to return.
     pub fn result_mask(&self) -> BrowseDescriptionResultMask {
         self.result_mask
     }
 
+    /// Reference type ID of references to return. Subject to `include_subtypes`.
     pub fn reference_type_id(&self) -> &NodeId {
         &self.reference_type_id
     }
@@ -458,16 +489,20 @@ impl BrowseNode {
         self.remaining() <= 0 || self.next_continuation_point.is_some()
     }
 
+    /// Add an external reference to the result. This will be resolved by
+    /// calling into a different node manager.
     pub fn push_external_reference(&mut self, reference: ExternalReference) {
         self.external_references.push(reference);
     }
 
+    /// Get an iterator over the external references.
     pub fn get_external_refs(&self) -> impl Iterator<Item = &NodeId> {
         self.external_references
             .iter()
             .map(|n| &n.target_id.node_id)
     }
 
+    /// Return `true` if there are any external references to evaluate.
     pub fn any_external_refs(&self) -> bool {
         !self.external_references.is_empty()
     }
@@ -585,14 +620,17 @@ impl<'a> BrowsePathItem<'a> {
         }
     }
 
+    /// Full browse path for this item.
     pub fn path(&self) -> &'a [RelativePathElement] {
         self.path
     }
 
+    /// Root node ID to evaluate the path from.
     pub fn node_id(&self) -> &NodeId {
         &self.node
     }
 
+    /// Add a path result element.
     pub fn add_element(
         &mut self,
         node: NodeId,
@@ -606,6 +644,7 @@ impl<'a> BrowsePathItem<'a> {
         })
     }
 
+    /// Set the status code for this operation.
     pub fn set_status(&mut self, status: StatusCode) {
         self.status = status;
     }
@@ -622,46 +661,54 @@ impl<'a> BrowsePathItem<'a> {
         self.node_manager_index
     }
 
+    /// Get the current result status code.
     pub fn status(&self) -> StatusCode {
         self.status
     }
 
+    /// Get the current interation number.
     pub fn iteration_number(&self) -> usize {
         self.iteration_number
     }
 
+    /// Get the last unmatched browse name, if present.
     pub fn unmatched_browse_name(&self) -> Option<&QualifiedName> {
         self.unmatched_browse_name.as_ref()
     }
 
+    /// Set the browse name as matched by the node manager given by `node_manager_index`.
     pub fn set_browse_name_matched(&mut self, node_manager_index: usize) {
         self.unmatched_browse_name = None;
         self.node_manager_index = node_manager_index;
     }
 }
 
+#[derive(Debug)]
+/// Container for a single node in a `RegisterNodes` call.
 pub struct RegisterNodeItem {
     node_id: NodeId,
     registered: bool,
 }
 
 impl RegisterNodeItem {
-    pub fn new(node_id: NodeId) -> Self {
+    pub(crate) fn new(node_id: NodeId) -> Self {
         Self {
             node_id,
             registered: false,
         }
     }
 
+    /// Node ID to register.
     pub fn node_id(&self) -> &NodeId {
         &self.node_id
     }
 
+    /// Set the node registered status. This is returned to the client.
     pub fn set_registered(&mut self, registered: bool) {
         self.registered = registered;
     }
 
-    pub fn into_result(self) -> Option<NodeId> {
+    pub(crate) fn into_result(self) -> Option<NodeId> {
         if self.registered {
             Some(self.node_id)
         } else {

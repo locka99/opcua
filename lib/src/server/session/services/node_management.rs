@@ -13,7 +13,7 @@ use crate::{
 };
 
 pub async fn add_nodes(node_managers: NodeManagers, request: Request<AddNodesRequest>) -> Response {
-    let context = request.context();
+    let mut context = request.context();
 
     let nodes_to_add = take_service_items!(
         request,
@@ -30,7 +30,8 @@ pub async fn add_nodes(node_managers: NodeManagers, request: Request<AddNodesReq
         .map(|it| AddNodeItem::new(it, &decoding_options))
         .collect();
 
-    for node_manager in &node_managers {
+    for (idx, node_manager) in node_managers.iter().enumerate() {
+        context.current_node_manager_index = idx;
         let mut owned: Vec<_> = to_add
             .iter_mut()
             .filter(|c| {
@@ -71,7 +72,7 @@ pub async fn add_references(
     node_managers: NodeManagers,
     request: Request<AddReferencesRequest>,
 ) -> Response {
-    let context = request.context();
+    let mut context = request.context();
 
     let references_to_add = take_service_items!(
         request,
@@ -87,7 +88,8 @@ pub async fn add_references(
         .map(|it| AddReferenceItem::new(it))
         .collect();
 
-    for node_manager in &node_managers {
+    for (idx, node_manager) in node_managers.iter().enumerate() {
+        context.current_node_manager_index = idx;
         let mut owned: Vec<_> = to_add
             .iter_mut()
             .filter(|v| {
@@ -132,7 +134,7 @@ pub async fn delete_nodes(
     node_managers: NodeManagers,
     request: Request<DeleteNodesRequest>,
 ) -> Response {
-    let context = request.context();
+    let mut context = request.context();
 
     let nodes_to_delete = take_service_items!(
         request,
@@ -148,7 +150,8 @@ pub async fn delete_nodes(
         .map(|v| DeleteNodeItem::new(v))
         .collect();
 
-    for node_manager in &node_managers {
+    for (idx, node_manager) in node_managers.iter().enumerate() {
+        context.current_node_manager_index = idx;
         let mut owned: Vec<_> = to_delete
             .iter_mut()
             .filter(|it| {
@@ -168,7 +171,8 @@ pub async fn delete_nodes(
     }
 
     // Then delete references where necessary.
-    for node_manager in &node_managers {
+    for (idx, node_manager) in node_managers.iter().enumerate() {
+        context.current_node_manager_index = idx;
         let targets: Vec<_> = to_delete
             .iter()
             .filter(|it| it.status().is_good() && !node_manager.owns_node(it.node_id()))
@@ -194,7 +198,7 @@ pub async fn delete_references(
     node_managers: NodeManagers,
     request: Request<DeleteReferencesRequest>,
 ) -> Response {
-    let context = request.context();
+    let mut context = request.context();
 
     let references_to_delete = take_service_items!(
         request,
@@ -210,7 +214,8 @@ pub async fn delete_references(
         .map(|it| DeleteReferenceItem::new(it))
         .collect();
 
-    for node_manager in &node_managers {
+    for (idx, node_manager) in node_managers.iter().enumerate() {
+        context.current_node_manager_index = idx;
         let mut owned: Vec<_> = to_delete
             .iter_mut()
             .filter(|v| {

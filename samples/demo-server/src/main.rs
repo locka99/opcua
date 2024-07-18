@@ -28,7 +28,6 @@ use opcua::server::{
     node_manager::memory::{NamespaceMetadata, SimpleNodeManager},
     ServerBuilder,
 };
-use tokio_util::sync::CancellationToken;
 
 mod control;
 mod machine;
@@ -135,7 +134,7 @@ async fn main() {
             .build()
             .unwrap();
 
-        let token = CancellationToken::new();
+        let token = handle.token();
 
         // Add some objects representing machinery
         machine::add_machinery(
@@ -163,6 +162,6 @@ async fn main() {
         // Add some methods
         methods::add_methods(node_manager, ns);
 
-        server.run(token).await.unwrap();
+        server.run().await.unwrap();
     }
 }

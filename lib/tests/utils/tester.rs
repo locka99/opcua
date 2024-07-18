@@ -25,7 +25,6 @@ use super::{TestNodeManager, TestNodeManagerImpl, CLIENT_USERPASS_ID, CLIENT_X50
 pub struct Tester {
     pub handle: ServerHandle,
     pub client: Client,
-    pub token: CancellationToken,
     _guard: DropGuard,
     pub addr: SocketAddr,
     pub test_id: u16,
@@ -252,15 +251,14 @@ impl Tester {
         let (server, handle) = server.build().unwrap();
         let token = CancellationToken::new();
 
-        tokio::task::spawn(server.run_with(listener, token.clone()));
+        tokio::task::spawn(server.run_with(listener));
 
         let client = default_client(test_id, quick_timeout).client().unwrap();
 
         Self {
+            _guard: handle.token().clone().drop_guard(),
             handle,
             client,
-            _guard: token.clone().drop_guard(),
-            token,
             addr,
             test_id,
         }
@@ -272,7 +270,6 @@ impl Tester {
 
         let test_id = TEST_COUNTER.fetch_add(1, Ordering::Relaxed);
         let listener = Self::listener().await;
-        let token = CancellationToken::new();
         let addr = listener.local_addr().unwrap();
 
         let server = server
@@ -281,15 +278,14 @@ impl Tester {
 
         let (server, handle) = server.build().unwrap();
 
-        tokio::task::spawn(server.run_with(listener, token.clone()));
+        tokio::task::spawn(server.run_with(listener));
 
         let client = default_client(test_id, quick_timeout).client().unwrap();
 
         Self {
+            _guard: handle.token().clone().drop_guard(),
             handle,
             client,
-            _guard: token.clone().drop_guard(),
-            token,
             addr,
             test_id,
         }
@@ -311,15 +307,14 @@ impl Tester {
 
         let (server, handle) = server.build().unwrap();
 
-        tokio::task::spawn(server.run_with(listener, token.clone()));
+        tokio::task::spawn(server.run_with(listener));
 
         let client = client.client().unwrap();
 
         Self {
+            _guard: handle.token().clone().drop_guard(),
             handle,
             client,
-            _guard: token.clone().drop_guard(),
-            token,
             addr,
             test_id,
         }

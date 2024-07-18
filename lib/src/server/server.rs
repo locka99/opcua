@@ -41,26 +41,30 @@ struct ConnectionInfo {
     command_send: tokio::sync::mpsc::Sender<ControllerCommand>,
 }
 
-pub struct ServerCore {
-    // Certificate store
+/// The server struct. This is consumed when run, so you will typically not hold onto this for longer
+/// periods of time.
+pub struct Server {
+    /// Certificate store
     certificate_store: Arc<RwLock<CertificateStore>>,
-    // Session manager
+    /// Session manager
     session_manager: Arc<RwLock<SessionManager>>,
-    // Open connections.
+    /// Open connections.
     connections: FuturesUnordered<JoinHandle<u32>>,
-    // Map to metadata about each open connection
+    /// Map to metadata about each open connection
     connection_map: HashMap<u32, ConnectionInfo>,
-    // Server configuration, fixed after the server is started
+    /// Server configuration, fixed after the server is started
     config: Arc<ServerConfig>,
-    // Context for use by connections to access general server state.
+    /// Context for use by connections to access general server state.
     info: Arc<ServerInfo>,
-    // Subscription cache, global because subscriptions outlive sessions.
+    /// Subscription cache, global because subscriptions outlive sessions.
     subscriptions: Arc<SubscriptionCache>,
-    // List of node managers
+    /// List of node managers
     node_managers: NodeManagers,
+    /// Cancellation token
+    token: CancellationToken,
 }
 
-impl ServerCore {
+impl Server {
     pub(crate) fn new_from_builder(builder: ServerBuilder) -> Result<(Self, ServerHandle), String> {
         if !builder.config.is_valid() {
             return Err("Configuration is invalid".to_owned());
@@ -155,6 +159,7 @@ impl ServerCore {
             node_managers.clone(),
             session_manager.clone(),
             type_tree.clone(),
+            builder.token.clone(),
         );
         Ok((
             Self {
@@ -166,11 +171,13 @@ impl ServerCore {
                 config,
                 info,
                 node_managers,
+                token: builder.token,
             },
             handle,
         ))
     }
 
+    /// Get a reference to the SubscriptionCache containing all subscriptions on the server.
     pub fn subscriptions(&self) -> Arc<SubscriptionCache> {
         self.subscriptions.clone()
     }
@@ -208,12 +215,12 @@ impl ServerCore {
     }
 
     /// Run the server using a given TCP listener.
-    /// Note that the configured TCP endpoint is still used for endpoints!
-    pub async fn run_with(
-        mut self,
-        listener: TcpListener,
-        token: CancellationToken,
-    ) -> Result<(), String> {
+    /// Note that the configured TCP endpoint is still used to create the endpoint
+    /// descriptions, you must properly set `host` and `port` even when using this.
+    ///
+    /// This is useful for testing, as you can bind a `TcpListener` to port `0` auto-assign
+    /// a port.
+    pub async fn run_with(mut self, listener: TcpListener) -> Result<(), String> {
         let context = ServerContext {
             node_managers: self.node_managers.as_weak(),
             subscriptions: self.subscriptions.clone(),
@@ -224,7 +231,8 @@ impl ServerCore {
 
         self.initialize_node_managers(&context).await?;
 
-        self.info.set_state(ServerState::Running);
+        self.info
+            .set_state(ServerState::Running, &self.subscriptions);
         self.info.start_time.store(Arc::new(DateTime::now()));
 
         let addr = listener
@@ -242,7 +250,7 @@ impl ServerCore {
 
         loop {
             let conn_fut = if self.connections.is_empty() {
-                if token.is_cancelled() {
+                if self.token.is_cancelled() {
                     break;
                 }
                 Either::Left(futures::future::pending::<Option<Result<u32, JoinError>>>())
@@ -291,7 +299,7 @@ impl ServerCore {
                         }
                     }
                 }
-                _ = token.cancelled() => {
+                _ = self.token.cancelled() => {
                     for conn in self.connection_map.values() {
                         let _ = conn.command_send.send(ControllerCommand::Close).await;
                     }
@@ -302,8 +310,8 @@ impl ServerCore {
         Ok(())
     }
 
-    /// Run the server.
-    pub async fn run(self, token: CancellationToken) -> Result<(), String> {
+    /// Run the server. The provided `token` can be used to stop the server gracefully.
+    pub async fn run(self) -> Result<(), String> {
         let addr = self.get_socket_address();
 
         let Some(addr) = addr else {
@@ -320,7 +328,7 @@ impl ServerCore {
             }
         };
 
-        self.run_with(listener, token).await
+        self.run_with(listener).await
     }
 
     async fn run_subscription_ticks(interval: u64, context: &ServerContext) -> Never {

@@ -10,6 +10,7 @@ pub(crate) const POLICY_ID_USER_PASS_RSA_15: &str = "userpass_rsa_15";
 pub(crate) const POLICY_ID_USER_PASS_RSA_OAEP: &str = "userpass_rsa_oaep";
 pub(crate) const POLICY_ID_X509: &str = "x509";
 
+/// Identity token representation on the server, decoded from the client.
 pub enum IdentityToken {
     None,
     AnonymousIdentityToken(AnonymousIdentityToken),
@@ -19,6 +20,8 @@ pub enum IdentityToken {
 }
 
 impl IdentityToken {
+    /// Decode an identity token from an extension object received from the client.
+    /// Returns `Invalid` if decoding failed.
     pub fn new(o: &ExtensionObject, decoding_options: &DecodingOptions) -> Self {
         if o.is_empty() {
             // Treat as anonymous

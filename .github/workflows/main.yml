@@ -18,10 +18,6 @@ jobs:
         run: cargo build --features test-vendored-openssl
       - name: Run tests
         run: cargo test --features test-vendored-openssl --verbose
-      - name: Run integration tests
-        run: |
-          cd integration
-          sh ./run.sh
 
   build-windows:
     runs-on: windows-latest

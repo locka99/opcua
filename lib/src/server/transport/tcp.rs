@@ -26,6 +26,7 @@ use tokio::{
 };
 use tokio_util::codec::FramedRead;
 
+/// Transport implementation for opc.tcp.
 pub(crate) struct TcpTransport {
     read: FramedRead<ReadHalf<TcpStream>, TcpCodec>,
     write: WriteHalf<TcpStream>,
@@ -61,7 +62,8 @@ pub(crate) struct Request {
 }
 
 #[derive(Debug)]
-pub enum TransportPollResult {
+/// Result of polling a TCP transport.
+pub(crate) enum TransportPollResult {
     OutgoingMessageSent,
     IncomingChunk,
     IncomingMessage(Request),

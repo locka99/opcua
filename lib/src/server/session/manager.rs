@@ -10,11 +10,14 @@ use crypto::{random, security_policy::SecurityPolicy};
 use parking_lot::RwLock;
 
 use crate::{
-    core::comms::secure_channel::SecureChannel, crypto, server::{constants, identity_token::IdentityToken, info::ServerInfo}, types::{
+    core::comms::secure_channel::SecureChannel,
+    crypto,
+    server::{constants, identity_token::IdentityToken, info::ServerInfo},
+    types::{
         ActivateSessionRequest, ActivateSessionResponse, CloseSessionRequest, CloseSessionResponse,
         CreateSessionRequest, CreateSessionResponse, NodeId, ResponseHeader, SignatureData,
         StatusCode,
-    }
+    },
 };
 
 use super::{instance::Session, message_handler::MessageHandler};
@@ -29,20 +32,21 @@ pub(super) fn next_session_id() -> (NodeId, u32) {
     (NodeId::new(1, session_id), session_id)
 }
 
-/// Manages sessions for a single connection.
+/// Manages all sessions on the server.
 pub struct SessionManager {
     sessions: HashMap<NodeId, Arc<RwLock<Session>>>,
     info: Arc<ServerInfo>,
 }
 
 impl SessionManager {
-    pub fn new(info: Arc<ServerInfo>) -> Self {
+    pub(crate) fn new(info: Arc<ServerInfo>) -> Self {
         Self {
             sessions: Default::default(),
             info,
         }
     }
 
+    /// Get a session by its authentication token.
     pub fn find_by_token(&self, authentication_token: &NodeId) -> Option<Arc<RwLock<Session>>> {
         Self::find_by_token_int(&self.sessions, authentication_token)
     }

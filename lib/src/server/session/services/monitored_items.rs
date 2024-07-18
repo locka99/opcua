@@ -15,7 +15,7 @@ pub async fn create_monitored_items(
     node_managers: NodeManagers,
     request: Request<CreateMonitoredItemsRequest>,
 ) -> Response {
-    let context = request.context();
+    let mut context = request.context();
     let items_to_create = take_service_items!(
         request,
         request.request.items_to_create,
@@ -55,7 +55,8 @@ pub async fn create_monitored_items(
             .collect()
     };
 
-    for mgr in &node_managers {
+    for (idx, mgr) in node_managers.iter().enumerate() {
+        context.current_node_manager_index = idx;
         let mut owned: Vec<_> = items
             .iter_mut()
             .filter(|n| {
@@ -96,7 +97,8 @@ pub async fn create_monitored_items(
         // Shouldn't happen, would be due to a race condition. If it does happen we're fine with failing.
         Err(e) => {
             // Should clean up any that failed to create though.
-            for mgr in &node_managers {
+            for (idx, mgr) in node_managers.iter().enumerate() {
+                context.current_node_manager_index = idx;
                 mgr.delete_monitored_items(&context, &handles_ref).await;
             }
             return service_fault!(request, e);
@@ -118,7 +120,7 @@ pub async fn modify_monitored_items(
     node_managers: NodeManagers,
     request: Request<ModifyMonitoredItemsRequest>,
 ) -> Response {
-    let context = request.context();
+    let mut context = request.context();
     let items_to_modify = take_service_items!(
         request,
         request.request.items_to_modify,
@@ -142,7 +144,8 @@ pub async fn modify_monitored_items(
         }
     };
 
-    for mgr in &node_managers {
+    for (idx, mgr) in node_managers.iter().enumerate() {
+        context.current_node_manager_index = idx;
         let owned: Vec<_> = results
             .iter()
             .filter(|n| n.status_code().is_good() && mgr.owns_node(n.node_id()))
@@ -170,7 +173,7 @@ pub async fn set_monitoring_mode(
     node_managers: NodeManagers,
     request: Request<SetMonitoringModeRequest>,
 ) -> Response {
-    let context = request.context();
+    let mut context = request.context();
     let items = take_service_items!(
         request,
         request.request.monitored_item_ids,
@@ -187,7 +190,8 @@ pub async fn set_monitoring_mode(
         Err(e) => return service_fault!(request, e),
     };
 
-    for mgr in &node_managers {
+    for (idx, mgr) in node_managers.iter().enumerate() {
+        context.current_node_manager_index = idx;
         let owned: Vec<_> = results
             .iter()
             .filter(|n| n.0.is_good() && mgr.owns_node(n.1.node_id()))
@@ -217,7 +221,7 @@ pub async fn delete_monitored_items(
     node_managers: NodeManagers,
     request: Request<DeleteMonitoredItemsRequest>,
 ) -> Response {
-    let context = request.context();
+    let mut context = request.context();
     let items = take_service_items!(
         request,
         request.request.monitored_item_ids,
@@ -233,7 +237,8 @@ pub async fn delete_monitored_items(
         Err(e) => return service_fault!(request, e),
     };
 
-    for mgr in &node_managers {
+    for (idx, mgr) in node_managers.iter().enumerate() {
+        context.current_node_manager_index = idx;
         let owned: Vec<_> = results
             .iter()
             .filter(|n| n.0.is_good() && mgr.owns_node(n.1.node_id()))
@@ -257,4 +262,3 @@ pub async fn delete_monitored_items(
         request_id: request.request_id,
     }
 }
-

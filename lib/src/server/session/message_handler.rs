@@ -5,29 +5,41 @@ use parking_lot::RwLock;
 use tokio::task::JoinHandle;
 
 use crate::{
-    core::SupportedMessage, server::{
+    core::SupportedMessage,
+    server::{
         authenticator::UserToken,
         info::ServerInfo,
         node_manager::{NodeManagers, RequestContext},
         session::services,
         subscriptions::{PendingPublish, SubscriptionCache},
-    }, types::{
+    },
+    types::{
         PublishRequest, ResponseHeader, ServiceFault, SetTriggeringRequest, SetTriggeringResponse,
         StatusCode,
-    }
+    },
 };
 
 use super::{controller::Response, instance::Session};
 
+/// Type that takes care of incoming requests that have passed
+/// the initial validation stage, meaning that they have a session and a valid
+/// secure channel.
 pub(crate) struct MessageHandler {
     node_managers: NodeManagers,
     info: Arc<ServerInfo>,
     subscriptions: Arc<SubscriptionCache>,
 }
 
+/// Result of a message. All messages should be able to yield a response, but
+/// depending on the message this may take different forms.
 pub(crate) enum HandleMessageResult {
+    /// A request spawned as a tokio task, all messages that go to
+    /// node managers return this response type.
     AsyncMessage(JoinHandle<Response>),
+    /// A publish request, which takes a slightly different form, instead
+    /// using a callback pattern.
     PublishResponse(PendingPublishRequest),
+    /// A message that was resolved synchronously and returns a response immediately.
     SyncMessage(Response),
 }
 
@@ -38,6 +50,9 @@ pub(crate) struct PendingPublishRequest {
 }
 
 impl PendingPublishRequest {
+    /// Receive a publish request response.
+    /// This may take a long time, since publish requests can be open for
+    /// arbitrarily long waiting for new data to be produced.
     pub async fn recv(self) -> Result<Response, String> {
         match self.recv.await {
             Ok(msg) => Ok(Response {
@@ -57,6 +72,7 @@ impl PendingPublishRequest {
     }
 }
 
+/// Wrapper around information necessary for executing a request.
 pub(super) struct Request<T> {
     pub request: Box<T>,
     pub request_id: u32,
@@ -68,6 +84,7 @@ pub(super) struct Request<T> {
     pub session_id: u32,
 }
 
+/// Convenient macro for creating a response containing a service fault.
 macro_rules! service_fault {
     ($req:ident, $status:expr) => {
         Response {
@@ -78,6 +95,7 @@ macro_rules! service_fault {
 }
 
 impl<T> Request<T> {
+    /// Create a new request.
     pub fn new(
         request: Box<T>,
         info: Arc<ServerInfo>,
@@ -100,6 +118,7 @@ impl<T> Request<T> {
         }
     }
 
+    /// Get a request context object from this request.
     pub fn context(&self) -> RequestContext {
         RequestContext {
             session: self.session.clone(),
@@ -114,6 +133,7 @@ impl<T> Request<T> {
     }
 }
 
+/// Macro for calling a service asynchronously.
 macro_rules! async_service_call {
     ($m:path, $slf:ident, $req:ident, $r:ident) => {
         HandleMessageResult::AsyncMessage(tokio::task::spawn($m(
@@ -141,6 +161,7 @@ struct RequestData {
 }
 
 impl MessageHandler {
+    /// Create a new message handler.
     pub fn new(
         info: Arc<ServerInfo>,
         node_managers: NodeManagers,
@@ -153,6 +174,10 @@ impl MessageHandler {
         }
     }
 
+    /// Handle an incoming message and return a result object.
+    /// This method returns synchronously, but the returned result object
+    /// may take longer to resolve.
+    /// Once this returns the request will either be resolved or will have been started.
     pub fn handle_message(
         &mut self,
         message: SupportedMessage,
@@ -324,6 +349,7 @@ impl MessageHandler {
         }
     }
 
+    /// Delete the subscriptions from a session.
     pub async fn delete_session_subscriptions(
         &mut self,
         session_id: u32,
@@ -335,7 +361,7 @@ impl MessageHandler {
             return;
         }
 
-        let context = RequestContext {
+        let mut context = RequestContext {
             session,
             session_id,
             authenticator: self.info.authenticator.clone(),
@@ -351,7 +377,7 @@ impl MessageHandler {
             self.node_managers.clone(),
             ids,
             &self.subscriptions,
-            &context,
+            &mut context,
         )
         .await
         {

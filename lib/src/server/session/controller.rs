@@ -48,7 +48,7 @@ impl Response {
     }
 }
 
-pub enum ControllerCommand {
+pub(crate) enum ControllerCommand {
     Close,
 }
 
@@ -73,7 +73,8 @@ impl ControllerTimeout {
     }
 }
 
-pub struct SessionController {
+/// Master type managing a single connection.
+pub(crate) struct SessionController {
     channel: SecureChannel,
     transport: TcpTransport,
     secure_channel_state: SecureChannelState,

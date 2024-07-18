@@ -4,6 +4,8 @@ use crate::types::{
     StatusCode,
 };
 
+#[derive(Debug, Clone)]
+/// Container for a single node being added in an `AddNode` service call.
 pub struct AddNodeItem {
     parent_node_id: ExpandedNodeId,
     reference_type_id: NodeId,
@@ -83,39 +85,49 @@ impl AddNodeItem {
         }
     }
 
+    /// Set the result of the operation. `node_id` is the node ID of the created node.
     pub fn set_result(&mut self, node_id: NodeId, status: StatusCode) {
         self.result_node_id = node_id;
         self.status = status;
     }
 
+    /// The requested parent node ID.
     pub fn parent_node_id(&self) -> &ExpandedNodeId {
         &self.parent_node_id
     }
 
+    /// The requested reference type ID.
     pub fn reference_type_id(&self) -> &NodeId {
         &self.reference_type_id
     }
 
+    /// The requested new node ID. May be null, in which case the node manager picks the new
+    /// node ID.
     pub fn requested_new_node_id(&self) -> &NodeId {
         &self.requested_new_node_id
     }
 
+    /// Requested browse name of the new node.
     pub fn browse_name(&self) -> &QualifiedName {
         &self.browse_name
     }
 
+    /// Requested node class of the new node.
     pub fn node_class(&self) -> NodeClass {
         self.node_class
     }
 
+    /// Collection of requested attributes for the new node.
     pub fn node_attributes(&self) -> &AddNodeAttributes {
         &self.node_attributes
     }
 
+    /// Requested type definition ID.
     pub fn type_definition_id(&self) -> &ExpandedNodeId {
         &self.type_definition_id
     }
 
+    /// Current result status code.
     pub fn status(&self) -> StatusCode {
         self.status
     }
@@ -128,6 +140,8 @@ impl AddNodeItem {
     }
 }
 
+#[derive(Debug, Clone)]
+/// Container for a single reference being added in an `AddReferences` service call.
 pub struct AddReferenceItem {
     source_node_id: NodeId,
     reference_type_id: NodeId,
@@ -163,18 +177,22 @@ impl AddReferenceItem {
         }
     }
 
+    /// Requested source node ID.
     pub fn source_node_id(&self) -> &NodeId {
         &self.source_node_id
     }
 
+    /// Requested reference type ID.
     pub fn reference_type_id(&self) -> &NodeId {
         &self.reference_type_id
     }
 
+    /// Requested target node ID.
     pub fn target_node_id(&self) -> &ExpandedNodeId {
         &self.target_node_id
     }
 
+    /// Current result status, as a summary of source status and target status.
     pub(crate) fn result_status(&self) -> StatusCode {
         if self.source_status.is_good() {
             return self.source_status;
@@ -185,27 +203,34 @@ impl AddReferenceItem {
         self.source_status
     }
 
+    /// Set the result of this operation for the _source_ end of the reference.
     pub fn set_source_result(&mut self, status: StatusCode) {
         self.source_status = status;
     }
 
+    /// Set the result of this operation for the _target_ end of the reference.
     pub fn set_target_result(&mut self, status: StatusCode) {
         self.target_status = status;
     }
 
+    /// Requested reference direction.
     pub fn is_forward(&self) -> bool {
         self.is_forward
     }
 
+    /// Current target status.
     pub fn target_status(&self) -> StatusCode {
         self.target_status
     }
 
+    /// Current source status.
     pub fn source_status(&self) -> StatusCode {
         self.source_status
     }
 }
 
+#[derive(Debug)]
+/// Container for a single item in a `DeleteNodes` service call.
 pub struct DeleteNodeItem {
     node_id: NodeId,
     delete_target_references: bool,
@@ -227,23 +252,29 @@ impl DeleteNodeItem {
         }
     }
 
+    /// Current status of the operation.
     pub fn status(&self) -> StatusCode {
         self.status
     }
 
+    /// Set the result of the node deletion operation.
     pub fn set_result(&mut self, status: StatusCode) {
         self.status = status;
     }
 
+    /// Whether the request should delete references that point to this node or not.
     pub fn delete_target_references(&self) -> bool {
         self.delete_target_references
     }
 
+    /// Node ID to delete.
     pub fn node_id(&self) -> &NodeId {
         &self.node_id
     }
 }
 
+#[derive(Debug)]
+/// Container for a single reference being deleted in an `DeleteReferences` service call.
 pub struct DeleteReferenceItem {
     source_node_id: NodeId,
     reference_type_id: NodeId,
@@ -283,14 +314,17 @@ impl DeleteReferenceItem {
         }
     }
 
+    /// Source node ID of the reference being deleted.
     pub fn source_node_id(&self) -> &NodeId {
         &self.source_node_id
     }
 
+    /// Reference type ID of the reference being deleted.
     pub fn reference_type_id(&self) -> &NodeId {
         &self.reference_type_id
     }
 
+    /// Target node ID of the reference being deleted.
     pub fn target_node_id(&self) -> &ExpandedNodeId {
         &self.target_node_id
     }
@@ -305,26 +339,32 @@ impl DeleteReferenceItem {
         self.source_status
     }
 
+    /// Set the result of this operation for the _source_ end of the reference.
     pub fn set_source_result(&mut self, status: StatusCode) {
         self.source_status = status;
     }
 
+    /// Set the result of this operation for the _target_ end of the reference.
     pub fn set_target_result(&mut self, status: StatusCode) {
         self.target_status = status;
     }
 
+    /// Direction of the reference being deleted.
     pub fn is_forward(&self) -> bool {
         self.is_forward
     }
 
+    /// Current target status.
     pub fn target_status(&self) -> StatusCode {
         self.target_status
     }
 
+    /// Current source status.
     pub fn source_status(&self) -> StatusCode {
         self.source_status
     }
 
+    /// Whether to delete the reference in both directions.
     pub fn delete_bidirectional(&self) -> bool {
         self.delete_bidirectional
     }

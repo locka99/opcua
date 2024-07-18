@@ -1,5 +1,7 @@
 use std::{path::PathBuf, sync::Arc};
 
+use tokio_util::sync::CancellationToken;
+
 use crate::{
     core::config::Config, crypto::SecurityPolicy, server::constants, types::MessageSecurityMode,
 };
@@ -10,7 +12,7 @@ use super::{
         memory::{CoreNodeManagerImpl, DiagnosticsNodeManager, InMemoryNodeManager},
         NodeManager,
     },
-    Limits, ServerConfig, ServerCore, ServerEndpoint, ServerHandle, ServerUserToken,
+    Limits, Server, ServerConfig, ServerEndpoint, ServerHandle, ServerUserToken,
     ANONYMOUS_USER_TOKEN_ID,
 };
 
@@ -18,6 +20,7 @@ pub struct ServerBuilder {
     pub(crate) config: ServerConfig,
     pub(crate) node_managers: Vec<Arc<dyn NodeManager + Send + Sync + 'static>>,
     pub(crate) authenticator: Option<Arc<dyn AuthManager>>,
+    pub(crate) token: CancellationToken,
 }
 
 impl Default for ServerBuilder {
@@ -26,6 +29,7 @@ impl Default for ServerBuilder {
             config: Default::default(),
             node_managers: Default::default(),
             authenticator: None,
+            token: CancellationToken::new(),
         };
         let core_node_manager = Arc::new(InMemoryNodeManager::new(CoreNodeManagerImpl::new()));
         let diagnostics_node_manager = Arc::new(DiagnosticsNodeManager::new());
@@ -413,8 +417,8 @@ impl ServerBuilder {
 
     /// Try to construct a server from this builder, may fail if the configuration
     /// is invalid.
-    pub fn build(self) -> Result<(ServerCore, ServerHandle), String> {
-        ServerCore::new_from_builder(self)
+    pub fn build(self) -> Result<(Server, ServerHandle), String> {
+        Server::new_from_builder(self)
     }
 
     /// Maximum length of arrays when encoding or decoding messages.
@@ -477,6 +481,15 @@ impl ServerBuilder {
     /// Maximum number of query continuation points per session.
     pub fn max_query_continuation_points(mut self, max_query_continuation_points: usize) -> Self {
         self.config.limits.max_query_continuation_points = max_query_continuation_points;
+        self
+    }
+
+    /// Set the cancellation token used by the server. You only need to
+    /// set the token if you need to use a token from somewhere else to cancel,
+    /// otherwise you can get the token after building the server with
+    /// `handle.token()`.
+    pub fn token(mut self, token: CancellationToken) -> Self {
+        self.token = token;
         self
     }
 }

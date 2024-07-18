@@ -15,7 +15,6 @@ use opcua::server::node_manager::memory::{
 };
 use opcua::server::{ServerBuilder, SubscriptionCache};
 use opcua::types::{DataValue, NodeId, UAString};
-use tokio_util::sync::CancellationToken;
 
 #[tokio::main]
 async fn main() {
@@ -45,7 +44,7 @@ async fn main() {
     add_example_variables(ns, node_manager, handle.subscriptions().clone());
 
     // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-    server.run(CancellationToken::new()).await.unwrap();
+    server.run().await.unwrap();
 }
 
 /// Creates some sample variables, and some push / pull examples that update them

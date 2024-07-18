@@ -68,6 +68,12 @@ struct SubscriptionCacheInner {
     monitored_items: HashMap<MonitoredItemKey, HashMap<MonitoredItemHandle, MonitoredItemEntry>>,
 }
 
+/// Structure storing all subscriptions and monitored items on the server.
+/// Used to notify users of changes.
+///
+/// Subscriptions can outlive sessions, and sessions can outlive connections,
+/// so neither can be owned by the connection. This provides convenient methods for
+/// manipulating subscriptions.
 pub struct SubscriptionCache {
     inner: RwLock<SubscriptionCacheInner>,
     /// Configured limits on subscriptions.
@@ -75,7 +81,7 @@ pub struct SubscriptionCache {
 }
 
 impl SubscriptionCache {
-    pub fn new(limits: SubscriptionLimits) -> Self {
+    pub(crate) fn new(limits: SubscriptionLimits) -> Self {
         Self {
             inner: RwLock::new(SubscriptionCacheInner {
                 session_subscriptions: HashMap::new(),
@@ -86,6 +92,7 @@ impl SubscriptionCache {
         }
     }
 
+    /// Get the `SessionSubscriptions` object for a single session by its numeric ID.
     pub fn get_session_subscriptions(
         &self,
         session_id: u32,
@@ -94,7 +101,13 @@ impl SubscriptionCache {
         inner.session_subscriptions.get(&session_id).cloned()
     }
 
+    /// This is the periodic subscription tick where we check for
+    /// triggered subscriptions.
+    ///
     pub(crate) async fn periodic_tick(&self, context: &ServerContext) {
+        // TODO: Look into replacing this with a smarter system, in theory it should be possible to
+        // always just sleep for the exact time until the next expired publish request, which could
+        // be more efficient, and would be more responsive.
         let mut to_delete = Vec::new();
         let mut items_to_delete = Vec::new();
         {
@@ -271,6 +284,10 @@ impl SubscriptionCache {
         Ok(())
     }
 
+    /// Notify any listening clients about a list of data changes.
+    /// This can be called any time anything changes on the server, or only for values with
+    /// an existing monitored item. Either way this method will deal with distributing the values
+    /// to the appropriate monitored items.
     pub fn notify_data_change<'a>(
         &self,
         items: impl Iterator<Item = (DataValue, &'a NodeId, AttributeId)>,
@@ -317,6 +334,8 @@ impl SubscriptionCache {
 
     /// Notify with a dynamic sampler, to avoid getting values for nodes that
     /// may not have monitored items.
+    /// This is potentially much more efficient than simply notifying blindly, but is
+    /// also somewhat harder to use.
     pub fn maybe_notify<'a>(
         &self,
         items: impl Iterator<Item = (&'a NodeId, AttributeId)>,
@@ -368,6 +387,8 @@ impl SubscriptionCache {
         }
     }
 
+    /// Notify listening clients to events. Without a custom node manager implementing
+    /// event history, this is the only way to report events in the server.
     pub fn notify_events<'a>(&self, items: impl Iterator<Item = (&'a dyn Event, &'a NodeId)>) {
         let lck = trace_read_lock!(self.inner);
         let mut by_subscription = HashMap::<u32, Vec<_>>::new();

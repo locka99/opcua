@@ -262,7 +262,6 @@ dependencies = [
  "log 0.4.22",
  "opcua",
  "tokio 1.38.0",
- "tokio-util",
 ]
 
 [[package]]
@@ -1557,7 +1556,6 @@ version = "0.13.0"
 dependencies = [
  "opcua",
  "tokio 1.38.0",
- "tokio-util",
  "uci",
 ]
 
@@ -1621,7 +1619,6 @@ dependencies = [
  "log 0.4.22",
  "opcua",
  "tokio 1.38.0",
- "tokio-util",
 ]
 
 [[package]]

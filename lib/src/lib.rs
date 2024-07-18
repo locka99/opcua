@@ -8,8 +8,6 @@ extern crate tempdir;
 extern crate bitflags;
 #[macro_use]
 extern crate serde_derive;
-#[cfg(feature = "http")]
-extern crate actix_web;
 #[cfg(test)]
 extern crate serde_json;
 #[macro_use]
