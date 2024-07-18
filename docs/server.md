@@ -36,14 +36,6 @@ To use the server crate we need to add a dependency to the `Cargo.toml`.
 opcua = { "0.12", features = ["server"] }
 ```
 
-## Import types
-
-Most of the things you need for the server are exposed with a single import that you can add to the top of your `main.rs`.
-
-```rust
-use opcua::types::*;
-```
-
 ## Create your server
 
 ### Configure the server
@@ -58,31 +50,65 @@ The server can be configured in a number of ways:
 A `ServerBuilder` allows you to programmatically construct a `Server`.
 
 ```rust
-fn main() {
-    let server = ServerBuilder::new()
+use std::sync::Arc;
+
+use opcua::server::address_space::Variable;
+use opcua::server::node_manager::memory::{
+    InMemoryNodeManager, NamespaceMetadata, SimpleNodeManager, SimpleNodeManagerImpl,
+};
+
+#[tokio::main]
+async fn main() {
+    // First, create a simple node manager to contain any custom nodes we make.
+    // The namespace should be 2 here, since there are two default namespaces, making
+    // this the third.
+    let ns = 2;
+    let node_manager = Arc::new(SimpleNodeManager::new_simple(
+        NamespaceMetadata {
+            namespace_index: ns,
+            namespace_uri: "urn:my_server".to_owned(),
+            ..Default::default()
+        },
+        "simple",
+    ));
+
+    let (server, handle) = ServerBuilder::new()
         .application_name("Server Name")
         .application_uri("urn:server_uri")
         .discovery_urls(vec![endpoint_url(port_offset)])
         .create_sample_keypair(true)
         .pki_dir("./pki-server")
         .discovery_server_url(None)
-        .host_and_port(hostname(), 1234)
-        .user_token(sample_user_id, ServerUserToken::new_user_pass("sample", "sample1"))
-        .endpoints(
-            [
-                ("none", endpoint_path, SecurityPolicy::None, MessageSecurityMode::None, &user_token_ids),
-                ("basic128rsa15_sign", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::Sign, &user_token_ids),
-                ("basic128rsa15_sign_encrypt", endpoint_path, SecurityPolicy::Basic128Rsa15, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-                ("basic256_sign", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::Sign, &user_token_ids),
-                ("basic256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-                ("basic256sha256_sign", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::Sign, &user_token_ids),
-                ("basic256sha256_sign_encrypt", endpoint_path, SecurityPolicy::Basic256Sha256, MessageSecurityMode::SignAndEncrypt, &user_token_ids),
-            ].iter().map(|v| {
-                (v.0.to_string(), ServerEndpoint::from((v.1, v.2, v.3, &v.4[..])))
-            }).collect())
-        .server().unwrap();
+        .host(hostname())
+        .port(1234)
+        .add_user_token(
+            sample_user_id,
+            ServerUserToken::new_user_pass("sample", "sample1"),
+        )
+        .add_endpoint(
+            "none",
+            (
+                endpoint_path,
+                SecurityPolicy::None,
+                MessageSecurityMode::None,
+                &user_token_ids as &[&str],
+            ),
+        )
+        .add_endpoint(
+            "basic128rsa15_sign",
+            (
+                endpoint_path,
+                SecurityPolicy::Basic128Rsa15,
+                MessageSecurityMode::Sign,
+                &user_token_ids as &[&str],
+            ),
+        )
+        .build().unwrap();
 
-    //...
+    // Add initial nodes here...
+
+    // Run the server.
+    server.run().await.unwrap();
 }
 ```
 
@@ -92,7 +118,23 @@ If you prefer to construct your server from a configuration that you read from a
 
 ```rust
 fn main() {
-    let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
+    // The namespace should be 2 here, since there are two default namespaces, making
+    // this the third.
+    let ns = 2;
+    let node_manager = Arc::new(SimpleNodeManager::new_simple(
+        NamespaceMetadata {
+            namespace_index: ns,
+            namespace_uri: "urn:SimpleServer".to_owned(),
+            ..Default::default()
+        },
+        "simple",
+    ));
+
+    let (server, handle) = ServerBuilder::new()
+        .with_config_from("../server.conf")
+        .with_node_manager(node_manager.clone())
+        .build()
+        .unwrap();
     //...
 }
 ```
@@ -100,9 +142,10 @@ fn main() {
 Alternatively, let's say you use a configuration file, but how do you create it when one isn't there? Well your code logic could test if the file can load, and if it doesn't, could create the default one with a `ServerBuilder`.
 
 ```rust
-fn main() {
+#[tokio::main]
+async fn main() {
     let server_config_path = "./myserver.conf";
-    let server_config = if let Ok(server_config) = ServerConfig::load(&PathBuf::from(server_config_path))) {
+    let server_config = if let Ok(server_config) = ServerConfig::load(&PathBuf::from(server_config_path)) {
         server_config
     }
     else {
@@ -145,22 +188,25 @@ To this you may wish to add your own objects and variables. To make this easy, y
 create new nodes with a builder, e.g:
 
 ```rust
-fn main() {
+#[tokio::main]
+async fn main() {
     //... after server is set up
-    let address_space = server.address_space().write().unwrap();
+    let address_space = node_manager.address_space();
+    let address_space = address_space.write().unwrap();
 
     // This is a convenience helper
-    let folder_id = address_space
-        .add_folder("Variables", "Variables", &NodeId::objects_folder_id())
-        .unwrap();
+    let folder_id = NodeId::new(2, "Variables");
+    address_space.add_folder(&folder_id, "Variables", "Variables", &NodeId::objects_folder_id());
 
     // Build a variable
-    let node_id = NodeId::new(2,, "MyVar");
+    let node_id = NodeId::new(2, "MyVar");
     VariableBuilder::new(&node_id, "MyVar", "MyVar")
         .organized_by(&folder_id)
         .value(0u8)
         .insert(&mut address_space);
 
+    // Make sure to not keep the address space locked, or nothing will be able to
+    // read from the server.
     //....
 }
 ```
@@ -186,7 +232,9 @@ For some values you may prefer to set them once when they change. How you do thi
     let now = DateTime::now();
     let value = 123.456f;
     let node_id = NodeId::new(2, "myvalue");
-    let _ = address_space.set_variable_value(node_id, value, &now, &now);
+    // You can set the value directly on the address space, but prefer calling this method instead,
+    // which will notify any listening clients.
+    node_manager.set_value(&handle.subscriptions(), &node_id, None, DataValue::new_at(value, now));
 ```
 
 In this example `now` is the current timestamp for when the value changed and the value is 123.456.
@@ -199,42 +247,34 @@ This example will `123.456f`.
 
 ```rust
     let node_id = NodeId::new(2, "myvalue");
-    if let Some(ref mut v) = address_space.find_variable_mut(node_id.clone()) {
-        let getter = AttrFnGetter::new(
-            move |_, _, _, _, _, _| -> Result<Option<DataValue>, StatusCode> {
-                Ok(Some(DataValue::new_now(123.456f)))
-            },
-        );
-        v.set_value_getter(Arc::new(Mutex::new(getter)));
-    }
+    node_manager.inner().add_read_callback(node_id, |_, _, _| {
+        Ok(DataValue::new_now(123.456f))
+    })
 ```
 
 The difference with the dynamic getter is there are parameters that allow your code to conditionally decide how they return a value.
 
 The parameters to the getter are:
 
-* `&NodeId`
-* `TimestampsToReturn`
-* `AttributeId`
 * `NumericRange`
-* `&QualifiedName`
+* `TimestampsToReturn`
+* `f64` - the max age parameter.
 
 This allows a getter to be broad or specific. In the example, the getter is so specific it does not require any of the parameters.
 
 ### Run the server
 
-Running a server is a synchronous action:
+Running a server is asynchronous.
 
 ```rust
-fn main() {
+#[tokio::main]
+async fn main() {
     //... After server and address space are created
 
-    // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-    server.run();
+    // Run the server. This can be terminated gracefully by calling `handle.cancel()`.
+    server.run().await.unwrap();
 }
 ```
-
-If you prefer to make it asynchronous, run it on a separate thread, or use `Server::run_server`.
 
 ## Logging
 
