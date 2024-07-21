@@ -34,5 +34,8 @@ jobs:
       - name: Run tests
         run: cargo test --features test-vendored-openssl --verbose
 
+  code-coverage:
+    uses: ./.github/workflows/ci_code_coverage.yml
+
   verify-code-formatting:
     uses: ./.github/workflows/ci_format_code.yml
