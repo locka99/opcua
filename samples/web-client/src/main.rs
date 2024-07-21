@@ -302,7 +302,7 @@ impl OPCUASession {
         if args.len() != 3 {
             return;
         }
-        let event_node_id = args.get(0).unwrap();
+        let event_node_id = args.first().unwrap();
         let where_clause = args.get(1).unwrap();
         let select_criteria = args.get(2).unwrap();
 
@@ -322,7 +322,7 @@ impl OPCUASession {
                     return;
                 }
                 // Left and right operands
-                let lhs_str = where_parts.get(0).unwrap();
+                let lhs_str = where_parts.first().unwrap();
                 let operator = where_parts.get(1).unwrap();
                 let rhs_str = where_parts.get(2).unwrap();
 
