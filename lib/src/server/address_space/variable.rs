@@ -455,8 +455,6 @@ impl Variable {
         data_encoding: &QualifiedName,
         max_age: f64,
     ) -> DataValue {
-        use std::i32;
-
         if let Some(ref value_getter) = self.value_getter {
             let mut value_getter = value_getter.lock();
             value_getter

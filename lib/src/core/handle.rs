@@ -2,10 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2024 Adam Lock
 
-use std::{
-    sync::atomic::{AtomicU32, Ordering},
-    u32,
-};
+use std::sync::atomic::{AtomicU32, Ordering};
 
 /// A simple handle factory for incrementing sequences of numbers.
 #[derive(Debug, Clone, Serialize)]
