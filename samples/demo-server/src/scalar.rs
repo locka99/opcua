@@ -174,7 +174,7 @@ fn add_static_scalar_variables(server: &mut Server, ns: u16, static_folder_id: &
 
     // Create a folder under static folder
     let folder_id = address_space
-        .add_folder("Scalar", "Scalar", &static_folder_id)
+        .add_folder("Scalar", "Scalar", static_folder_id)
         .unwrap();
 
     for sn in SCALAR_TYPES.iter() {
@@ -196,7 +196,7 @@ fn add_static_array_variables(server: &mut Server, ns: u16, static_folder_id: &N
 
     // Create a folder under static folder
     let folder_id = address_space
-        .add_folder("Array", "Array", &static_folder_id)
+        .add_folder("Array", "Array", static_folder_id)
         .unwrap();
 
     SCALAR_TYPES.iter().for_each(|sn| {
@@ -224,7 +224,7 @@ fn add_dynamic_scalar_variables(server: &mut Server, ns: u16, dynamic_folder_id:
 
     // Create a folder under static folder
     let folder_id = address_space
-        .add_folder("Scalar", "Scalar", &dynamic_folder_id)
+        .add_folder("Scalar", "Scalar", dynamic_folder_id)
         .unwrap();
 
     SCALAR_TYPES.iter().for_each(|sn| {
@@ -245,7 +245,7 @@ fn add_dynamic_array_variables(server: &mut Server, ns: u16, dynamic_folder_id: 
 
     // Create a folder under static folder
     let folder_id = address_space
-        .add_folder("Array", "Array", &dynamic_folder_id)
+        .add_folder("Array", "Array", dynamic_folder_id)
         .unwrap();
 
     SCALAR_TYPES.iter().for_each(|sn| {
@@ -306,7 +306,7 @@ pub fn add_stress_variables(server: &mut Server, ns: u16) {
 
     node_ids.iter().enumerate().for_each(|(i, node_id)| {
         let name = format!("v{:04}", i);
-        VariableBuilder::new(&node_id, &name, &name)
+        VariableBuilder::new(node_id, &name, &name)
             .data_type(DataTypeId::Int32)
             .value(0i32)
             .organized_by(&folder_id)
