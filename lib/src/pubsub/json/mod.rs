@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2024 Adam Lock
 
-use std::{fmt::Display, str::FromStr, sync::Arc};
+use std::{fmt::Display, str::FromStr};
 
 use serde::{de, Deserialize, Deserializer, Serializer};
 

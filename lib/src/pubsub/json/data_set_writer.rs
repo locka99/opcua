@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2024 Adam Lock
 
-use serde_json::Value;
-
 use crate::pubsub::core::{self, DataSet, DataSetWriter as CoreDataSetWriter};
 
 use super::*;
