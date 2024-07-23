@@ -15,7 +15,7 @@
 //! To distinguish between binary and JSON, the built-in types implement Serde's `Serialize`/`Deserialize`
 //! traits for JSON serialization.
 
-use std::{fmt, i32};
+use std::fmt;
 
 use serde::{
     de, de::DeserializeOwned, de::Error, Deserialize, Deserializer, Serialize, Serializer,
@@ -452,7 +452,7 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                     if v.is_null() {
                         Ok(Variant::String(UAString::null()))
                     } else {
-                        json_as_value(body, "UAString").map(|v| Variant::String(v))
+                        json_as_value(body, "UAString").map(Variant::String)
                     }
                 } else {
                     Ok(Variant::String(UAString::null()))
@@ -469,14 +469,14 @@ impl<'de> serde::de::Visitor<'de> for VariantVisitor {
                     if v.is_null() {
                         Ok(Variant::ByteString(ByteString::null()))
                     } else {
-                        json_as_value(body, "ByteString").map(|v| Variant::ByteString(v))
+                        json_as_value(body, "ByteString").map(Variant::ByteString)
                     }
                 } else {
                     Ok(Variant::ByteString(ByteString::null()))
                 }
             }
             t if t == VariantJsonId::XmlElement as u32 => {
-                json_as_value(body, "XmlElement").map(|v| Variant::XmlElement(v))
+                json_as_value(body, "XmlElement").map(Variant::XmlElement)
             }
             t if t == VariantJsonId::NodeId as u32 => {
                 json_as_value(body, "NodeId").map(|v| Variant::NodeId(Box::new(v)))

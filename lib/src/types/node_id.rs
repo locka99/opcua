@@ -11,7 +11,6 @@ use std::{
     io::{Read, Write},
     str::FromStr,
     sync::atomic::{AtomicUsize, Ordering},
-    u16, u32,
 };
 
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -76,7 +75,7 @@ impl From<i32> for Identifier {
 
 impl From<u32> for Identifier {
     fn from(v: u32) -> Self {
-        Identifier::Numeric(v as u32)
+        Identifier::Numeric(v)
     }
 }
 

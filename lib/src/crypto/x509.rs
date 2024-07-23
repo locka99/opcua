@@ -594,7 +594,7 @@ impl X509 {
             date
         };
         NaiveDateTime::parse_from_str(date, "%b %d %H:%M:%S %Y")
-            .map(|dt| dt.and_utc())
+            .map(|naive| naive.and_utc())
             .map_err(|e| {
                 error!("Cannot parse ASN1 date, err = {:?}", e);
                 X509Error

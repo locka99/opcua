@@ -421,7 +421,7 @@ impl Subscription {
                                 .and_then(|handle| self.monitored_items.get(handle));
 
                             if let Some(item) = item {
-                                self.callback.on_data_value(notif.value, &item);
+                                self.callback.on_data_value(notif.value, item);
                             }
                         }
                     }
@@ -437,7 +437,7 @@ impl Subscription {
                                 .and_then(|handle| self.monitored_items.get(handle));
 
                             if let Some(item) = item {
-                                self.callback.on_event(notif.event_fields, &item);
+                                self.callback.on_event(notif.event_fields, item);
                             }
                         }
                     }

@@ -6,8 +6,6 @@
 //!
 //! Functions are implemented on the `RelativePath` and `RelativePathElement` structs where
 //! there are most useful.
-//!
-use std::{error::Error, fmt};
 
 use regex::Regex;
 
@@ -18,17 +16,6 @@ use crate::types::{
     service_types::{RelativePath, RelativePathElement},
     string::UAString,
 };
-
-#[derive(Debug)]
-struct RelativePathError;
-
-impl fmt::Display for RelativePathError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "RelativePathError")
-    }
-}
-
-impl Error for RelativePathError {}
 
 impl RelativePath {
     /// The maximum size in chars of any path element.

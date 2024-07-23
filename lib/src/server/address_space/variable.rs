@@ -6,11 +6,11 @@
 
 use std::convert::{Into, TryFrom};
 
+use crate::types::service_types::VariableAttributes;
 use crate::types::{
     AttributeId, AttributesMask, DataTypeId, DataValue, DateTime, NumericRange, StatusCode,
     TimestampsToReturn, Variant,
 };
-use crate::types::service_types::VariableAttributes;
 
 use super::base::Base;
 use super::{AccessLevel, Node, NodeBase, UserAccessLevel};
@@ -400,12 +400,7 @@ impl Variable {
                     if let Some(ref array_dimensions) = array.dimensions {
                         // Multidimensional arrays encode/decode dimensions with Int32 in Part 6, but arrayDimensions in Part 3
                         // wants them as u32. Go figure... So convert Int32 to u32
-                        Some(
-                            array_dimensions
-                                .iter()
-                                .map(|v| *v as u32)
-                                .collect::<Vec<u32>>(),
-                        )
+                        Some(array_dimensions.iter().map(|v| *v).collect::<Vec<u32>>())
                     } else {
                         Some(vec![array.values.len() as u32])
                     }
@@ -450,8 +445,6 @@ impl Variable {
         _data_encoding: &QualifiedName,
         max_age: f64,
     ) -> DataValue {
-        use std::i32;
-
         /* if let Some(ref value_getter) = self.value_getter {
             let mut value_getter = value_getter.lock();
             value_getter

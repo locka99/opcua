@@ -10,7 +10,6 @@ use std::{
     fmt,
     io::{Read, Write},
     str::FromStr,
-    {i16, i32, i64, i8, u16, u32, u64, u8},
 };
 
 use crate::types::{
@@ -722,7 +721,7 @@ impl fmt::Display for Variant {
 impl Variant {
     /// Test the flag (convenience method)
     pub fn test_encoding_flag(encoding_mask: u8, flag: u8) -> bool {
-        encoding_mask == flag as u8
+        encoding_mask == flag
     }
 
     /// Returns the length of just the value, not the encoding flag
@@ -1205,7 +1204,7 @@ impl Variant {
             Variant::StatusCode(v) => match target_type {
                 VariantTypeId::Int32 => (v.bits() as i32).into(),
                 VariantTypeId::Int64 => (v.bits() as i64).into(),
-                VariantTypeId::UInt32 => (v.bits() as u32).into(),
+                VariantTypeId::UInt32 => v.bits().into(),
                 VariantTypeId::UInt64 => (v.bits() as u64).into(),
                 _ => Variant::Empty,
             },
@@ -1663,7 +1662,7 @@ impl Variant {
                             } else {
                                 max
                             };
-                            let values = &values[min as usize..=max];
+                            let values = &values[min..=max];
                             let values: Vec<Variant> = values.to_vec();
                             Ok(Variant::from((array.value_type, values)))
                         }

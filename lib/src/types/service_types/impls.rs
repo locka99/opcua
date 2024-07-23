@@ -514,7 +514,7 @@ impl<'de> Deserialize<'de> for DataSetFieldFlags {
     {
         deserializer
             .deserialize_i16(Int16Visitor)
-            .map(|v| DataSetFieldFlags::from_bits_truncate(v))
+            .map(DataSetFieldFlags::from_bits_truncate)
     }
 }
 

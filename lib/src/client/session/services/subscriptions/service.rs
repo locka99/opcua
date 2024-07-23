@@ -813,7 +813,7 @@ impl Session {
         let acks = {
             let mut subscription_state = trace_lock!(self.subscription_state);
             let acks = subscription_state.take_acknowledgements();
-            if acks.len() > 0 {
+            if !acks.is_empty() {
                 Some(acks)
             } else {
                 None

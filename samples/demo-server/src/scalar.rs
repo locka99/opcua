@@ -219,7 +219,7 @@ fn add_static_array_variables(manager: &SimpleNodeManager, ns: u16, static_folde
             .map(|_| scalar_default_value(*sn))
             .collect::<Vec<Variant>>();
 
-        let value_type = values.get(0).unwrap().type_id();
+        let value_type = values.first().unwrap().type_id();
         VariableBuilder::new(&node_id, name, name)
             .data_type(*sn)
             .value_rank(1)
@@ -265,7 +265,7 @@ fn add_dynamic_array_variables(manager: &SimpleNodeManager, ns: u16, dynamic_fol
         let values = (0..10)
             .map(|_| scalar_default_value(*sn))
             .collect::<Vec<Variant>>();
-        let value_type = values.get(0).unwrap().type_id();
+        let value_type = values.first().unwrap().type_id();
         VariableBuilder::new(&node_id, name, name)
             .data_type(*sn)
             .value_rank(1)

@@ -78,7 +78,7 @@ fn add_example_variables(
         // Add some variables to our sample folder. Values will be overwritten by the timer
         let _ = address_space.add_variables(
             vec![
-                Variable::new(&v1_node, "v1", "v1", 0 as i32),
+                Variable::new(&v1_node, "v1", "v1", 0_i32),
                 Variable::new(&v2_node, "v2", "v2", false),
                 Variable::new(&v3_node, "v3", "v3", UAString::from("")),
                 Variable::new(&v4_node, "v4", "v4", 0f64),
