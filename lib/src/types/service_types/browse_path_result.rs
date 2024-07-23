@@ -9,7 +9,7 @@
 #[allow(unused_imports)]
 use crate::types::{
     basic_types::*, encoding::*, node_ids::ObjectId, service_types::impls::MessageInfo,
-    service_types::BrowsePathTarget, status_codes::StatusCode,
+    service_types::BrowsePathTarget, status_code::StatusCode,
 };
 use std::io::{Read, Write};
 

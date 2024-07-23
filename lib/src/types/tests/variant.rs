@@ -37,7 +37,7 @@ fn size() {
 #[test]
 fn variant_type_id() {
     use crate::types::{
-        status_codes::StatusCode, ByteString, DateTime, ExpandedNodeId, ExtensionObject, Guid,
+        status_code::StatusCode, ByteString, DateTime, ExpandedNodeId, ExtensionObject, Guid,
         LocalizedText, NodeId, QualifiedName, UAString, XmlElement,
     };
 
@@ -585,9 +585,7 @@ fn variant_cast_int32() {
         Variant::Empty
     );
     // StatusCode
-    let status_code = StatusCode::BadResourceUnavailable
-        | StatusCode::HISTORICAL_RAW
-        | StatusCode::SEMANTICS_CHANGED;
+    let status_code = StatusCode::BadResourceUnavailable.set_semantics_changed(true);
     assert_eq!(
         Variant::from(status_code.bits() as i32).cast(VariantTypeId::StatusCode),
         Variant::from(status_code)
@@ -665,9 +663,7 @@ fn variant_cast_int64() {
         Variant::Empty
     );
     // StatusCode
-    let status_code = StatusCode::BadResourceUnavailable
-        | StatusCode::HISTORICAL_RAW
-        | StatusCode::SEMANTICS_CHANGED;
+    let status_code = StatusCode::BadResourceUnavailable.set_semantics_changed(true);
     assert_eq!(
         Variant::from(status_code.bits() as i64).cast(VariantTypeId::StatusCode),
         Variant::from(status_code)
@@ -922,7 +918,7 @@ fn variant_convert_uint16() {
     assert_eq!(v.convert(VariantTypeId::Int64), Variant::Int64(80));
     assert_eq!(
         v.convert(VariantTypeId::StatusCode),
-        Variant::StatusCode(StatusCode::from_bits_truncate(80 << 16))
+        Variant::StatusCode(StatusCode::from(80 << 16))
     );
     assert_eq!(v.convert(VariantTypeId::UInt32), Variant::UInt32(80));
     assert_eq!(v.convert(VariantTypeId::UInt64), Variant::UInt64(80));
@@ -1033,9 +1029,7 @@ fn variant_cast_uint32() {
         Variant::Empty
     );
     // StatusCode
-    let status_code = StatusCode::BadResourceUnavailable
-        | StatusCode::HISTORICAL_RAW
-        | StatusCode::SEMANTICS_CHANGED;
+    let status_code = StatusCode::BadResourceUnavailable.set_semantics_changed(true);
     assert_eq!(
         Variant::from(status_code.bits() as u32).cast(VariantTypeId::StatusCode),
         Variant::from(status_code)
@@ -1112,9 +1106,7 @@ fn variant_cast_uint64() {
         Variant::Empty
     );
     // StatusCode
-    let status_code = StatusCode::BadResourceUnavailable
-        | StatusCode::HISTORICAL_RAW
-        | StatusCode::SEMANTICS_CHANGED;
+    let status_code = StatusCode::BadResourceUnavailable.set_semantics_changed(true);
     assert_eq!(
         Variant::from(status_code.bits() as u64).cast(VariantTypeId::StatusCode),
         Variant::from(status_code)
@@ -1228,9 +1220,7 @@ fn variant_convert_status_code() {
 
 #[test]
 fn variant_cast_status_code() {
-    let status_code = StatusCode::BadResourceUnavailable
-        | StatusCode::HISTORICAL_RAW
-        | StatusCode::SEMANTICS_CHANGED;
+    let status_code = StatusCode::BadResourceUnavailable.set_semantics_changed(true);
     let v = Variant::from(status_code);
     // Cast UInt16 (BadResourceUnavailable == 0x8004_0000)
     assert_eq!(v.cast(VariantTypeId::UInt16), Variant::UInt16(0x8004));

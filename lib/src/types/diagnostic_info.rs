@@ -6,7 +6,7 @@
 
 use std::io::{Read, Write};
 
-use crate::types::{encoding::*, status_codes::StatusCode, string::UAString};
+use crate::types::{encoding::*, status_code::StatusCode, string::UAString};
 
 bitflags! {
     #[derive(Copy, Clone, Debug, PartialEq)]

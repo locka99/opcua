@@ -516,8 +516,7 @@ impl MonitoredItem {
         if overflow {
             if let Notification::MonitoredItemNotification(ref mut notification) = notification {
                 // Set the overflow bit on the data value's status
-                notification.value.status =
-                    Some(notification.value.status() | StatusCode::OVERFLOW);
+                notification.value.status = Some(notification.value.status().set_overflow(true));
             }
             self.queue_overflow = true;
         }
