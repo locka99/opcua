@@ -11,9 +11,16 @@ env:
 
 jobs:
   build-linux:
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Provision toolchain
+        run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - name: Build
         run: cargo build --features test-vendored-openssl
       - name: Run tests
@@ -24,12 +31,31 @@ jobs:
           sh ./run.sh
 
   build-windows:
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          - beta
     runs-on: windows-latest
     env:
       VCPKGRS_DYNAMIC: 1
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      - name: Provision toolchain
+        run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - name: Build
         run: cargo build --features test-vendored-openssl
       - name: Run tests
         run: cargo test --features test-vendored-openssl --verbose
+
+  code-coverage:
+    uses: ./.github/workflows/ci_code_coverage.yml
+
+  verify-clean-supported-message:
+    uses: ./.github/workflows/ci_verify_clean_supported_message.yml
+
+  verify-code-formatting:
+    uses: ./.github/workflows/ci_format_code.yml
+
+  verify-clean-status-codes:
+    uses: ./.github/workflows/ci_verify_clean_status_codes.yml

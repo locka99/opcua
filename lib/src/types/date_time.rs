@@ -12,7 +12,7 @@ use std::{
     str::FromStr,
 };
 
-use chrono::{Duration, SecondsFormat, TimeZone, Timelike, Utc};
+use chrono::{Duration, SecondsFormat, TimeDelta, TimeZone, Timelike, Utc};
 use serde::{de::Error, Deserialize, Deserializer, Serialize, Serializer};
 
 use crate::types::encoding::*;
@@ -140,7 +140,6 @@ impl From<(u16, u16, u16, u16, u16, u16, u32)> for DateTime {
         if nanos as i64 >= NANOS_PER_SECOND {
             panic!("Invalid nanosecond");
         }
-
         let dt = Utc
             .with_ymd_and_hms(
                 year as i32,
@@ -153,7 +152,6 @@ impl From<(u16, u16, u16, u16, u16, u16, u32)> for DateTime {
             .unwrap()
             .with_nanosecond(nanos)
             .unwrap();
-
         DateTime::from(dt)
     }
 }
@@ -169,13 +167,13 @@ impl From<DateTimeUtc> for DateTime {
 
 impl From<i64> for DateTime {
     fn from(value: i64) -> Self {
-        if value == i64::max_value() {
+        if value == i64::MAX {
             // Max signifies end times
             Self::endtimes()
         } else {
             let secs = value / TICKS_PER_SECOND;
             let nanos = (value - secs * TICKS_PER_SECOND) * NANOS_PER_TICK;
-            let duration = Duration::seconds(secs) + Duration::nanoseconds(nanos);
+            let duration = TimeDelta::try_seconds(secs).unwrap() + Duration::nanoseconds(nanos);
             Self::from(Self::epoch_chrono() + duration)
         }
     }
@@ -219,12 +217,10 @@ impl DateTime {
     /// in and out of rfc3999 without any loss of precision to make it easier to do comparison tests.
     #[cfg(test)]
     pub fn rfc3339_now() -> DateTime {
-        use chrono::NaiveDateTime;
         use std::time::{SystemTime, UNIX_EPOCH};
 
         let duration = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-        let naive = NaiveDateTime::from_timestamp(duration.as_secs() as i64, 0);
-        let now = DateTimeUtc::from_utc(naive, Utc);
+        let now = DateTimeUtc::from_timestamp(duration.as_secs() as i64, 0).unwrap();
         DateTime::from(now)
     }
 
@@ -323,7 +319,7 @@ impl DateTime {
             return 0;
         }
         if nanos > Self::endtimes_ticks() {
-            return i64::max_value();
+            return i64::MAX;
         }
         nanos
     }
@@ -350,7 +346,7 @@ impl DateTime {
     fn duration_to_ticks(duration: Duration) -> i64 {
         // We can't directly ask for nanos because it will exceed i64,
         // so we have to subtract the total seconds before asking for the nano portion
-        let seconds_part = Duration::seconds(duration.num_seconds());
+        let seconds_part = TimeDelta::try_seconds(duration.num_seconds()).unwrap();
         let seconds = seconds_part.num_seconds();
         let nanos = (duration - seconds_part).num_nanoseconds().unwrap();
         // Put it back together in ticks

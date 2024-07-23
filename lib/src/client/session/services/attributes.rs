@@ -271,7 +271,7 @@ impl Session {
             // Turn the enums into ExtensionObjects
             let history_update_details = history_update_details
                 .iter()
-                .map(|action| ExtensionObject::from(action))
+                .map(ExtensionObject::from)
                 .collect::<Vec<ExtensionObject>>();
 
             let request = HistoryUpdateRequest {

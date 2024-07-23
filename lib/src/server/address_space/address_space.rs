@@ -216,7 +216,6 @@ impl AddressSpace {
     /// The last registered namespace becomes the default namespace unless you explcitly call
     /// `set_default_namespace()` after this.
     pub fn register_namespace(&mut self, namespace: &str) -> Result<u16, ()> {
-        use std::u16;
         let now = DateTime::now();
         if namespace.is_empty() || self.namespaces.len() == u16::MAX as usize {
             Err(())
@@ -332,7 +331,7 @@ impl AddressSpace {
                 );
                 self.set_variable_value(
                     Server_ServerCapabilities_MinSupportedSampleRate,
-                    constants::MIN_SAMPLING_INTERVAL as f64,
+                    constants::MIN_SAMPLING_INTERVAL,
                     &now,
                     &now,
                 );
