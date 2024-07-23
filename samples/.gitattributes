@@ -1,1 +1,1 @@
-*.conf text eol=crlf
+*.conf text eol=auto
