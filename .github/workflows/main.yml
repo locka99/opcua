@@ -37,6 +37,9 @@ jobs:
   code-coverage:
     uses: ./.github/workflows/ci_code_coverage.yml
 
+  verify-clean-supported-message:
+    uses: ./.github/workflows/ci_verify_clean_supported_message.yml
+
   verify-code-formatting:
     uses: ./.github/workflows/ci_format_code.yml
 
