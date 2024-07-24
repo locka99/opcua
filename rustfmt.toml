@@ -1,3 +1,0 @@
-ignore = [
-    "types/src/node_ids.rs",
-]
