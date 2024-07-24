@@ -47,7 +47,7 @@ The old client, by accident or on purpose, did not support pipelining requests, 
 
 The service traits are gone. They were entirely unused, except as a way to group services, and potentially as a way for users to have mocking? Keeping them would have been possible, but it would have required a higher MSRV.
 
-Callbacks have changed slightly, mostly due to the way notifications are received. The subscription logic is similar, but the way `MonitoredItems` queued values seemed largely meaningless, as they were always immediately dequeued (or if they weren't that would be a user error?), it seemed like a feature that was mostly unhelpful. The connect/disconnect callbacks are also gone, though they could be reimplemented. It is possible to monitor the state of the session by watching the output of the event loop `poll` method, see the `web-client` sample for an example of how this could be done.
+Callbacks have changed slightly, mostly due to the way notifications are received. The subscription logic is similar, but the way `MonitoredItems` queued values seemed largely meaningless, as they were always immediately dequeued (or if they weren't that would be a user error?), it seemed like a feature that was mostly unhelpful. The connect/disconnect callbacks are also gone, though they could be reimplemented. It is possible to monitor the state of the session by watching the output of the event loop `poll` method.
 
 The client is no longer behind a lock. Any locking is internal, except for access to the subscription cache directly. This should be a strictly positive change for usability.
 
