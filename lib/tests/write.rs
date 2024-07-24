@@ -1,11 +1,11 @@
 use chrono::TimeDelta;
 use opcua::{
+    client::{HistoryReadAction, HistoryUpdateAction, Session},
     server::address_space::{
         AccessLevel, DataTypeBuilder, EventNotifier, MethodBuilder, NodeType, ObjectBuilder,
         ObjectTypeBuilder, ReferenceTypeBuilder, UserAccessLevel, VariableBuilder,
         VariableTypeBuilder, ViewBuilder,
     },
-    client::{HistoryReadAction, HistoryUpdateAction, Session},
     types::{
         AttributeId, ByteString, DataTypeId, DataValue, DateTime, HistoryData, HistoryReadValueId,
         LocalizedText, NodeId, ObjectId, ObjectTypeId, QualifiedName, ReadRawModifiedDetails,

@@ -5,11 +5,11 @@
 //! Contains the implementation of `ObjectType` and `ObjectTypeBuilder`.
 
 use crate::{
+    types::service_types::ObjectTypeAttributes,
     types::{
         AttributeId, AttributesMask, DataValue, NumericRange, StatusCode, TimestampsToReturn,
         Variant,
     },
-    types::service_types::ObjectTypeAttributes,
 };
 
 use super::{base::Base, node::Node, node::NodeBase};

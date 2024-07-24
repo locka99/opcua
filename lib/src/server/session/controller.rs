@@ -8,18 +8,28 @@ use futures::{future::Either, stream::FuturesUnordered, Future, StreamExt};
 use tokio::net::TcpStream;
 
 use crate::{
-    core::{comms::{secure_channel::SecureChannel, security_header::SecurityHeader, tcp_types::ErrorMessage}, config::Config, handle::AtomicHandle, supported_message::SupportedMessage}, crypto::{CertificateStore, SecurityPolicy}, server::{
+    core::{
+        comms::{
+            secure_channel::SecureChannel, security_header::SecurityHeader, tcp_types::ErrorMessage,
+        },
+        config::Config,
+        handle::AtomicHandle,
+        supported_message::SupportedMessage,
+    },
+    crypto::{CertificateStore, SecurityPolicy},
+    server::{
         authenticator::UserToken,
         info::ServerInfo,
         node_manager::NodeManagers,
         subscriptions::SubscriptionCache,
         transport::tcp::{Request, TcpTransport, TransportConfig, TransportPollResult},
-    }, sync::RwLock, types::{
-        ChannelSecurityToken, DateTime, FindServersResponse,
-        GetEndpointsResponse, MessageSecurityMode,
-        OpenSecureChannelRequest, OpenSecureChannelResponse, ResponseHeader,
+    },
+    sync::RwLock,
+    types::{
+        ChannelSecurityToken, DateTime, FindServersResponse, GetEndpointsResponse,
+        MessageSecurityMode, OpenSecureChannelRequest, OpenSecureChannelResponse, ResponseHeader,
         SecurityTokenRequestType, ServiceFault, StatusCode,
-    }
+    },
 };
 
 use super::{instance::Session, manager::SessionManager, message_handler::MessageHandler};
@@ -60,15 +70,19 @@ enum ControllerTimeout {
     OpenChannel(Instant),
     /// Controller has an open session. The deadline in this case is the smallest of the secure channel expiry and the
     /// session timeout.
-    OpenSession(Instant, Instant)
+    OpenSession(Instant, Instant),
 }
 
 impl ControllerTimeout {
     pub async fn timeout(&self) {
         match self {
-            ControllerTimeout::WaitingForChannel(deadline) |
-            ControllerTimeout::OpenChannel(deadline) => tokio::time::sleep_until((*deadline).into()).await,
-            ControllerTimeout::OpenSession(channel, session) => tokio::time::sleep_until((*channel.min(session)).into()).await,
+            ControllerTimeout::WaitingForChannel(deadline)
+            | ControllerTimeout::OpenChannel(deadline) => {
+                tokio::time::sleep_until((*deadline).into()).await
+            }
+            ControllerTimeout::OpenSession(channel, session) => {
+                tokio::time::sleep_until((*channel.min(session)).into()).await
+            }
         }
     }
 }
@@ -126,7 +140,9 @@ impl SessionController {
             session_manager,
             certificate_store,
             message_handler: MessageHandler::new(info.clone(), node_managers, subscriptions),
-            deadline: ControllerTimeout::WaitingForChannel(Instant::now() + Duration::from_secs(info.config.tcp_config.hello_timeout as u64)),
+            deadline: ControllerTimeout::WaitingForChannel(
+                Instant::now() + Duration::from_secs(info.config.tcp_config.hello_timeout as u64),
+            ),
             info,
             pending_messages: FuturesUnordered::new(),
         }
@@ -212,8 +228,14 @@ impl SessionController {
                 );
                 if res.is_ok() {
                     match &mut self.deadline {
-                        ControllerTimeout::OpenSession(chan, _) => *chan = self.channel.token_renewal_deadline(),
-                        s => *s = ControllerTimeout::OpenChannel(self.channel.token_renewal_deadline()),
+                        ControllerTimeout::OpenSession(chan, _) => {
+                            *chan = self.channel.token_renewal_deadline()
+                        }
+                        s => {
+                            *s = ControllerTimeout::OpenChannel(
+                                self.channel.token_renewal_deadline(),
+                            )
+                        }
                     }
                 }
                 match res {
@@ -321,7 +343,7 @@ impl SessionController {
                     &message,
                     self.channel.secure_channel_id(),
                     session,
-                    &mut self.deadline
+                    &mut self.deadline,
                 ) {
                     Ok(s) => s,
                     Err(e) => {
@@ -374,7 +396,6 @@ impl SessionController {
                                         handle.abort();
                                         Ok(Response { message: ServiceFault::new(request_handle, StatusCode::BadTimeout).into(), request_id: id })
                                     }
-                                    
                                 }
                             }));
                         RequestProcessResult::Ok
@@ -435,8 +456,6 @@ impl SessionController {
         let session_lock = trace_read_lock!(session);
         let id = session_lock.session_id_numeric();
 
-        
-
         let user_token = (move || {
             let token = session_lock.validate_activated()?;
             session_lock.validate_secure_channel_id(channel_id)?;
@@ -444,7 +463,12 @@ impl SessionController {
             match timeout {
                 ControllerTimeout::OpenSession(_, sess) => *sess = session_lock.deadline(),
                 // Should be unreachable.
-                r => *r = ControllerTimeout::OpenSession(session_lock.deadline(), session_lock.deadline()),
+                r => {
+                    *r = ControllerTimeout::OpenSession(
+                        session_lock.deadline(),
+                        session_lock.deadline(),
+                    )
+                }
             }
             Ok(token.clone())
         })()
@@ -545,7 +569,10 @@ impl SessionController {
         self.channel
             .set_remote_cert_from_byte_string(&security_header.sender_certificate)?;
 
-        let revised_lifetime = self.info.config.max_secure_channel_token_lifetime_ms
+        let revised_lifetime = self
+            .info
+            .config
+            .max_secure_channel_token_lifetime_ms
             .min(request.requested_lifetime);
         self.channel.set_token_lifetime(revised_lifetime);
 

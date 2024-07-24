@@ -1,11 +1,11 @@
 use chrono::TimeDelta;
 use opcua::{
+    client::HistoryReadAction,
     server::address_space::{
         AccessLevel, DataTypeBuilder, EventNotifier, MethodBuilder, ObjectBuilder,
         ObjectTypeBuilder, ReferenceTypeBuilder, UserAccessLevel, VariableBuilder,
         VariableTypeBuilder, ViewBuilder,
     },
-    client::HistoryReadAction,
     types::{
         AttributeId, DataTypeId, DataValue, DateTime, HistoryData, HistoryReadValueId, NodeClass,
         NodeId, ObjectId, ObjectTypeId, QualifiedName, ReadRawModifiedDetails, ReadValueId,
@@ -16,8 +16,6 @@ use opcua::{
 use utils::{array_value, read_value_id, read_value_ids, setup};
 
 mod utils;
-
-
 
 #[tokio::test]
 async fn read() {

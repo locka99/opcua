@@ -5,11 +5,11 @@
 //! Contains the implementation of `Method` and `MethodBuilder`.
 
 use crate::{
+    types::service_types::{Argument, MethodAttributes},
     types::{
         AttributeId, AttributesMask, DataTypeId, DataValue, ExtensionObject, NumericRange,
         ObjectId, StatusCode, TimestampsToReturn, VariableTypeId, Variant, VariantTypeId,
     },
-    types::service_types::{Argument, MethodAttributes},
 };
 
 use super::{

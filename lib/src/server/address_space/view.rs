@@ -5,11 +5,11 @@
 //! Contains the implementation of `View` and `ViewBuilder`.
 
 use crate::{
+    types::service_types::ViewAttributes,
     types::{
         AttributeId, AttributesMask, DataValue, NumericRange, StatusCode, TimestampsToReturn,
         Variant,
     },
-    types::service_types::ViewAttributes,
 };
 
 use super::{base::Base, node::Node, node::NodeBase, EventNotifier};

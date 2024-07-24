@@ -2,7 +2,11 @@ use super::{
     encoding::DecodingOptions,
     extension_object::ExtensionObject,
     node_ids::ObjectId,
-    service_types::{DataTypeAttributes, GenericAttributes, MethodAttributes, ObjectAttributes, ObjectTypeAttributes, ReferenceTypeAttributes, VariableAttributes, VariableTypeAttributes, ViewAttributes},
+    service_types::{
+        DataTypeAttributes, GenericAttributes, MethodAttributes, ObjectAttributes,
+        ObjectTypeAttributes, ReferenceTypeAttributes, VariableAttributes, VariableTypeAttributes,
+        ViewAttributes,
+    },
     status_code::StatusCode,
 };
 
