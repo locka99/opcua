@@ -24,8 +24,6 @@ impl ClientBuilder {
 
     /// Yields a [`Client`] from the values set by the builder. If the builder is not in a valid state
     /// it will return `None`.
-    ///
-    /// [`Client`]: client/struct.Client.html
     pub fn client(self) -> Option<Client> {
         if self.is_valid() {
             Some(Client::new(self.config))
@@ -35,8 +33,6 @@ impl ClientBuilder {
     }
 
     /// Yields a [`ClientConfig`] from the values set by the builder.
-    ///
-    /// [`ClientConfig`]: ../config/struct.ClientConfig.html
     pub fn config(self) -> ClientConfig {
         self.config
     }
