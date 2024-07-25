@@ -253,7 +253,7 @@ impl Session {
     ///
     /// # Returns
     ///
-    /// * `Ok(Vec<ClientHistoryUpdateResult>)` - A list of [`ClientHistoryUpdateResult`] results corresponding to history update operation.
+    /// * `Ok(Vec<HistoryUpdateResult>)` - A list of [`HistoryUpdateResult`] results corresponding to history update operation.
     /// * `Err(StatusCode)` - Request failed, [Status code](StatusCode) is the reason for failure.
     ///
     pub async fn history_update(
