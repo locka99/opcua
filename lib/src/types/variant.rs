@@ -36,9 +36,10 @@ use crate::types::{
 ///
 /// As variants may be passed around a lot on the stack, Boxes are used for more complex types to
 /// keep the size of this type down a bit, especially when used in arrays.
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Default)]
 pub enum Variant {
     /// Empty type has no value. It is equivalent to a Null value (part 6 5.1.6)
+    #[default]
     Empty,
     /// Boolean
     Boolean(bool),
@@ -666,12 +667,6 @@ impl BinaryEncoder<Variant> for Variant {
             // Read a single variant
             Variant::decode_variant_value(stream, element_encoding_mask, decoding_options)
         }
-    }
-}
-
-impl Default for Variant {
-    fn default() -> Self {
-        Variant::Empty
     }
 }
 

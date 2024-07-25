@@ -9,20 +9,11 @@ use super::{
 
 /// This object tracks session diagnostics for exposure through the address space
 
+#[derive(Default)]
 pub(crate) struct SessionDiagnostics {
     total_request_count: u32,
     unauthorized_request_count: u32,
     service_counters: HashMap<&'static str, ServiceCounterDataType>,
-}
-
-impl Default for SessionDiagnostics {
-    fn default() -> Self {
-        Self {
-            total_request_count: 0,
-            unauthorized_request_count: 0,
-            service_counters: HashMap::new(),
-        }
-    }
 }
 
 impl SessionDiagnostics {
