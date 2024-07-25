@@ -1,0 +1,21 @@
+name: Verify documentation integrity
+'on':
+  workflow_call: null
+jobs:
+  cov:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cargo-bins/cargo-binstall@v1.7.4
+      - name: Install cargo-deadlinks binary
+        run: cargo binstall cargo-deadlinks@0.8.1 --no-confirm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check for dead links in docs
+        run: cargo deadlinks
+
+      - name: Check for dead https(s) links in docs
+        # `no-build` is passed, as the first invocation of `cargo deadlinks` already built the docs
+        run: cargo deadlinks --check-http --no-build

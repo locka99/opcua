@@ -51,6 +51,9 @@ jobs:
   code-coverage:
     uses: ./.github/workflows/ci_code_coverage.yml
 
+  docs:
+    uses: ./.github/workflows/ci_docs.yml
+
   verify-clean-address-space:
     uses: ./.github/workflows/ci_verify_clean_address_space.yml
 
