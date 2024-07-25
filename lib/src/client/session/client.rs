@@ -197,7 +197,7 @@ impl Client {
             .unwrap())
     }
 
-    /// Connects to an a server directly using provided [`SessionInfo`].
+    /// Connects to a server directly using provided SessionInfo.
     ///
     /// This function returns both a reference to the session, and a `SessionEventLoop`. You must run and
     /// poll the event loop in order to actually establish a connection.
