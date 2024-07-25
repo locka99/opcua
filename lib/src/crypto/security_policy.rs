@@ -108,11 +108,11 @@ mod basic_256_sha_256 {
 
 /// Basic128Rsa15 security policy (deprecated in OPC UA 1.04)
 ///
-///   AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
-///   AsymmetricEncryptionAlgorithm – Rsa15 – (http://www.w3.org/2001/04/xmlenc#rsa-1_5).
-///   SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-///   SymmetricEncryptionAlgorithm – Aes128 – (http://www.w3.org/2001/04/xmlenc#aes128-cbc).
-///   KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
+///   AsymmetricSignatureAlgorithm – RsaSha1 – (<http://www.w3.org/2000/09/xmldsig#rsa-sha1>).
+///   AsymmetricEncryptionAlgorithm – Rsa15 – (<http://www.w3.org/2001/04/xmlenc#rsa-1_5>).
+///   SymmetricSignatureAlgorithm – HmacSha1 – (<http://www.w3.org/2000/09/xmldsig#hmac-sha1>).
+///   SymmetricEncryptionAlgorithm – Aes128 – (<http://www.w3.org/2001/04/xmlenc#aes128-cbc>).
+///   KeyDerivationAlgorithm – PSha1 – (<http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1>).
 ///
 /// # Limits
 ///
@@ -135,11 +135,11 @@ mod basic_128_rsa_15 {
 
 /// Basic256 security policy (deprecated in OPC UA 1.04)
 ///
-///   AsymmetricSignatureAlgorithm – RsaSha1 – (http://www.w3.org/2000/09/xmldsig#rsa-sha1).
-///   AsymmetricEncryptionAlgorithm – RsaOaep – (http://www.w3.org/2001/04/xmlenc#rsa-oaep).
-///   SymmetricSignatureAlgorithm – HmacSha1 – (http://www.w3.org/2000/09/xmldsig#hmac-sha1).
-///   SymmetricEncryptionAlgorithm – Aes256 – (http://www.w3.org/2001/04/xmlenc#aes256-cbc).
-///   KeyDerivationAlgorithm – PSha1 – (http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1).
+///   AsymmetricSignatureAlgorithm – RsaSha1 – (<http://www.w3.org/2000/09/xmldsig#rsa-sha1>).
+///   AsymmetricEncryptionAlgorithm – RsaOaep – (<http://www.w3.org/2001/04/xmlenc#rsa-oaep>).
+///   SymmetricSignatureAlgorithm – HmacSha1 – (<http://www.w3.org/2000/09/xmldsig#hmac-sha1>).
+///   SymmetricEncryptionAlgorithm – Aes256 – (<http://www.w3.org/2001/04/xmlenc#aes256-cbc>).
+///   KeyDerivationAlgorithm – PSha1 – (<http://docs.oasis-open.org/ws-sx/ws-secureconversation/200512/dk/p_sha1>).
 ///
 /// # Limits
 ///
