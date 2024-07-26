@@ -70,8 +70,6 @@ impl SessionConnector {
             }
         };
 
-        drop(activate_fut);
-
         Ok((event_loop, id))
     }
 
