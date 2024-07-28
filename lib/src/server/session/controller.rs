@@ -341,8 +341,8 @@ impl SessionController {
 
                 let (session_id, session, user_token) = match Self::validate_request(
                     &message,
-                    self.channel.secure_channel_id(),
                     session,
+                    &self.channel,
                     &mut self.deadline,
                 ) {
                     Ok(s) => s,
@@ -443,8 +443,8 @@ impl SessionController {
 
     fn validate_request(
         message: &SupportedMessage,
-        channel_id: u32,
         session: Option<Arc<RwLock<Session>>>,
+        channel: &SecureChannel,
         timeout: &mut ControllerTimeout,
     ) -> Result<(u32, Arc<RwLock<Session>>, UserToken), SupportedMessage> {
         let header = message.request_header();
@@ -458,14 +458,14 @@ impl SessionController {
 
         let user_token = (move || {
             let token = session_lock.validate_activated()?;
-            session_lock.validate_secure_channel_id(channel_id)?;
+            session_lock.validate_secure_channel_id(channel.secure_channel_id())?;
             session_lock.validate_timed_out()?;
             match timeout {
                 ControllerTimeout::OpenSession(_, sess) => *sess = session_lock.deadline(),
                 // Should be unreachable.
                 r => {
                     *r = ControllerTimeout::OpenSession(
-                        session_lock.deadline(),
+                        channel.token_renewal_deadline(),
                         session_lock.deadline(),
                     )
                 }
