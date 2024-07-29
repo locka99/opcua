@@ -20,11 +20,28 @@ use crate::{
 
 use super::NamespaceMetadata;
 
+pub trait InMemoryNodeManagerImplBuilder {
+    type Impl: InMemoryNodeManagerImpl;
+
+    fn build(self, context: ServerContext, address_space: &mut AddressSpace) -> Self::Impl;
+}
+
+impl<T, R: InMemoryNodeManagerImpl> InMemoryNodeManagerImplBuilder for T
+where
+    T: FnOnce(ServerContext, &mut AddressSpace) -> R,
+{
+    type Impl = R;
+
+    fn build(self, context: ServerContext, address_space: &mut AddressSpace) -> Self::Impl {
+        self(context, address_space)
+    }
+}
+
 #[async_trait]
 #[allow(unused)]
 pub trait InMemoryNodeManagerImpl: Send + Sync + 'static {
     /// Populate the address space.
-    async fn build_nodes(&self, address_space: &mut AddressSpace, context: ServerContext);
+    async fn init(&self, address_space: &mut AddressSpace, context: ServerContext);
 
     /// Name of this node manager, for debug purposes.
     fn name(&self) -> &str;

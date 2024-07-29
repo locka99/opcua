@@ -14,6 +14,8 @@ pub async fn call(node_managers: NodeManagers, request: Request<CallRequest>) ->
         request.info.operational_limits.max_nodes_per_method_call
     );
 
+    println!("Receive method call! {method_calls:?}");
+
     let mut calls: Vec<_> = method_calls.into_iter().map(MethodCall::new).collect();
 
     for (idx, node_manager) in node_managers.into_iter().enumerate() {

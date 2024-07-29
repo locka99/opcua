@@ -1,14 +1,14 @@
 use std::{collections::HashMap, sync::Arc, time::Duration};
 
 use async_trait::async_trait;
-use tokio::sync::OnceCell;
 
 use crate::{
     server::{
         address_space::{read_node_value, AddressSpace, NodeBase, NodeType},
         node_manager::{
-            MethodCall, MonitoredItemRef, MonitoredItemUpdateRef, NodeManagersRef,
-            ParsedReadValueId, RequestContext, ServerContext, SyncSampler, TypeTree, WriteNode,
+            MethodCall, MonitoredItemRef, MonitoredItemUpdateRef, NodeManagerBuilder,
+            NodeManagersRef, ParsedReadValueId, RequestContext, ServerContext, SyncSampler,
+            TypeTree, WriteNode,
         },
         CreateMonitoredItem,
     },
@@ -19,18 +19,12 @@ use crate::{
     },
 };
 
-use super::{InMemoryNodeManager, InMemoryNodeManagerImpl, NamespaceMetadata};
+use super::{
+    InMemoryNodeManager, InMemoryNodeManagerBuilder, InMemoryNodeManagerImpl,
+    InMemoryNodeManagerImplBuilder, NamespaceMetadata,
+};
 
 pub type SimpleNodeManager = InMemoryNodeManager<SimpleNodeManagerImpl>;
-
-impl SimpleNodeManager {
-    pub fn new_simple(
-        namespace: NamespaceMetadata,
-        name: &str,
-    ) -> InMemoryNodeManager<SimpleNodeManagerImpl> {
-        InMemoryNodeManager::new(SimpleNodeManagerImpl::new(namespace, name))
-    }
-}
 
 type WriteCB = Arc<dyn Fn(DataValue, NumericRange) -> StatusCode + Send + Sync + 'static>;
 type ReadCB = Arc<
@@ -40,6 +34,42 @@ type ReadCB = Arc<
         + 'static,
 >;
 type MethodCB = Arc<dyn Fn(&[Variant]) -> Result<Vec<Variant>, StatusCode> + Send + Sync + 'static>;
+
+pub struct SimpleNodeManagerBuilder {
+    namespace: NamespaceMetadata,
+    name: String,
+}
+
+impl SimpleNodeManagerBuilder {
+    pub fn new(namespace: NamespaceMetadata, name: &str) -> Self {
+        Self {
+            namespace,
+            name: name.to_owned(),
+        }
+    }
+}
+
+impl InMemoryNodeManagerImplBuilder for SimpleNodeManagerBuilder {
+    type Impl = SimpleNodeManagerImpl;
+
+    fn build(mut self, context: ServerContext, address_space: &mut AddressSpace) -> Self::Impl {
+        {
+            let mut type_tree = context.type_tree.write();
+            self.namespace.namespace_index = type_tree
+                .namespaces_mut()
+                .add_namespace(&self.namespace.namespace_uri);
+        }
+        address_space.add_namespace(
+            &self.namespace.namespace_uri,
+            self.namespace.namespace_index,
+        );
+        SimpleNodeManagerImpl::new(self.namespace, &self.name, context.node_managers.clone())
+    }
+}
+
+pub fn simple_node_manager(namespace: NamespaceMetadata, name: &str) -> impl NodeManagerBuilder {
+    InMemoryNodeManagerBuilder::new(SimpleNodeManagerBuilder::new(namespace, name))
+}
 
 /// Node manager designed to deal with simple, entirely in-memory, synchronous OPC-UA servers.
 ///
@@ -53,18 +83,15 @@ pub struct SimpleNodeManagerImpl {
     read_cbs: RwLock<HashMap<NodeId, ReadCB>>,
     method_cbs: RwLock<HashMap<NodeId, MethodCB>>,
     namespace: NamespaceMetadata,
-    node_managers: OnceCell<NodeManagersRef>,
+    #[allow(unused)]
+    node_managers: NodeManagersRef,
     name: String,
     samplers: SyncSampler,
 }
 
 #[async_trait]
 impl InMemoryNodeManagerImpl for SimpleNodeManagerImpl {
-    async fn build_nodes(&self, _address_space: &mut AddressSpace, context: ServerContext) {
-        self.node_managers
-            .set(context.node_managers)
-            .map_err(|_| ())
-            .expect("Node manager initialized more than once");
+    async fn init(&self, _address_space: &mut AddressSpace, context: ServerContext) {
         self.samplers.run(
             Duration::from_millis(
                 context
@@ -240,14 +267,14 @@ impl InMemoryNodeManagerImpl for SimpleNodeManagerImpl {
 }
 
 impl SimpleNodeManagerImpl {
-    pub fn new(namespace: NamespaceMetadata, name: &str) -> Self {
+    pub fn new(namespace: NamespaceMetadata, name: &str, node_managers: NodeManagersRef) -> Self {
         Self {
             write_cbs: Default::default(),
             read_cbs: Default::default(),
             method_cbs: Default::default(),
             namespace,
             name: name.to_owned(),
-            node_managers: Default::default(),
+            node_managers,
             samplers: SyncSampler::new(),
         }
     }

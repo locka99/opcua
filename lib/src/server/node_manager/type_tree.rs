@@ -7,6 +7,8 @@ use crate::types::{
     DataTypeId, NodeClass, NodeId, ObjectTypeId, QualifiedName, ReferenceTypeId, VariableTypeId,
 };
 
+use super::build::NamespaceMap;
+
 #[derive(PartialEq, Eq, Hash)]
 struct TypePropertyKey {
     path: Vec<QualifiedName>,
@@ -49,6 +51,7 @@ pub struct TypeTree {
     subtypes_by_target: HashMap<NodeId, NodeId>,
     property_to_type: HashMap<NodeId, TypePropertyInverseRef>,
     type_properties: HashMap<NodeId, HashMap<TypePropertyKey, TypeProperty>>,
+    namespaces: NamespaceMap,
 }
 
 #[derive(Clone, Debug)]
@@ -115,7 +118,11 @@ impl TypeTree {
             subtypes_by_target: HashMap::new(),
             type_properties: HashMap::new(),
             property_to_type: HashMap::new(),
+            namespaces: NamespaceMap::new(),
         };
+        type_tree
+            .namespaces
+            .add_namespace("http://opcfoundation.org/UA/");
         type_tree
             .nodes
             .insert(ObjectTypeId::BaseObjectType.into(), NodeClass::ObjectType);
@@ -209,5 +216,13 @@ impl TypeTree {
             return true;
         }
         false
+    }
+
+    pub fn namespaces(&self) -> &NamespaceMap {
+        &self.namespaces
+    }
+
+    pub fn namespaces_mut(&mut self) -> &mut NamespaceMap {
+        &mut self.namespaces
     }
 }

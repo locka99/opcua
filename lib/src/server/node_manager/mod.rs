@@ -14,8 +14,10 @@ use crate::{
 };
 use async_trait::async_trait;
 use memory::NamespaceMetadata;
+use tokio::sync::OnceCell;
 
 mod attributes;
+mod build;
 mod context;
 mod history;
 pub mod memory;
@@ -36,6 +38,7 @@ use super::{
 
 pub use {
     attributes::{ParsedReadValueId, ParsedWriteValue, ReadNode, WriteNode},
+    build::{add_namespaces, NamespaceMap, NodeManagerBuilder},
     context::RequestContext,
     history::{HistoryNode, HistoryResult, HistoryUpdateDetails, HistoryUpdateNode},
     method::MethodCall,
@@ -135,8 +138,9 @@ impl NodeManagers {
     /// results in a circular reference which will leak memory once dropped.
     /// (This does not really matter if you don't care about memory leaks when the server is dropped.)
     pub fn as_weak(&self) -> NodeManagersRef {
+        let weak = Arc::downgrade(&self.node_managers);
         NodeManagersRef {
-            node_managers: Arc::downgrade(&self.node_managers),
+            node_managers: Arc::new(OnceCell::new_with(Some(weak))),
         }
     }
 }
@@ -162,7 +166,9 @@ impl<'a> IntoIterator for &'a NodeManagers {
 #[derive(Clone)]
 /// A weak reference to the node manager collection.
 pub struct NodeManagersRef {
-    node_managers: Weak<Vec<Arc<DynNodeManager>>>,
+    /// This complex structure is here because node managers need to be able to store a reference
+    /// to a _future_ weak reference to the node managers.
+    node_managers: Arc<OnceCell<Weak<Vec<Arc<DynNodeManager>>>>>,
 }
 
 impl NodeManagerCollection for NodeManagersRef {
@@ -172,19 +178,31 @@ impl NodeManagerCollection for NodeManagersRef {
 }
 
 impl NodeManagersRef {
+    pub(crate) fn new_empty() -> Self {
+        Self {
+            node_managers: Default::default(),
+        }
+    }
+
+    pub(crate) fn init_from_node_managers(&self, node_managers: NodeManagers) {
+        self.node_managers
+            .set(Arc::downgrade(&node_managers.node_managers))
+            .expect("Node manager ref initialized more than once");
+    }
+
     /// Upgrade this node manager ref. Note that node managers should avoid keeping
     /// a permanent copy of the NodeManagers struct, to avoid circular references leading
     /// to a memory leak when the server is dropped.
     ///
     /// If this fails, it means that the server is dropped, so feel free to abort anything going on.
     pub fn upgrade(&self) -> Option<NodeManagers> {
-        let node_managers = self.node_managers.upgrade()?;
+        let node_managers = self.node_managers.get()?.upgrade()?;
         Some(NodeManagers { node_managers })
     }
 
     /// Iterate over node managers. If the server is dropped this iterator will be _empty_.
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = Arc<DynNodeManager>> {
-        let node_managers = self.node_managers.upgrade();
+        let node_managers = self.upgrade();
         let len = node_managers.as_ref().map(|l| l.len()).unwrap_or_default();
         (0..len).filter_map(move |i| node_managers.as_ref().map(move |r| r[i].clone()))
     }

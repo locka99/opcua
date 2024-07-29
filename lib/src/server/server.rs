@@ -30,7 +30,7 @@ use super::{
     config::ServerConfig,
     discovery::periodic_discovery_server_registration,
     info::ServerInfo,
-    node_manager::{NodeManagers, TypeTree},
+    node_manager::{NodeManagers, NodeManagersRef, TypeTree},
     server_handle::ServerHandle,
     session::{controller::ControllerCommand, manager::SessionManager},
     subscriptions::SubscriptionCache,
@@ -150,7 +150,23 @@ impl Server {
 
         let info = Arc::new(info);
         let subscriptions = Arc::new(SubscriptionCache::new(config.limits.subscriptions));
-        let node_managers = NodeManagers::new(builder.node_managers);
+
+        let node_managers_ref = NodeManagersRef::new_empty();
+        let context = ServerContext {
+            node_managers: node_managers_ref.clone(),
+            subscriptions: subscriptions.clone(),
+            info: info.clone(),
+            authenticator: info.authenticator.clone(),
+            type_tree: type_tree.clone(),
+        };
+
+        let mut final_node_managers = Vec::new();
+        for nm_builder in builder.node_managers {
+            final_node_managers.push(nm_builder.build(context.clone()));
+        }
+
+        let node_managers = NodeManagers::new(final_node_managers);
+        node_managers_ref.init_from_node_managers(node_managers.clone());
         let session_manager = Arc::new(RwLock::new(SessionManager::new(info.clone())));
         let handle = ServerHandle::new(
             info.clone(),

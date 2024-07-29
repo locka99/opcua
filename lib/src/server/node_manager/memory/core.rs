@@ -2,7 +2,6 @@ use std::time::Duration;
 
 use async_trait::async_trait;
 use hashbrown::HashMap;
-use tokio::sync::OnceCell;
 
 use crate::{
     server::{
@@ -20,20 +19,37 @@ use crate::{
     },
 };
 
-use super::{InMemoryNodeManager, InMemoryNodeManagerImpl, NamespaceMetadata};
+use super::{
+    InMemoryNodeManager, InMemoryNodeManagerImpl, InMemoryNodeManagerImplBuilder, NamespaceMetadata,
+};
 
 /// Node manager impl for the core namespace.
 pub struct CoreNodeManagerImpl {
     sampler: SyncSampler,
-    node_managers: OnceCell<NodeManagersRef>,
+    node_managers: NodeManagersRef,
 }
 
 /// Node manager for the core namespace.
 pub type CoreNodeManager = InMemoryNodeManager<CoreNodeManagerImpl>;
 
-impl CoreNodeManager {
-    pub fn new_core() -> Self {
-        Self::new(CoreNodeManagerImpl::new())
+pub struct CoreNodeManagerBuilder;
+
+impl InMemoryNodeManagerImplBuilder for CoreNodeManagerBuilder {
+    type Impl = CoreNodeManagerImpl;
+
+    fn build(self, context: ServerContext, address_space: &mut AddressSpace) -> Self::Impl {
+        {
+            let mut type_tree = context.type_tree.write();
+            address_space.add_namespace(
+                "http://opcfoundation.org/UA/",
+                type_tree
+                    .namespaces_mut()
+                    .add_namespace("http://opcfoundation.org/UA/"),
+            );
+        }
+
+        crate::server::address_space::populate_address_space(address_space);
+        CoreNodeManagerImpl::new(context.node_managers.clone())
     }
 }
 
@@ -48,8 +64,7 @@ of changes to these to the one doing the modifying.
 
 #[async_trait]
 impl InMemoryNodeManagerImpl for CoreNodeManagerImpl {
-    async fn build_nodes(&self, address_space: &mut AddressSpace, context: ServerContext) {
-        crate::server::address_space::populate_address_space(address_space);
+    async fn init(&self, address_space: &mut AddressSpace, context: ServerContext) {
         self.add_aggregates(address_space, &context.info.capabilities);
         let interval = context
             .info
@@ -63,10 +78,6 @@ impl InMemoryNodeManagerImpl for CoreNodeManagerImpl {
             Duration::from_millis(sampler_interval),
             context.subscriptions.clone(),
         );
-        self.node_managers
-            .set(context.node_managers.clone())
-            .map_err(|_| ())
-            .expect("Init called more than once");
     }
 
     fn namespaces(&self) -> Vec<NamespaceMetadata> {
@@ -128,10 +139,10 @@ impl InMemoryNodeManagerImpl for CoreNodeManagerImpl {
 }
 
 impl CoreNodeManagerImpl {
-    pub fn new() -> Self {
+    pub(super) fn new(node_managers: NodeManagersRef) -> Self {
         Self {
             sampler: SyncSampler::new(),
-            node_managers: OnceCell::new(),
+            node_managers,
         }
     }
 
@@ -317,10 +328,7 @@ impl CoreNodeManagerImpl {
                 // Be careful to avoid holding exclusive locks in a way that causes a deadlock
                 // when doing this. Here we hold a read lock on the address space,
                 // but in this case it doesn't matter.
-                let Some(node_managers) = self.node_managers.get().map(|n| n.iter()) else {
-                    return None;
-                };
-                let nss: HashMap<_, _> = node_managers.flat_map(|n| n.namespaces_for_user(context)).map(|ns| (ns.namespace_index, ns.namespace_uri)).collect();
+                let nss: HashMap<_, _> = self.node_managers.iter().flat_map(|n| n.namespaces_for_user(context)).map(|ns| (ns.namespace_index, ns.namespace_uri)).collect();
                 // Make sure that holes are filled with empty strings, so that the
                 // namespace array actually has correct indices.
                 let Some(&max) = nss.keys().max() else {

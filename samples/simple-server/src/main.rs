@@ -11,7 +11,8 @@ use std::time::{Duration, Instant};
 
 use opcua::server::address_space::Variable;
 use opcua::server::node_manager::memory::{
-    InMemoryNodeManager, NamespaceMetadata, SimpleNodeManager, SimpleNodeManagerImpl,
+    simple_node_manager, InMemoryNodeManager, NamespaceMetadata, SimpleNodeManager,
+    SimpleNodeManagerImpl,
 };
 use opcua::server::{ServerBuilder, SubscriptionCache};
 use opcua::types::{DataValue, NodeId, UAString};
@@ -24,21 +25,22 @@ async fn main() {
 
     // Create an OPC UA server with sample configuration and default node set
 
-    let ns = 2;
-    let node_manager = Arc::new(SimpleNodeManager::new_simple(
-        NamespaceMetadata {
-            namespace_index: ns,
-            namespace_uri: "urn:SimpleServer".to_owned(),
-            ..Default::default()
-        },
-        "simple",
-    ));
-
     let (server, handle) = ServerBuilder::new()
         .with_config_from("../server.conf")
-        .with_node_manager(node_manager.clone())
+        .with_node_manager(simple_node_manager(
+            NamespaceMetadata {
+                namespace_uri: "urn:SimpleServer".to_owned(),
+                ..Default::default()
+            },
+            "simple",
+        ))
         .build()
         .unwrap();
+    let node_manager = handle
+        .node_managers()
+        .get_of_type::<SimpleNodeManager>()
+        .unwrap();
+    let ns = handle.get_namespace_index("urn:SimpleServer").unwrap();
 
     // Add some variables of our own
     add_example_variables(ns, node_manager, handle.subscriptions().clone());

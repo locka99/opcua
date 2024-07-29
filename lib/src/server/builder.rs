@@ -9,8 +9,10 @@ use crate::{
 use super::{
     authenticator::AuthManager,
     node_manager::{
-        memory::{CoreNodeManagerImpl, DiagnosticsNodeManager, InMemoryNodeManager},
-        NodeManager,
+        memory::{
+            CoreNodeManagerBuilder, DiagnosticsNodeManagerBuilder, InMemoryNodeManagerBuilder,
+        },
+        NodeManagerBuilder,
     },
     Limits, Server, ServerConfig, ServerEndpoint, ServerHandle, ServerUserToken,
     ANONYMOUS_USER_TOKEN_ID,
@@ -18,7 +20,7 @@ use super::{
 
 pub struct ServerBuilder {
     pub(crate) config: ServerConfig,
-    pub(crate) node_managers: Vec<Arc<dyn NodeManager + Send + Sync + 'static>>,
+    pub(crate) node_managers: Vec<Box<dyn NodeManagerBuilder>>,
     pub(crate) authenticator: Option<Arc<dyn AuthManager>>,
     pub(crate) token: CancellationToken,
 }
@@ -31,11 +33,9 @@ impl Default for ServerBuilder {
             authenticator: None,
             token: CancellationToken::new(),
         };
-        let core_node_manager = Arc::new(InMemoryNodeManager::new(CoreNodeManagerImpl::new()));
-        let diagnostics_node_manager = Arc::new(DiagnosticsNodeManager::new());
         builder
-            .with_node_manager(core_node_manager)
-            .with_node_manager(diagnostics_node_manager)
+            .with_node_manager(InMemoryNodeManagerBuilder::new(CoreNodeManagerBuilder))
+            .with_node_manager(DiagnosticsNodeManagerBuilder)
     }
 }
 
@@ -230,17 +230,12 @@ impl ServerBuilder {
         &mut self.config.limits
     }
 
-    /// Get the currently configured node managers.
-    pub fn node_managers(&self) -> &[Arc<dyn NodeManager + Send + Sync + 'static>] {
-        &self.node_managers
-    }
-
-    /// Add a node manager to the list of node managers.
-    pub fn with_node_manager(
-        mut self,
-        node_manager: Arc<dyn NodeManager + Send + Sync + 'static>,
-    ) -> Self {
-        self.node_managers.push(node_manager);
+    /// Add a node manager builder to the list of node managers.
+    /// Once the server is created you can retrieve it from
+    /// `handle.node_managers()`. This allows node managers to contain
+    /// core server types without late initialization.
+    pub fn with_node_manager(mut self, node_manager: impl NodeManagerBuilder + 'static) -> Self {
+        self.node_managers.push(Box::new(node_manager));
         self
     }
 

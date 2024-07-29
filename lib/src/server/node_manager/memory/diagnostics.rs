@@ -1,18 +1,22 @@
 use std::{
     collections::{BTreeMap, VecDeque},
+    sync::Arc,
     time::Duration,
 };
 
 use async_trait::async_trait;
-use tokio::sync::OnceCell;
 
 use crate::{
-    server::address_space::AccessLevel,
-    server::node_manager::{
-        as_opaque_node_id, from_opaque_node_id,
-        view::{AddReferenceResult, NodeMetadata},
-        BrowseNode, NodeManager, NodeManagersRef, ReadNode, RequestContext, ServerContext,
-        SyncSampler, TypeTree,
+    server::{
+        address_space::AccessLevel,
+        node_manager::{
+            as_opaque_node_id,
+            build::NodeManagerBuilder,
+            from_opaque_node_id,
+            view::{AddReferenceResult, NodeMetadata},
+            BrowseNode, DynNodeManager, NodeManager, NodeManagersRef, ReadNode, RequestContext,
+            ServerContext, SyncSampler, TypeTree,
+        },
     },
     types::{
         AccessLevelExType, AccessRestrictionType, AttributeId, BrowseDirection, DataTypeId,
@@ -28,7 +32,8 @@ use crate::{
 /// session diagnostics, etc.
 pub struct DiagnosticsNodeManager {
     sampler: SyncSampler,
-    node_managers: OnceCell<NodeManagersRef>,
+    node_managers: NodeManagersRef,
+    namespace_index: u16,
 }
 
 /*
@@ -76,25 +81,38 @@ enum DiagnosticsNode {
     Namespace(NamespaceNode),
 }
 
+pub struct DiagnosticsNodeManagerBuilder;
+
+impl NodeManagerBuilder for DiagnosticsNodeManagerBuilder {
+    fn build(self: Box<Self>, context: ServerContext) -> Arc<DynNodeManager> {
+        Arc::new(DiagnosticsNodeManager::new(context))
+    }
+}
+
 impl DiagnosticsNodeManager {
-    pub fn new() -> Self {
+    pub(crate) fn new(context: ServerContext) -> Self {
+        let namespace_index = {
+            let mut type_tree = context.type_tree.write();
+            type_tree
+                .namespaces_mut()
+                .add_namespace(context.info.application_uri.as_ref())
+        };
         Self {
             sampler: SyncSampler::new(),
-            node_managers: OnceCell::new(),
+            node_managers: context.node_managers.clone(),
+            namespace_index,
         }
     }
 
     fn namespaces(&self, context: &RequestContext) -> BTreeMap<String, NamespaceMetadata> {
         self.node_managers
-            .get()
-            .into_iter()
-            .flat_map(|n| n.iter())
+            .iter()
             .flat_map(move |nm| nm.namespaces_for_user(context))
             .map(|ns| (ns.namespace_uri.clone(), ns))
             .collect()
     }
 
-    fn namespace_node_metadata(ns: &NamespaceMetadata) -> NodeMetadata {
+    fn namespace_node_metadata(&self, ns: &NamespaceMetadata) -> NodeMetadata {
         NodeMetadata {
             node_id: ExpandedNodeId::new(
                 as_opaque_node_id(
@@ -102,7 +120,7 @@ impl DiagnosticsNodeManager {
                         namespace: ns.namespace_uri.clone(),
                         property: None,
                     }),
-                    1,
+                    self.namespace_index,
                 )
                 .unwrap(),
             ),
@@ -138,7 +156,7 @@ impl DiagnosticsNodeManager {
             if namespace.namespace_index == 0 {
                 continue;
             }
-            let metadata = Self::namespace_node_metadata(namespace);
+            let metadata = self.namespace_node_metadata(namespace);
             let ref_desc = ReferenceDescription {
                 reference_type_id: ReferenceTypeId::HasComponent.into(),
                 is_forward: true,
@@ -195,7 +213,7 @@ impl DiagnosticsNodeManager {
                                     namespace: meta.namespace_uri.clone(),
                                     property: Some(prop.to_owned()),
                                 }),
-                                1,
+                                self.namespace_index,
                             )
                             .unwrap(),
                         ),
@@ -281,7 +299,7 @@ impl DiagnosticsNodeManager {
             node_to_browse.browse_direction(),
             BrowseDirection::Inverse | BrowseDirection::Both
         ) {
-            let metadata = Self::namespace_node_metadata(meta);
+            let metadata = self.namespace_node_metadata(meta);
             let ref_desc = ReferenceDescription {
                 reference_type_id: ReferenceTypeId::HasComponent.into(),
                 is_forward: false,
@@ -333,7 +351,7 @@ impl DiagnosticsNodeManager {
                     namespace: namespace.namespace_uri.clone(),
                     property: None,
                 }),
-                1,
+                self.namespace_index,
             )
             .unwrap()
             .into(),
@@ -390,7 +408,7 @@ impl DiagnosticsNodeManager {
                     namespace: namespace.namespace_uri.clone(),
                     property: Some(prop.to_owned()),
                 }),
-                1,
+                self.namespace_index,
             )
             .unwrap()
             .into(),
@@ -530,7 +548,7 @@ impl DiagnosticsNodeManager {
 #[async_trait]
 impl NodeManager for DiagnosticsNodeManager {
     fn owns_node(&self, id: &NodeId) -> bool {
-        id.namespace == 1
+        id.namespace == self.namespace_index
     }
 
     fn name(&self) -> &str {
@@ -542,7 +560,7 @@ impl NodeManager for DiagnosticsNodeManager {
             namespace_uri: context.info.application_uri.as_ref().to_owned(),
             is_namespace_subset: Some(false),
             static_node_id_types: Some(vec![IdType::Opaque]),
-            namespace_index: 1,
+            namespace_index: self.namespace_index,
             ..Default::default()
         }]
     }
@@ -560,10 +578,6 @@ impl NodeManager for DiagnosticsNodeManager {
             Duration::from_millis(sampler_interval),
             context.subscriptions.clone(),
         );
-        self.node_managers
-            .set(context.node_managers.clone())
-            .map_err(|_| ())
-            .expect("Init called more than once");
     }
 
     async fn browse(
@@ -598,7 +612,7 @@ impl NodeManager for DiagnosticsNodeManager {
                     }
                     _ => continue,
                 }
-            } else if node.node_id().namespace == 1 {
+            } else if node.node_id().namespace == self.namespace_index {
                 let Some(node_desc) = from_opaque_node_id::<DiagnosticsNode>(node.node_id()) else {
                     node.set_status(StatusCode::BadNodeIdUnknown);
                     continue;

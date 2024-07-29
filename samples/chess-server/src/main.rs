@@ -7,7 +7,9 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use opcua::server::address_space::VariableBuilder;
-use opcua::server::node_manager::memory::{NamespaceMetadata, SimpleNodeManager};
+use opcua::server::node_manager::memory::{
+    simple_node_manager, NamespaceMetadata, SimpleNodeManager,
+};
 use opcua::server::{ServerBuilder, SubscriptionCache};
 use opcua::sync::Mutex;
 use opcua::types::*;
@@ -43,23 +45,23 @@ async fn main() {
     println!("Launching chess engine \"{}\"", engine_path);
     let game = Arc::new(Mutex::new(game::Game::new(&engine_path)));
 
-    let ns = 2;
-
-    let node_manager = Arc::new(SimpleNodeManager::new_simple(
-        NamespaceMetadata {
-            namespace_index: ns,
-            namespace_uri: "urn:chess-server".to_owned(),
-            ..Default::default()
-        },
-        "chess",
-    ));
-
     // Create an OPC UA server with sample configuration and default node set
     let (server, handle) = ServerBuilder::new()
         .with_config_from("../server.conf")
-        .with_node_manager(node_manager.clone())
+        .with_node_manager(simple_node_manager(
+            NamespaceMetadata {
+                namespace_uri: "urn:chess-server".to_owned(),
+                ..Default::default()
+            },
+            "chess",
+        ))
         .build()
         .unwrap();
+    let node_manager = handle
+        .node_managers()
+        .get_of_type::<SimpleNodeManager>()
+        .unwrap();
+    let ns = handle.get_namespace_index("urn:chess-server").unwrap();
 
     {
         let mut address_space = node_manager.address_space().write();

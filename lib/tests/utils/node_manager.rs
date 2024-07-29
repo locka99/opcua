@@ -7,12 +7,15 @@ use opcua::{
             new_node_from_attributes, AddressSpace, HasNodeId, NodeType, ReferenceDirection,
         },
         node_manager::{
-            get_node_metadata,
-            memory::{InMemoryNodeManager, InMemoryNodeManagerImpl, NamespaceMetadata},
+            add_namespaces, get_node_metadata,
+            memory::{
+                InMemoryNodeManager, InMemoryNodeManagerBuilder, InMemoryNodeManagerImpl,
+                NamespaceMetadata,
+            },
             AddNodeItem, AddReferenceItem, DeleteNodeItem, DeleteReferenceItem, HistoryNode,
             HistoryUpdateNode, MethodCall, MonitoredItemRef, MonitoredItemUpdateRef,
-            NodeManagersRef, ParsedReadValueId, RequestContext, ServerContext, TypeTree,
-            TypeTreeNode, WriteNode,
+            NodeManagerBuilder, NodeManagersRef, ParsedReadValueId, RequestContext, ServerContext,
+            TypeTree, TypeTreeNode, WriteNode,
         },
         ContinuationPoint, CreateMonitoredItem,
     },
@@ -24,7 +27,6 @@ use opcua::{
         TimestampsToReturn, Variant,
     },
 };
-use tokio::sync::OnceCell;
 
 #[allow(unused)]
 pub type TestNodeManager = InMemoryNodeManager<TestNodeManagerImpl>;
@@ -52,7 +54,7 @@ pub struct TestNodeManagerImpl {
     >,
     node_id_generator: AtomicU32,
     namespace_index: u16,
-    node_managers: OnceCell<NodeManagersRef>,
+    node_managers: NodeManagersRef,
 }
 
 /// Information about calls made to the node manager impl, for verifying in tests.
@@ -76,14 +78,21 @@ pub struct CallInfo {
     pub delete_references: Vec<(NodeId, NodeId, NodeId)>,
 }
 
+pub fn test_node_manager() -> impl NodeManagerBuilder {
+    InMemoryNodeManagerBuilder::new(make_test_node_manager_impl)
+}
+
+fn make_test_node_manager_impl(
+    context: ServerContext,
+    address_space: &mut AddressSpace,
+) -> TestNodeManagerImpl {
+    let idx = add_namespaces(&context, address_space, &["urn:rustopcuatestserver"])[0];
+    TestNodeManagerImpl::new(idx, context.node_managers.clone())
+}
+
 #[async_trait]
 impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
-    async fn build_nodes(&self, _address_space: &mut AddressSpace, context: ServerContext) {
-        self.node_managers
-            .set(context.node_managers)
-            .map_err(|_| ())
-            .expect("Node manager initialized more than once");
-    }
+    async fn init(&self, _address_space: &mut AddressSpace, _context: ServerContext) {}
 
     fn namespaces(&self) -> Vec<NamespaceMetadata> {
         vec![NamespaceMetadata {
@@ -400,14 +409,7 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
             .iter()
             .map(|n| n.parent_node_id().node_id.clone())
             .collect();
-        let parent_nodes = get_node_metadata(
-            context,
-            self.node_managers
-                .get()
-                .expect("Node manager not initialized"),
-            &parent_ids,
-        )
-        .await;
+        let parent_nodes = get_node_metadata(context, &self.node_managers, &parent_ids).await;
 
         let mut address_space = trace_write_lock!(address_space);
         let mut type_tree = trace_write_lock!(context.type_tree);
@@ -547,14 +549,7 @@ impl InMemoryNodeManagerImpl for TestNodeManagerImpl {
                 .into_iter()
             })
             .collect();
-        let nodes = get_node_metadata(
-            context,
-            self.node_managers
-                .get()
-                .expect("Node manager not initialized"),
-            &node_pairs,
-        )
-        .await;
+        let nodes = get_node_metadata(context, &self.node_managers, &node_pairs).await;
         let mut address_space = trace_write_lock!(address_space);
         let type_tree = trace_read_lock!(context.type_tree);
         for (idx, rf) in references_to_add.iter_mut().enumerate() {
@@ -696,14 +691,14 @@ struct RawValue {
 
 impl TestNodeManagerImpl {
     #[allow(unused)]
-    pub fn new(namespace_index: u16) -> Self {
+    pub fn new(namespace_index: u16, node_managers: NodeManagersRef) -> Self {
         Self {
             history_data: Default::default(),
             call_info: Default::default(),
             method_cbs: Default::default(),
             node_id_generator: AtomicU32::new(1),
             namespace_index,
-            node_managers: OnceCell::new(),
+            node_managers,
         }
     }
 

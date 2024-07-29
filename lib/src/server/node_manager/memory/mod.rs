@@ -3,8 +3,8 @@ mod diagnostics;
 mod implementation;
 mod simple;
 
-pub use core::{CoreNodeManager, CoreNodeManagerImpl};
-pub use diagnostics::{DiagnosticsNodeManager, NamespaceMetadata};
+pub use core::{CoreNodeManager, CoreNodeManagerBuilder, CoreNodeManagerImpl};
+pub use diagnostics::{DiagnosticsNodeManager, DiagnosticsNodeManagerBuilder, NamespaceMetadata};
 pub use implementation::*;
 pub use simple::*;
 
@@ -36,11 +36,12 @@ use crate::{
 };
 
 use super::{
+    build::NodeManagerBuilder,
     view::{AddReferenceResult, ExternalReference, ExternalReferenceRequest, NodeMetadata},
     AddNodeItem, AddReferenceItem, BrowseNode, BrowsePathItem, DeleteNodeItem, DeleteReferenceItem,
-    HistoryNode, HistoryUpdateDetails, HistoryUpdateNode, MethodCall, MonitoredItemRef,
-    MonitoredItemUpdateRef, NodeManager, ReadNode, RegisterNodeItem, RequestContext, ServerContext,
-    TypeTree, WriteNode,
+    DynNodeManager, HistoryNode, HistoryUpdateDetails, HistoryUpdateNode, MethodCall,
+    MonitoredItemRef, MonitoredItemUpdateRef, NodeManager, ReadNode, RegisterNodeItem,
+    RequestContext, ServerContext, TypeTree, WriteNode,
 };
 
 use crate::server::address_space::AddressSpace;
@@ -50,19 +51,32 @@ struct BrowseContinuationPoint {
     nodes: VecDeque<ReferenceDescription>,
 }
 
-pub struct InMemoryNodeManager<TImpl: InMemoryNodeManagerImpl> {
+pub struct InMemoryNodeManager<TImpl> {
     address_space: Arc<RwLock<AddressSpace>>,
     namespaces: HashMap<u16, String>,
     inner: TImpl,
 }
 
-impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
-    pub fn new(inner: TImpl) -> Self {
-        let mut address_space = AddressSpace::new();
-        for namespace in inner.namespaces() {
-            address_space.add_namespace(&namespace.namespace_uri, namespace.namespace_index);
-        }
+pub struct InMemoryNodeManagerBuilder<T> {
+    impl_builder: T,
+}
 
+impl<T: InMemoryNodeManagerImplBuilder> InMemoryNodeManagerBuilder<T> {
+    pub fn new(impl_builder: T) -> Self {
+        Self { impl_builder }
+    }
+}
+
+impl<T: InMemoryNodeManagerImplBuilder> NodeManagerBuilder for InMemoryNodeManagerBuilder<T> {
+    fn build(self: Box<Self>, context: ServerContext) -> Arc<DynNodeManager> {
+        let mut address_space = AddressSpace::new();
+        let inner = self.impl_builder.build(context, &mut address_space);
+        Arc::new(InMemoryNodeManager::new(inner, address_space))
+    }
+}
+
+impl<TImpl: InMemoryNodeManagerImpl> InMemoryNodeManager<TImpl> {
+    pub(crate) fn new(inner: TImpl, address_space: AddressSpace) -> Self {
         Self {
             namespaces: address_space.namespaces().clone(),
             address_space: Arc::new(RwLock::new(address_space)),
@@ -628,7 +642,7 @@ impl<TImpl: InMemoryNodeManagerImpl> NodeManager for InMemoryNodeManager<TImpl> 
     async fn init(&self, type_tree: &mut TypeTree, context: ServerContext) {
         let mut address_space = trace_write_lock!(self.address_space);
 
-        self.inner.build_nodes(&mut address_space, context).await;
+        self.inner.init(&mut address_space, context).await;
 
         address_space.load_into_type_tree(type_tree);
     }

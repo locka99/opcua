@@ -20,12 +20,12 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use tokio;
 
 use opcua::server::{
-    node_manager::memory::{NamespaceMetadata, SimpleNodeManager},
+    node_manager::memory::{simple_node_manager, NamespaceMetadata, SimpleNodeManager},
     ServerBuilder,
 };
 
@@ -116,23 +116,25 @@ async fn main() {
     } else {
         // More powerful logging than a console logger
         log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
-        let ns = 2;
-
-        let node_manager = Arc::new(SimpleNodeManager::new_simple(
-            NamespaceMetadata {
-                namespace_index: ns,
-                namespace_uri: "urn:DemoServer".to_owned(),
-                ..Default::default()
-            },
-            "demo",
-        ));
 
         // Create an OPC UA server with sample configuration and default node set
         let (server, handle) = ServerBuilder::new()
             .with_config_from(&args.config_path)
-            .with_node_manager(node_manager.clone())
+            .with_node_manager(simple_node_manager(
+                NamespaceMetadata {
+                    namespace_uri: "urn:DemoServer".to_owned(),
+                    ..Default::default()
+                },
+                "demo",
+            ))
             .build()
             .unwrap();
+
+        let node_manager = handle
+            .node_managers()
+            .get_of_type::<SimpleNodeManager>()
+            .unwrap();
+        let ns = handle.get_namespace_index("urn:DemoServer").unwrap();
 
         let token = handle.token();
 

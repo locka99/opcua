@@ -11,16 +11,13 @@ use std::{
 use opcua::{
     client::{Client, ClientBuilder, IdentityToken, Session, SessionEventLoop},
     crypto::SecurityPolicy,
-    server::{
-        node_manager::memory::InMemoryNodeManager, ServerBuilder, ServerHandle, ServerUserToken,
-        ANONYMOUS_USER_TOKEN_ID,
-    },
+    server::{ServerBuilder, ServerHandle, ServerUserToken, ANONYMOUS_USER_TOKEN_ID},
     types::{MessageSecurityMode, StatusCode},
 };
 use tokio::net::TcpListener;
 use tokio_util::sync::{CancellationToken, DropGuard};
 
-use super::{TestNodeManager, TestNodeManagerImpl, CLIENT_USERPASS_ID, CLIENT_X509_ID};
+use super::{test_node_manager, TestNodeManager, CLIENT_USERPASS_ID, CLIENT_X509_ID};
 
 pub struct Tester {
     pub handle: ServerHandle,
@@ -49,8 +46,13 @@ pub fn hostname() -> String {
 
 #[allow(unused)]
 pub async fn setup() -> (Tester, Arc<TestNodeManager>, Arc<Session>) {
-    let (server, nm) = test_server();
+    let server = test_server();
     let mut tester = Tester::new(server, false).await;
+    let nm = tester
+        .handle
+        .node_managers()
+        .get_of_type::<TestNodeManager>()
+        .unwrap();
     let (session, lp) = tester.connect_default().await.unwrap();
     lp.spawn();
     tokio::time::timeout(Duration::from_secs(2), session.wait_for_connection())
@@ -224,9 +226,8 @@ pub fn default_client(test_id: u16, quick_timeout: bool) -> ClientBuilder {
 }
 
 #[allow(unused)]
-pub fn test_server() -> (ServerBuilder, Arc<TestNodeManager>) {
-    let mgr = Arc::new(InMemoryNodeManager::new(TestNodeManagerImpl::new(2)));
-    (default_server().with_node_manager(mgr.clone()), mgr)
+pub fn test_server() -> ServerBuilder {
+    default_server().with_node_manager(test_node_manager())
 }
 
 impl Tester {

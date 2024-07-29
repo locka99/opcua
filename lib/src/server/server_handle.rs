@@ -102,4 +102,8 @@ impl ServerHandle {
     pub fn cancel(&self) {
         self.token.cancel();
     }
+
+    pub fn get_namespace_index(&self, namespace: &str) -> Option<u16> {
+        self.type_tree.read().namespaces().get_index(namespace)
+    }
 }
