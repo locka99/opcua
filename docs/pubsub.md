@@ -1,10 +1,23 @@
 # OPC PubSub
 
-Support for PubSub is experimental. In this mode,
-essentially a server is configured to publish data
-set messages over UDP that a subscriber can listen 
-for and receive.
+Support for PubSub is experimental.
 
-This is different from traditional OPC where a client
-creates a session on a server and interacts with
-the server.
+PubSub allows a client to listen to a subject over some transport
+mechanism (UDP, or MQTT) to which a server publishes
+information without establishing a direct connection or session with the server.
+
+The benefit of PubSub is potentially allows things like aggregation,
+multiple clients, to efficiently receive change notifications.
+
+## Example Server
+
+```rust
+
+
+```
+
+## Example Client
+
+```rust
+
+```

@@ -10,7 +10,7 @@ Use `demo-server` (this project) for a more full-featured server that demonstrat
 * Be used for testing / verification purposes
 
 The demo-server enables the `http` feature in `opcua-server` so it can display metrics
-from `http://localhost:8585`, however you must start it from the `demo-server` directory so it can find its html 
+from `http://localhost:8585`, however you must start it from the `demo-server` directory so it can find its html
 and other resources.
 
 ```
@@ -18,30 +18,39 @@ cd opcua/samples/demo-server
 cargo run
 ```
 
-## Testing configuration
+## CTT
 
-If you are using the demo server for testing a client you must do a few things depending on what you're testing 
+The demo server can be used in conjuection with the OPC UA Compliance Testing Tool (CTT).
+
+### Testing configuration
+
+If you are using the demo server for testing a client you must do a few things depending on what you're testing
 against.
 
 1. Copy `sample.server.test.conf` to `../server.test.conf`. The `demo-server` will load this file
-if it exists.
+   if it exists.
 2. Edit `../server.test.conf`
 3. Set `tcp_config.host` and `discovery_urls` to the IP address of the server host. Do not set it to localhost
 5. Set `create_sample_keypair` to false
-6. Generate a PKI keypair that is acceptable to your test environment and matches the IP address you set in the config. Copy
- this to `pki/own/cert.der` and `pki/private/private.pem`.
+6. Generate a PKI keypair that is acceptable to your test environment and matches the IP address you set in the config.
+   Copy
+   this to `pki/own/cert.der` and `pki/private/private.pem`.
 
 ### Troubleshooting
 
-* It is best to try opening Project settings in test harness and browsing to server first to ensure trust is possible, and to troubleshoot any basic connection issues.
+* It is best to try opening Project settings in test harness and browsing to server first to ensure trust is possible,
+  and to troubleshoot any basic connection issues.
 * Check logs if certs are rejected.
 * If you get `BadCertificateTimeInvalid` returned to the test harness, try setting `check_time`
   to `false` in the `server.test.conf`. For some reason test harness uses certs which can be out of date.
-* If the network is IPv6, use `127.0.0.1` instead of the machine name or `localhost`
+* If the network is IPv6, use `127.0.0.1` instead of the machine name or `localhost` or your IPv4 address.
+
+On Windows, you can use `ipconfig /all` or `ping -4 %COMPUTERNAME%` to find your IPv4 address.
 
 ## Run using Docker
 
-If you want to build the demo server and don't have a development environment then another option is to use docker as follows:
+If you want to build the demo server and don't have a development environment then another option is to use docker as
+follows:
 
 ```sh
 cd opcua
