@@ -50,8 +50,14 @@ jobs:
   verify-clean-address-space:
     uses: ./.github/workflows/ci_verify_clean_address_space.yml
 
+  verify-clean-node-ids:
+    uses: ./.github/workflows/ci_verify_clean_node_ids.yml
+
   verify-clean-supported-message:
     uses: ./.github/workflows/ci_verify_clean_supported_message.yml
+
+  verify-clean-types:
+    uses: ./.github/workflows/ci_verify_clean_types.yml
 
   verify-code-formatting:
     uses: ./.github/workflows/ci_format_code.yml

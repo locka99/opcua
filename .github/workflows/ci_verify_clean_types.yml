@@ -1,0 +1,19 @@
+name: CI verify cleanly generated types
+'on':
+  workflow_call: null
+jobs:
+  types:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install
+        working-directory: tools/schema/
+      - name: Regenerate types
+        run: node gen_types
+        working-directory: tools/schema/
+      - name: Format generated code
+        run: rustfmt lib/src/types/service_types/mod.rs
+      - name: Verify generated code matches committed code
+        run: git status --porcelain
