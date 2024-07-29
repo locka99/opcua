@@ -4,6 +4,7 @@ use std::{
         atomic::{AtomicU32, Ordering},
         Arc,
     },
+    time::{Duration, Instant},
 };
 
 use crypto::{random, security_policy::SecurityPolicy};
@@ -301,6 +302,11 @@ impl SessionManager {
         let session_id = session.session_id().clone();
 
         let session = self.sessions.remove(&session_id).unwrap();
+        {
+            let mut session_lck = trace_write_lock!(session);
+            session_lck.close();
+        }
+
         if request.delete_subscriptions {
             handler
                 .delete_session_subscriptions(id, session, token.unwrap())
@@ -310,5 +316,33 @@ impl SessionManager {
         Ok(CloseSessionResponse {
             response_header: ResponseHeader::new_good(&request.request_header),
         })
+    }
+
+    pub(crate) fn expire_session(&mut self, id: &NodeId) {
+        let Some(session) = self.sessions.remove(id) else {
+            return;
+        };
+
+        info!("Session {id} has expired, removing it from the session map. Subscriptions will remain until they individually expire");
+
+        let mut session = trace_write_lock!(session);
+        session.close();
+    }
+
+    pub(crate) fn check_session_expiry(&self) -> (Instant, Vec<NodeId>) {
+        let now = Instant::now();
+        let mut expired = Vec::new();
+        let mut expiry =
+            now + Duration::from_millis(self.info.config.max_session_timeout_ms as u64);
+        for (id, session) in &self.sessions {
+            let deadline = session.read().deadline();
+            if deadline < now {
+                expired.push(id.clone());
+            } else if deadline < expiry {
+                expiry = deadline;
+            }
+        }
+
+        (expiry, expired)
     }
 }

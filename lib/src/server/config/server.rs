@@ -208,6 +208,12 @@ pub struct ServerConfig {
     /// we will just instantly time out.
     #[serde(default = "defaults::max_secure_channel_token_lifetime_ms")]
     pub max_secure_channel_token_lifetime_ms: u32,
+    /// Maximum time before a session will be timed out. The client will request
+    /// a number, this just sets the upper limit on that value.
+    /// Note that there is no lower limit, if a client sets an expiry of 0
+    /// we will instantly time out.
+    #[serde(default = "defaults::max_session_timeout_ms")]
+    pub max_session_timeout_ms: f64,
 }
 
 mod defaults {
@@ -227,6 +233,10 @@ mod defaults {
 
     pub fn max_secure_channel_token_lifetime_ms() -> u32 {
         300_000
+    }
+
+    pub fn max_session_timeout_ms() -> f64 {
+        constants::MAX_SESSION_TIMEOUT
     }
 }
 
@@ -345,6 +355,7 @@ impl Default for ServerConfig {
             publish_timeout_default_ms: defaults::publish_timeout_default_ms(),
             max_timeout_ms: defaults::max_timeout_ms(),
             max_secure_channel_token_lifetime_ms: defaults::max_secure_channel_token_lifetime_ms(),
+            max_session_timeout_ms: defaults::max_session_timeout_ms(),
         }
     }
 }

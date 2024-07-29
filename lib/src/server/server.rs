@@ -284,12 +284,9 @@ impl Server {
                         Err(e) => error!("Connection panic! {e}")
                     }
                 }
-                _ = Self::run_subscription_ticks(self.config.subscription_poll_interval_ms, &context) => {
-                    unreachable!()
-                }
-                _ = Self::run_discovery_server_registration(self.info.clone()) => {
-                    unreachable!()
-                }
+                _ = Self::run_subscription_ticks(self.config.subscription_poll_interval_ms, &context) => {}
+                _ = Self::run_discovery_server_registration(self.info.clone()) => {}
+                _ = Self::run_session_expiry(&self.session_manager) => {}
                 rs = listener.accept() => {
                     match rs {
                         Ok((socket, addr)) => {
@@ -359,6 +356,22 @@ impl Server {
 
                 context.subscriptions.periodic_tick(&context).await;
             }
+        }
+    }
+
+    async fn run_session_expiry(sessions: &RwLock<SessionManager>) -> Never {
+        loop {
+            let (expiry, expired) = {
+                let session_lck = trace_read_lock!(sessions);
+                session_lck.check_session_expiry()
+            };
+            if !expired.is_empty() {
+                let mut session_lck = trace_write_lock!(sessions);
+                for id in expired {
+                    session_lck.expire_session(&id);
+                }
+            }
+            tokio::time::sleep_until(expiry.into()).await;
         }
     }
 

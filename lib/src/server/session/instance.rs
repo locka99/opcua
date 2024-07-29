@@ -66,6 +66,8 @@ pub struct Session {
     query_continuation_points: HashMap<ByteString, QueryContinuationPoint>,
     /// User token.
     user_token: Option<UserToken>,
+    /// Whether the session has been closed.
+    is_closed: bool,
 }
 
 impl Session {
@@ -116,6 +118,7 @@ impl Session {
             user_token: None,
             application_description,
             message_security_mode,
+            is_closed: false,
         }
     }
 
@@ -141,6 +144,12 @@ impl Session {
 
     /// Check whether this session is validated and return the appropriate error if not.
     pub(crate) fn validate_activated(&self) -> Result<&UserToken, StatusCode> {
+        // Unlikely, but this protects against race conditions where the
+        // session is removed from the session cache after it has been retrieved for a service call,
+        // but before it has been locked.
+        if self.is_closed {
+            return Err(StatusCode::BadSessionClosed);
+        }
         if let Some(token) = &self.user_token {
             Ok(token)
         } else {
@@ -177,6 +186,10 @@ impl Session {
         self.locale_ids = locale_ids;
     }
 
+    pub(crate) fn close(&mut self) {
+        self.is_closed = true;
+    }
+
     /// Get the session ID of this session, this is known to the client, and is what they
     /// use to refer to this session.
     ///
@@ -203,7 +216,7 @@ impl Session {
 
     /// Whether this session is activated.
     pub fn is_activated(&self) -> bool {
-        self.user_token.is_some()
+        self.user_token.is_some() && !self.is_closed
     }
 
     /// Get the secure channel ID of this session.

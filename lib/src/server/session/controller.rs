@@ -62,31 +62,6 @@ pub(crate) enum ControllerCommand {
     Close,
 }
 
-#[derive(Debug)]
-enum ControllerTimeout {
-    /// Controller is waiting for a client to establish a secure channel
-    WaitingForChannel(Instant),
-    /// Controller has an open secure channel, but no session
-    OpenChannel(Instant),
-    /// Controller has an open session. The deadline in this case is the smallest of the secure channel expiry and the
-    /// session timeout.
-    OpenSession(Instant, Instant),
-}
-
-impl ControllerTimeout {
-    pub async fn timeout(&self) {
-        match self {
-            ControllerTimeout::WaitingForChannel(deadline)
-            | ControllerTimeout::OpenChannel(deadline) => {
-                tokio::time::sleep_until((*deadline).into()).await
-            }
-            ControllerTimeout::OpenSession(channel, session) => {
-                tokio::time::sleep_until((*channel.min(session)).into()).await
-            }
-        }
-    }
-}
-
 /// Master type managing a single connection.
 pub(crate) struct SessionController {
     channel: SecureChannel,
@@ -99,7 +74,7 @@ pub(crate) struct SessionController {
         Pin<Box<dyn Future<Output = Result<Response, String>> + Send + Sync + 'static>>,
     >,
     info: Arc<ServerInfo>,
-    deadline: ControllerTimeout,
+    deadline: Instant,
 }
 
 enum RequestProcessResult {
@@ -140,9 +115,8 @@ impl SessionController {
             session_manager,
             certificate_store,
             message_handler: MessageHandler::new(info.clone(), node_managers, subscriptions),
-            deadline: ControllerTimeout::WaitingForChannel(
-                Instant::now() + Duration::from_secs(info.config.tcp_config.hello_timeout as u64),
-            ),
+            deadline: Instant::now()
+                + Duration::from_secs(info.config.tcp_config.hello_timeout as u64),
             info,
             pending_messages: FuturesUnordered::new(),
         }
@@ -157,7 +131,7 @@ impl SessionController {
             };
 
             tokio::select! {
-                _ = self.deadline.timeout() => {
+                _ = tokio::time::sleep_until(self.deadline.into()) => {
                     if !self.transport.is_closing() {
                         warn!("Connection timed out, closing");
                         self.transport.enqueue_error(ErrorMessage::new(StatusCode::BadTimeout, "Connection timeout"));
@@ -227,16 +201,7 @@ impl SessionController {
                     &r,
                 );
                 if res.is_ok() {
-                    match &mut self.deadline {
-                        ControllerTimeout::OpenSession(chan, _) => {
-                            *chan = self.channel.token_renewal_deadline()
-                        }
-                        s => {
-                            *s = ControllerTimeout::OpenChannel(
-                                self.channel.token_renewal_deadline(),
-                            )
-                        }
-                    }
+                    self.deadline = self.channel.token_renewal_deadline();
                 }
                 match res {
                     Ok(r) => match self
@@ -339,26 +304,22 @@ impl SessionController {
                 let mgr = trace_read_lock!(self.session_manager);
                 let session = mgr.find_by_token(&message.request_header().authentication_token);
 
-                let (session_id, session, user_token) = match Self::validate_request(
-                    &message,
-                    session,
-                    &self.channel,
-                    &mut self.deadline,
-                ) {
-                    Ok(s) => s,
-                    Err(e) => {
-                        match self
-                            .transport
-                            .enqueue_message_for_send(&mut self.channel, e, id)
-                        {
-                            Ok(_) => return RequestProcessResult::Ok,
-                            Err(e) => {
-                                error!("Failed to send request response: {e}");
-                                return RequestProcessResult::Close;
+                let (session_id, session, user_token) =
+                    match Self::validate_request(&message, session, &self.channel) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            match self
+                                .transport
+                                .enqueue_message_for_send(&mut self.channel, e, id)
+                            {
+                                Ok(_) => return RequestProcessResult::Ok,
+                                Err(e) => {
+                                    error!("Failed to send request response: {e}");
+                                    return RequestProcessResult::Close;
+                                }
                             }
                         }
-                    }
-                };
+                    };
                 let deadline = {
                     let timeout = message.request_header().timeout_hint;
                     let max_timeout = self.info.config.max_timeout_ms;
@@ -445,7 +406,6 @@ impl SessionController {
         message: &SupportedMessage,
         session: Option<Arc<RwLock<Session>>>,
         channel: &SecureChannel,
-        timeout: &mut ControllerTimeout,
     ) -> Result<(u32, Arc<RwLock<Session>>, UserToken), SupportedMessage> {
         let header = message.request_header();
 
@@ -460,16 +420,6 @@ impl SessionController {
             let token = session_lock.validate_activated()?;
             session_lock.validate_secure_channel_id(channel.secure_channel_id())?;
             session_lock.validate_timed_out()?;
-            match timeout {
-                ControllerTimeout::OpenSession(_, sess) => *sess = session_lock.deadline(),
-                // Should be unreachable.
-                r => {
-                    *r = ControllerTimeout::OpenSession(
-                        channel.token_renewal_deadline(),
-                        session_lock.deadline(),
-                    )
-                }
-            }
             Ok(token.clone())
         })()
         .map_err(|e| ServiceFault::new(header, e).into())?;
