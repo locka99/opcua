@@ -8,7 +8,6 @@ use super::continuation_points::ContinuationPoint;
 use super::manager::next_session_id;
 use crate::crypto::X509;
 use crate::server::authenticator::UserToken;
-use crate::server::constants;
 use crate::server::identity_token::IdentityToken;
 use crate::server::info::ServerInfo;
 use crate::server::node_manager::{BrowseContinuationPoint, QueryContinuationPoint};
@@ -76,7 +75,7 @@ impl Session {
         info: &ServerInfo,
         authentication_token: NodeId,
         secure_channel_id: u32,
-        session_timeout: f64,
+        session_timeout: u64,
         max_request_message_size: u32,
         max_response_message_size: u32,
         endpoint_url: UAString,
@@ -98,10 +97,10 @@ impl Session {
             authentication_token,
             session_nonce,
             session_name,
-            session_timeout: if session_timeout <= 0.0 {
-                Duration::from_millis(constants::MAX_SESSION_TIMEOUT as u64)
+            session_timeout: if session_timeout <= 0 {
+                Duration::from_millis(info.config.max_session_timeout_ms)
             } else {
-                Duration::from_millis(session_timeout as u64)
+                Duration::from_millis(session_timeout)
             },
             last_service_request: ArcSwap::new(Arc::new(Instant::now())),
             user_identity,

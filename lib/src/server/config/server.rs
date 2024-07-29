@@ -213,7 +213,7 @@ pub struct ServerConfig {
     /// Note that there is no lower limit, if a client sets an expiry of 0
     /// we will instantly time out.
     #[serde(default = "defaults::max_session_timeout_ms")]
-    pub max_session_timeout_ms: f64,
+    pub max_session_timeout_ms: u64,
 }
 
 mod defaults {
@@ -235,7 +235,7 @@ mod defaults {
         300_000
     }
 
-    pub fn max_session_timeout_ms() -> f64 {
+    pub fn max_session_timeout_ms() -> u64 {
         constants::MAX_SESSION_TIMEOUT
     }
 }

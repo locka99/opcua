@@ -479,6 +479,19 @@ impl ServerBuilder {
         self
     }
 
+    /// Maximum number of active sessions.
+    pub fn max_sessions(mut self, max_sessions: usize) -> Self {
+        self.config.limits.max_sessions = max_sessions;
+        self
+    }
+
+    /// Maximum time in milliseconds a session can be inactive before it is timed out and removed.
+    /// The client can request a lower value than this.
+    pub fn max_session_timeout_ms(mut self, max_session_timeout_ms: u64) -> Self {
+        self.config.max_session_timeout_ms = max_session_timeout_ms;
+        self
+    }
+
     /// Set the cancellation token used by the server. You only need to
     /// set the token if you need to use a token from somewhere else to cancel,
     /// otherwise you can get the token after building the server with

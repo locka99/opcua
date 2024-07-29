@@ -9,11 +9,12 @@ use std::{
 
 use crypto::{random, security_policy::SecurityPolicy};
 use parking_lot::RwLock;
+use tokio::sync::Notify;
 
 use crate::{
     core::comms::secure_channel::SecureChannel,
     crypto,
-    server::{constants, identity_token::IdentityToken, info::ServerInfo},
+    server::{identity_token::IdentityToken, info::ServerInfo},
     types::{
         ActivateSessionRequest, ActivateSessionResponse, CloseSessionRequest, CloseSessionResponse,
         CreateSessionRequest, CreateSessionResponse, NodeId, ResponseHeader, SignatureData,
@@ -37,13 +38,15 @@ pub(super) fn next_session_id() -> (NodeId, u32) {
 pub struct SessionManager {
     sessions: HashMap<NodeId, Arc<RwLock<Session>>>,
     info: Arc<ServerInfo>,
+    notify: Arc<Notify>,
 }
 
 impl SessionManager {
-    pub(crate) fn new(info: Arc<ServerInfo>) -> Self {
+    pub(crate) fn new(info: Arc<ServerInfo>, notify: Arc<Notify>) -> Self {
         Self {
             sessions: Default::default(),
             info,
+            notify,
         }
     }
 
@@ -68,7 +71,7 @@ impl SessionManager {
         certificate_store: &RwLock<crypto::CertificateStore>,
         request: &CreateSessionRequest,
     ) -> Result<CreateSessionResponse, StatusCode> {
-        if self.sessions.len() >= constants::MAX_SESSIONS_PER_CONNECTION {
+        if self.sessions.len() >= self.info.config.limits.max_sessions {
             return Err(StatusCode::BadTooManySessions);
         }
 
@@ -107,8 +110,12 @@ impl SessionManager {
             }
         }
 
-        let session_timeout = constants::MAX_SESSION_TIMEOUT.min(request.requested_session_timeout);
-        let max_request_message_size = constants::MAX_REQUEST_MESSAGE_SIZE;
+        let session_timeout = self
+            .info
+            .config
+            .max_session_timeout_ms
+            .min(request.requested_session_timeout.floor() as u64);
+        let max_request_message_size = self.info.config.limits.max_message_size as u32;
 
         let server_signature = if let Some(ref pkey) = self.info.server_pkey {
             crypto::create_signature_data(
@@ -154,6 +161,8 @@ impl SessionManager {
         self.sessions
             .insert(session_id.clone(), Arc::new(RwLock::new(session)));
 
+        self.notify.notify_waiters();
+
         // TODO: Register session in core namespace
         // Note: This will instead be handled by the diagnostic node manager on the fly.
 
@@ -161,7 +170,7 @@ impl SessionManager {
             response_header: ResponseHeader::new_good(&request.request_header),
             session_id: session_id,
             authentication_token,
-            revised_session_timeout: session_timeout,
+            revised_session_timeout: session_timeout as f64,
             server_nonce,
             server_certificate,
             server_endpoints,

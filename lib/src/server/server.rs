@@ -12,6 +12,7 @@ use arc_swap::ArcSwap;
 use futures::{future::Either, never::Never, stream::FuturesUnordered, FutureExt, StreamExt};
 use tokio::{
     net::TcpListener,
+    sync::Notify,
     task::{JoinError, JoinHandle},
 };
 use tokio_util::sync::CancellationToken;
@@ -62,6 +63,8 @@ pub struct Server {
     node_managers: NodeManagers,
     /// Cancellation token
     token: CancellationToken,
+    /// Notify that is woken up if a new session is added to the session manager.
+    session_notify: Arc<Notify>,
 }
 
 impl Server {
@@ -167,7 +170,13 @@ impl Server {
 
         let node_managers = NodeManagers::new(final_node_managers);
         node_managers_ref.init_from_node_managers(node_managers.clone());
-        let session_manager = Arc::new(RwLock::new(SessionManager::new(info.clone())));
+
+        let session_notify = Arc::new(Notify::new());
+        let session_manager = Arc::new(RwLock::new(SessionManager::new(
+            info.clone(),
+            session_notify.clone(),
+        )));
+
         let handle = ServerHandle::new(
             info.clone(),
             service_level,
@@ -188,6 +197,7 @@ impl Server {
                 info,
                 node_managers,
                 token: builder.token,
+                session_notify,
             },
             handle,
         ))
@@ -286,7 +296,7 @@ impl Server {
                 }
                 _ = Self::run_subscription_ticks(self.config.subscription_poll_interval_ms, &context) => {}
                 _ = Self::run_discovery_server_registration(self.info.clone()) => {}
-                _ = Self::run_session_expiry(&self.session_manager) => {}
+                _ = Self::run_session_expiry(&self.session_manager, &self.session_notify) => {}
                 rs = listener.accept() => {
                     match rs {
                         Ok((socket, addr)) => {
@@ -359,11 +369,12 @@ impl Server {
         }
     }
 
-    async fn run_session_expiry(sessions: &RwLock<SessionManager>) -> Never {
+    async fn run_session_expiry(sessions: &RwLock<SessionManager>, notify: &Notify) -> Never {
         loop {
-            let (expiry, expired) = {
+            let ((expiry, expired), notified) = {
                 let session_lck = trace_read_lock!(sessions);
-                session_lck.check_session_expiry()
+                // Make sure to create the notified future while we still hold the lock.
+                (session_lck.check_session_expiry(), notify.notified())
             };
             if !expired.is_empty() {
                 let mut session_lck = trace_write_lock!(sessions);
@@ -371,7 +382,10 @@ impl Server {
                     session_lck.expire_session(&id);
                 }
             }
-            tokio::time::sleep_until(expiry.into()).await;
+            tokio::select! {
+                _ = tokio::time::sleep_until(expiry.into()) => {}
+                _ = notified => {}
+            }
         }
     }
 

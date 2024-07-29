@@ -31,8 +31,6 @@ pub mod constants {
     pub const DEFAULT_HELLO_TIMEOUT_SECONDS: u32 = 5;
     /// Default OPC UA server port for this implementation
     pub const DEFAULT_RUST_OPC_UA_SERVER_PORT: u16 = 4855;
-    /// Default maximum number of subscriptions in a session
-    pub const DEFAULT_MAX_SUBSCRIPTIONS: usize = 100;
     /// Default maximum number of monitored items per subscription
     pub const DEFAULT_MAX_MONITORED_ITEMS_PER_SUB: usize = 1000;
     /// Default, well known address for TCP discovery server
@@ -50,13 +48,8 @@ pub mod constants {
     pub const MIN_SAMPLING_INTERVAL_MS: f64 = SUBSCRIPTION_TIMER_RATE_MS as f64;
     /// Maximum data change queue allowed by clients on monitored items
     pub const MAX_DATA_CHANGE_QUEUE_SIZE: usize = 10;
-    /// Interval to check for HELLO timeout in millis. This can be fairly coarse because it's not
-    /// something that requires huge accuracy.
-    pub const HELLO_TIMEOUT_POLL_MS: u64 = 500;
     /// Maximum time in MS that a session can be inactive before a timeout
-    pub const MAX_SESSION_TIMEOUT: f64 = 60000f64;
-    /// Maximum size in bytes that a request message is allowed to be
-    pub const MAX_REQUEST_MESSAGE_SIZE: u32 = 32768;
+    pub const MAX_SESSION_TIMEOUT: u64 = 60_000;
     /// Default keep alive count
     pub const DEFAULT_KEEP_ALIVE_COUNT: u32 = 10;
     /// Maximum keep alive count
@@ -102,8 +95,8 @@ pub mod constants {
     /// Maximum number of subscriptions per subscription management call, where applicable.
     pub const MAX_SUBSCRIPTIONS_PER_CALL: usize = 10;
 
-    /// Maximum number of sessions for a single connection.
-    pub const MAX_SESSIONS_PER_CONNECTION: usize = 5;
+    /// Maximum number of sessions active on a server.
+    pub const MAX_SESSIONS: usize = 20;
     /// Maximum number of references per node during Browse or BrowseNext.
     pub const MAX_REFERENCES_PER_BROWSE_NODE: usize = 1000;
 

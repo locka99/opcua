@@ -36,6 +36,9 @@ pub struct Limits {
     /// Maximum number of query continuation points per session.
     #[serde(default = "defaults::max_query_continuation_points")]
     pub max_query_continuation_points: usize,
+    /// Maximum number of registered sessions before new ones are rejected.
+    #[serde(default = "defaults::max_sessions")]
+    pub max_sessions: usize,
 }
 
 impl Default for Limits {
@@ -53,6 +56,7 @@ impl Default for Limits {
             max_history_continuation_points: defaults::max_history_continuation_points(),
             max_query_continuation_points: defaults::max_query_continuation_points(),
             operational: OperationalLimits::default(),
+            max_sessions: defaults::max_sessions(),
         }
     }
 }
@@ -207,6 +211,9 @@ mod defaults {
     }
     pub fn max_query_continuation_points() -> usize {
         constants::MAX_QUERY_CONTINUATION_POINTS
+    }
+    pub fn max_sessions() -> usize {
+        constants::MAX_SESSIONS
     }
 
     pub fn max_subscriptions_per_session() -> usize {
