@@ -8,7 +8,7 @@ WORKDIR samples/demo-server
 RUN cargo install --path .
 
 # Repackage the binary in a standalone container
-FROM debian:bullseye-slim AS dist
+FROM debian:bookworm-slim AS dist
 RUN apt-get update && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=builder /usr/local/cargo/bin/opcua-demo-server ./
@@ -17,4 +17,4 @@ COPY --from=builder /build/samples/demo-server/log4rs.yaml ./
 COPY --from=builder /build/lib/src/server/html/index.html ./
 EXPOSE 4855
 EXPOSE 8585
-CMD ["./opcua-demo-server --raise-events --config ./server.conf"]
+CMD ["/app/opcua-demo-server --raise-events --config /app/server.conf"]
