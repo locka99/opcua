@@ -13,8 +13,8 @@ pub struct Array {
 
     /// Multi dimension array which can contain any scalar type, all the same type. Nested
     /// arrays are rejected. Higher rank dimensions are serialized first. For example an array
-    /// with dimensions [2,2,2] is written in this order - [0,0,0], [0,0,1], [0,1,0], [0,1,1],
-    /// [1,0,0], [1,0,1], [1,1,0], [1,1,1].
+    /// with dimensions \[2,2,2\] is written in this order - \[0,0,0\], \[0,0,1\], \[0,1,0\],
+    /// \[0,1,1\], \[1,0,0\], \[1,0,1\], \[1,1,0\], \[1,1,1\].
     pub dimensions: Option<Vec<u32>>,
 }
 

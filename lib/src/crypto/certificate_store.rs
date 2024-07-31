@@ -410,7 +410,7 @@ impl CertificateStore {
     }
 
     /// Returns a certificate file name from the cert's issuer and thumbprint fields.
-    /// File name is either "prefix - [thumbprint].der" or "thumbprint.der" depending on
+    /// File name is either "prefix - \[thumbprint\].der" or "thumbprint.der" depending on
     /// the cert's common name being empty or not
     pub fn cert_file_name(cert: &X509) -> String {
         let prefix = if let Ok(common_name) = cert.common_name() {

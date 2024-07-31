@@ -58,7 +58,7 @@ pub type Connections = Vec<Arc<RwLock<TcpTransport>>>;
 /// [`run_server`]: #method.run_server
 /// [`ServerConfig`]: ../config/struct.ServerConfig.html
 /// [`AddressSpace`]: ../address_space/address_space/struct.AddressSpace.html
-/// [`CertificateStore`]: ../../opcua_core/crypto/certificate_store/struct.CertificateStore.html
+/// [`CertificateStore`]: ../../crypto/certificate_store/struct.CertificateStore.html
 ///
 pub struct Server {
     /// List of pending polling actions to add to the server once run is called
