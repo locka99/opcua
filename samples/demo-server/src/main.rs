@@ -22,8 +22,6 @@ extern crate log;
 
 use std::{path::PathBuf, sync::Arc};
 
-use tokio;
-
 use opcua::server::{http, prelude::*};
 use opcua::sync::RwLock;
 

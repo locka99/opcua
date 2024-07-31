@@ -1,0 +1,19 @@
+name: CI verify cleanly generated node ids
+'on':
+  workflow_call: null
+jobs:
+  node_ids:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v4
+      - name: Install dependencies
+        run: npm install
+        working-directory: tools/schema/
+      - name: Regenerate node ids
+        run: node gen_node_ids
+        working-directory: tools/schema/
+      - name: Format generated code
+        run: rustfmt lib/src/types/node_ids.rs
+      - name: Verify generated code matches committed code
+        run: git status --porcelain
