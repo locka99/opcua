@@ -12,3 +12,7 @@ log = "0.4"
 path = "../../lib"
 version = "0.13.0" # OPCUARustVersion
 features = ["server", "console-logging"]
+
+[features]
+default = []
+test-vendored-openssl = ["opcua/test-vendored-openssl"]
