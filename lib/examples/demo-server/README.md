@@ -14,8 +14,7 @@ from `http://localhost:8585`, however you must start it from the `demo-server` d
 and other resources.
 
 ```
-cd opcua/samples/demo-server
-cargo run
+cargo run --example demo-server
 ```
 
 ## Testing configuration

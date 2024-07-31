@@ -68,7 +68,6 @@ gethostname = "0.4"
 libc = "0.2"
 foreign-types = "0.3"
 # dependencies below are only required when certain features are enabled
-rumqttc = { version = "0.23", optional = true }
 env_logger = { version = "0.10", optional = true }
 actix-web = { version = "4.4", optional = true }
 actix-files = { version = "0.6", optional = true }
@@ -80,4 +79,16 @@ tempdir = "0.3"
 serde_json = "1.0"
 
 # Include console-logging when building tests
-opcua = { path = ".", features = ["console-logging"] }
+opcua = { path = ".", features = ["console-logging", "http"] }
+
+# Examples
+## chess-server, demo-server, discovery-client, event-client, mqtt-client, simple-client
+chrono = "0.4"
+lazy_static = "1.4.0"
+log = "0.4"
+log4rs = "1.2"
+pico-args = "0.5"
+rand = "0.7"
+rumqttc = "0.23"
+tokio = { version = "1", features = ["full"] }
+uci = "0.1.1"

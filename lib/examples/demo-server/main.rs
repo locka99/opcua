@@ -47,7 +47,7 @@ impl Default for Args {
             raise_events = true;
             config_path = PathBuf::from("server.conf");
             if !config_path.exists() {
-                config_path = PathBuf::from("../server.conf");
+                config_path = PathBuf::from("samples/server.conf");
             }
         }
 
@@ -111,7 +111,7 @@ fn main() {
         Args::usage();
     } else {
         // More powerful logging than a console logger
-        log4rs::init_file("log4rs.yaml", Default::default()).unwrap();
+        log4rs::init_file("lib/examples/demo-server/log4rs.yaml", Default::default()).unwrap();
 
         // Create an OPC UA server with sample configuration and default node set
         let mut server = Server::new(ServerConfig::load(&args.config_path).unwrap());

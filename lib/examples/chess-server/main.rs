@@ -42,7 +42,7 @@ fn main() {
     let game = Arc::new(Mutex::new(game::Game::new(&engine_path)));
 
     // Create an OPC UA server with sample configuration and default node set
-    let server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
+    let server = Server::new(ServerConfig::load(&PathBuf::from("samples/server.conf")).unwrap());
 
     let address_space = server.address_space();
 

@@ -17,7 +17,8 @@ fn main() {
     opcua::console_logging::init();
 
     // Create an OPC UA server with sample configuration and default node set
-    let mut server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
+    let mut server =
+        Server::new(ServerConfig::load(&PathBuf::from("samples/server.conf")).unwrap());
 
     let ns = {
         let address_space = server.address_space();
