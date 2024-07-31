@@ -23,6 +23,8 @@ jobs:
         run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - name: Build
         run: cargo build --features test-vendored-openssl
+      - name: Verify no pending changes invoked by building
+        run: git diff --exit-code
       - name: Run tests
         run: cargo test --features test-vendored-openssl --verbose
       - name: Run integration tests
@@ -45,6 +47,8 @@ jobs:
         run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - name: Build
         run: cargo build --features test-vendored-openssl
+      - name: Verify no pending changes invoked by building
+        run: git diff --exit-code
       - name: Run tests
         run: cargo test --features test-vendored-openssl --verbose
 
