@@ -1,6 +1,6 @@
 use std::{path::PathBuf, time::Duration};
 
-use crate::server::prelude::Config;
+use crate::core::config::Config;
 
 use super::{Client, ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
 

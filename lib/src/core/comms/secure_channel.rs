@@ -6,9 +6,8 @@ use std::{
     io::{Cursor, Write},
     ops::Range,
     sync::Arc,
+    time::{Duration, Instant},
 };
-
-use chrono::{Duration, TimeDelta};
 
 use crate::crypto::{
     aeskey::AesKey,
@@ -20,7 +19,7 @@ use crate::crypto::{
 use crate::sync::*;
 use crate::types::{
     service_types::ChannelSecurityToken, status_code::StatusCode, write_bytes, write_u8,
-    BinaryEncoder, ByteString, DateTime, DecodingOptions, MessageSecurityMode,
+    BinaryEncoder, ByteString, DecodingOptions, MessageSecurityMode,
 };
 
 use super::{
@@ -47,7 +46,7 @@ pub struct SecureChannel {
     /// Secure channel id
     secure_channel_id: u32,
     /// Token creation time.
-    token_created_at: DateTime,
+    token_created_at: Instant,
     /// Token lifetime
     token_lifetime: u32,
     /// Token identifier
@@ -80,7 +79,7 @@ impl SecureChannel {
             security_mode: MessageSecurityMode::None,
             secure_channel_id: 0,
             token_id: 0,
-            token_created_at: DateTime::now(),
+            token_created_at: Instant::now(),
             token_lifetime: 0,
             local_nonce: Vec::new(),
             remote_nonce: Vec::new(),
@@ -113,7 +112,7 @@ impl SecureChannel {
             security_policy: SecurityPolicy::None,
             secure_channel_id: 0,
             token_id: 0,
-            token_created_at: DateTime::now(),
+            token_created_at: Instant::now(),
             token_lifetime: 0,
             local_nonce: Vec::new(),
             remote_nonce: Vec::new(),
@@ -169,14 +168,14 @@ impl SecureChannel {
     pub fn clear_security_token(&mut self) {
         self.secure_channel_id = 0;
         self.token_id = 0;
-        self.token_created_at = DateTime::now();
+        self.token_created_at = Instant::now();
         self.token_lifetime = 0;
     }
 
     pub fn set_security_token(&mut self, channel_token: ChannelSecurityToken) {
         self.secure_channel_id = channel_token.channel_id;
         self.token_id = channel_token.token_id;
-        self.token_created_at = DateTime::now();
+        self.token_created_at = Instant::now();
         self.token_lifetime = channel_token.revised_lifetime;
     }
 
@@ -188,7 +187,7 @@ impl SecureChannel {
         self.secure_channel_id
     }
 
-    pub fn token_created_at(&self) -> DateTime {
+    pub fn token_created_at(&self) -> Instant {
         self.token_created_at
     }
 
@@ -204,7 +203,7 @@ impl SecureChannel {
         self.token_id
     }
 
-    pub fn set_client_offset(&mut self, client_offset: Duration) {
+    pub fn set_client_offset(&mut self, client_offset: chrono::Duration) {
         self.decoding_options.client_offset = client_offset;
     }
 
@@ -227,9 +226,9 @@ impl SecureChannel {
         } else {
             // Check if secure channel 75% close to expiration in which case send a renew
             let renew_lifetime = (self.token_lifetime() * 3) / 4;
-            let renew_lifetime = TimeDelta::try_milliseconds(renew_lifetime as i64).unwrap();
+            let renew_lifetime = Duration::from_millis(renew_lifetime as u64);
             // Renew the token?
-            DateTime::now() - self.token_created_at() > renew_lifetime
+            Instant::now() - self.token_created_at() > renew_lifetime
         }
     }
 
@@ -373,9 +372,12 @@ impl SecureChannel {
     /// Test if the token has expired yet
     pub fn token_has_expired(&self) -> bool {
         let token_created_at = self.token_created_at;
-        let token_expires =
-            token_created_at + TimeDelta::try_seconds(self.token_lifetime as i64).unwrap();
-        DateTime::now().ge(&token_expires)
+        let token_expires = token_created_at + Duration::from_secs(self.token_lifetime as u64);
+        Instant::now() > token_expires
+    }
+
+    pub fn token_renewal_deadline(&self) -> Instant {
+        self.token_created_at + Duration::from_secs((self.token_lifetime as u64) * 3 / 4)
     }
 
     /// Calculates the signature size for a message depending on the supplied security header
@@ -1277,5 +1279,9 @@ impl SecureChannel {
                 panic!("Unsupported security policy");
             }
         }
+    }
+
+    pub fn set_token_lifetime(&mut self, token_lifetime: u32) {
+        self.token_lifetime = token_lifetime;
     }
 }

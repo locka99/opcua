@@ -6,7 +6,13 @@
 
 use std::convert::TryFrom;
 
-use crate::types::service_types::VariableTypeAttributes;
+use crate::{
+    types::service_types::VariableTypeAttributes,
+    types::{
+        AttributeId, AttributesMask, DataValue, NumericRange, StatusCode, TimestampsToReturn,
+        Variant,
+    },
+};
 
 use super::{base::Base, node::Node, node::NodeBase};
 
@@ -15,15 +21,47 @@ node_builder_impl!(VariableTypeBuilder, VariableType);
 node_builder_impl_generates_event!(VariableTypeBuilder);
 node_builder_impl_subtype!(VariableTypeBuilder);
 
+impl VariableTypeBuilder {
+    pub fn is_abstract(mut self, is_abstract: bool) -> Self {
+        self.node.set_is_abstract(is_abstract);
+        self
+    }
+
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
+        self
+    }
+
+    pub fn data_type(mut self, data_type: impl Into<NodeId>) -> Self {
+        self.node.set_data_type(data_type);
+        self
+    }
+
+    pub fn value(mut self, value: impl Into<Variant>) -> Self {
+        self.node.set_value(value);
+        self
+    }
+
+    pub fn array_dimensions(mut self, array_dimensions: &[u32]) -> Self {
+        self.node.set_array_dimensions(array_dimensions);
+        self
+    }
+
+    pub fn value_rank(mut self, value_rank: i32) -> Self {
+        self.node.set_value_rank(value_rank);
+        self
+    }
+}
+
 /// A `VariableType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct VariableType {
-    base: Base,
-    data_type: NodeId,
-    is_abstract: bool,
-    value_rank: i32,
-    value: Option<DataValue>,
-    array_dimensions: Option<Vec<u32>>,
+    pub(super) base: Base,
+    pub(super) data_type: NodeId,
+    pub(super) is_abstract: bool,
+    pub(super) value_rank: i32,
+    pub(super) value: Option<DataValue>,
+    pub(super) array_dimensions: Option<Vec<u32>>,
 }
 
 impl Default for VariableType {
@@ -230,5 +268,10 @@ impl VariableType {
         V: Into<Variant>,
     {
         self.value = Some(DataValue::new_now(value));
+    }
+
+    /// Sets the variable type's `DataValue`
+    pub fn set_data_value(&mut self, value: DataValue) {
+        self.value = Some(value);
     }
 }

@@ -42,8 +42,8 @@ The following services are supported in the server:
   * DeleteReferences
   
 * Query service set
-  * QueryFirst - stub that returns BadNotSupported
-  * QueryNext - stub that returns BadNotSupported
+  * QueryFirst - not implemented in any node manager, but the framework exists.
+  * QueryNext - not implemented in any node manager, but the framework exists.
 
 * View service set
   * Browse
@@ -63,7 +63,7 @@ The following services are supported in the server:
   * CreateSubscription
   * ModifySubscription
   * DeleteSubscriptions
-  * TransferSubscriptions - stub implementation fails on any request
+  * TransferSubscriptions - Poorly tested
   * Publish
   * Republish
   * SetPublishingMode
@@ -73,23 +73,20 @@ The following services are supported in the server:
 
 ### Address Space / Nodeset
 
-The standard OPC UA address space is exposed. OPC UA for Rust uses a script to generate code to create and populate the standard address space. This functionality is controlled by a server build feature 
-`generated-address-space` that defaults to on but can be disabled if the full address space is not required. When disabled, the address space will be empty apart from some root objects. 
+The standard OPC UA address space is exposed through the `CoreNodeManager` implementation. OPC UA for Rust uses a script to generate code to create and populate the standard address space. This functionality is controlled by a server build feature `generated-address-space` that defaults to on but can be disabled if the full address space is not required. When disabled, the address space will be empty apart from some root objects.
 
 ### Current limitations
 
 Currently the following are not supported
 
 * Diagnostic info. OPC UA allows for you to ask for diagnostics with any request. None is supplied at this time
-* Session resumption. If your client disconnects, all information is discarded. 
 * Default node set is mostly static. Certain fields of server information will contain their default values unless explicitly set.
-* Access control is limited to setting read/write permissions on nodes that apply to all sessions.
 * Multiple created sessions in a single transport.
+  * This should now technically be supported, but without any client that supports this it is not tested at all.
 
 ## Client
 
-The client API API is synchronous - i.e. you call a function that makes a request and it returns 
-when the response is received or a timeout occurs. Under the surface it is asynchronous so that functionality may be exposed at some point.
+The client API is asynchronous, but require you to "drive" the connection by polling an event loop. Convenience methods are provided for polling the event loop on a background thread.
 
 The client exposes functions that correspond to the current server supported profile, i.e. look above at the server services and there will be client-side functions that are analogous to those services.  
 
@@ -98,8 +95,7 @@ In addition to the server services above, the following are also supported.
 * FindServers - when connected to a discovery server, to find other servers  
 * RegisterServer - when connected to a discovery server, to register a server
 
-Potentially the client could have functions to call other services so it could be used to call other 
-OPC UA implementation.
+The client is only automatically tested against the server implementation, so primarily only services supported by the current server implementation are supported.
 
 ## Configuration
 

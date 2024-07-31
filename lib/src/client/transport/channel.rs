@@ -122,8 +122,8 @@ impl AsyncSecureChannel {
 
     pub async fn connect(&self) -> Result<SecureChannelEventLoop, StatusCode> {
         self.request_send.store(None);
+        let mut backoff = self.session_retry_policy.new_backoff();
         loop {
-            let mut backoff = self.session_retry_policy.new_backoff();
             match self.connect_no_retry().await {
                 Ok(event_loop) => {
                     break Ok(event_loop);

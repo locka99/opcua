@@ -7,9 +7,7 @@ use crate::types::{
     NodeId, NumericRange, QualifiedName, TimestampsToReturn, Variant, WriteMask,
 };
 
-use super::types::{
-    DataType, Method, Object, ObjectType, ReferenceType, Variable, VariableType, View,
-};
+use super::{DataType, Method, Object, ObjectType, ReferenceType, Variable, VariableType, View};
 
 /// A `NodeType` is an enumeration holding every kind of node which can be hosted within the `AddressSpace`.
 #[derive(Debug)]
@@ -25,17 +23,17 @@ pub enum NodeType {
 }
 
 pub trait HasNodeId {
-    fn node_id(&self) -> NodeId;
+    fn node_id(&self) -> &NodeId;
 }
 
 impl HasNodeId for NodeType {
-    fn node_id(&self) -> NodeId {
+    fn node_id(&self) -> &NodeId {
         self.as_node().node_id()
     }
 }
 
 impl NodeType {
-    pub fn as_node(&self) -> &dyn Node {
+    pub fn as_node<'a>(&'a self) -> &'a (dyn Node + 'a) {
         match self {
             NodeType::Object(value) => value.as_ref(),
             NodeType::ObjectType(value) => value.as_ref(),
@@ -83,18 +81,18 @@ pub trait NodeBase {
     fn node_class(&self) -> NodeClass;
 
     /// Returns the node's `NodeId`
-    fn node_id(&self) -> NodeId;
+    fn node_id(&self) -> &NodeId;
 
     /// Returns the node's browse name
-    fn browse_name(&self) -> QualifiedName;
+    fn browse_name(&self) -> &QualifiedName;
 
     /// Returns the node's display name
-    fn display_name(&self) -> LocalizedText;
+    fn display_name(&self) -> &LocalizedText;
 
     /// Sets the node's display name
     fn set_display_name(&mut self, display_name: LocalizedText);
 
-    fn description(&self) -> Option<LocalizedText>;
+    fn description(&self) -> Option<&LocalizedText>;
 
     fn set_description(&mut self, description: LocalizedText);
 

@@ -35,13 +35,16 @@ pub(crate) struct ModifyMonitoredItem {
 /// for a simple collection of closures.
 pub trait OnSubscriptionNotification: Send + Sync {
     /// Called when a subscription changes state on the server.
-    fn on_subscription_status_change(&mut self, _notification: StatusChangeNotification) {}
+    #[allow(unused)]
+    fn on_subscription_status_change(&mut self, notification: StatusChangeNotification) {}
 
     /// Called for each data value change.
-    fn on_data_value(&mut self, _notification: DataValue, _item: &MonitoredItem) {}
+    #[allow(unused)]
+    fn on_data_value(&mut self, notification: DataValue, item: &MonitoredItem) {}
 
     /// Called for each received event.
-    fn on_event(&mut self, _event_fields: Option<Vec<Variant>>, _item: &MonitoredItem) {}
+    #[allow(unused)]
+    fn on_event(&mut self, event_fields: Option<Vec<Variant>>, item: &MonitoredItem) {}
 }
 
 /// A convenient wrapper around a set of callback functions that implements [OnSubscriptionNotification]

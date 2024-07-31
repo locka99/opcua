@@ -171,7 +171,6 @@ impl Test {
 
 mod chunk;
 mod comms;
-mod hello;
 mod secure_channel;
 mod services;
 mod supported_message;

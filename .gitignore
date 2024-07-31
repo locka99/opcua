@@ -6,7 +6,7 @@ pki/
 log/
 /curl-ca-bundle.crt
 /samples/server.test.conf
-/integration/pki-client
-/integration/pki-server
+**/pki-client
+**/pki-server
 3rd-party/open62541/build/
 lib/pki*

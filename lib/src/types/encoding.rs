@@ -8,27 +8,24 @@
 use std::{
     fmt::Debug,
     io::{Cursor, Read, Result, Write},
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Arc,
-    },
+    sync::atomic::{AtomicU64, Ordering},
 };
 
 use byteorder::{ByteOrder, LittleEndian, WriteBytesExt};
 use chrono::Duration;
 
-use crate::types::{constants, status_codes::StatusCode};
+use crate::types::{constants, status_code::StatusCode};
 
 pub type EncodingResult<T> = std::result::Result<T, StatusCode>;
 
 /// Depth lock holds a reference on the depth gauge. The drop ensures impl that the reference is
 /// decremented even if there is a panic unwind.
 #[derive(Debug)]
-pub struct DepthLock {
-    depth_gauge: Arc<DepthGauge>,
+pub struct DepthLock<'a> {
+    depth_gauge: &'a DepthGauge,
 }
 
-impl Drop for DepthLock {
+impl<'a> Drop for DepthLock<'a> {
     fn drop(&mut self) {
         // This will overflow back if the gauge is somehow at 0. That really should not be possible, if it is only ever
         // incremented from `obtain`
@@ -38,8 +35,8 @@ impl Drop for DepthLock {
     }
 }
 
-impl DepthLock {
-    fn new(depth_gauge: Arc<DepthGauge>) -> (Self, u64) {
+impl<'a> DepthLock<'a> {
+    fn new(depth_gauge: &'a DepthGauge) -> (Self, u64) {
         let current = depth_gauge.current_depth.fetch_add(1, Ordering::Acquire);
 
         (Self { depth_gauge }, current)
@@ -47,7 +44,7 @@ impl DepthLock {
 
     /// The depth lock tests if the depth can increment and then obtains a lock on it.
     /// The lock will decrement the depth when it drops to ensure proper behaviour during unwinding.
-    pub fn obtain(depth_gauge: Arc<DepthGauge>) -> core::result::Result<DepthLock, StatusCode> {
+    pub fn obtain(depth_gauge: &'a DepthGauge) -> core::result::Result<DepthLock<'a>, StatusCode> {
         let max_depth = depth_gauge.max_depth;
         let (gauge, val) = Self::new(depth_gauge);
 
@@ -68,6 +65,17 @@ pub struct DepthGauge {
     pub(self) max_depth: u64,
     /// Current decoding depth for recursive elements.
     pub(self) current_depth: AtomicU64,
+}
+
+// TODO: In general keeping DepthGauge as part of DecodingOptions is suboptimal,
+// since this pattern is unintuitive. It should be separated out.
+impl Clone for DepthGauge {
+    fn clone(&self) -> Self {
+        Self {
+            max_depth: self.max_depth.clone(),
+            current_depth: AtomicU64::new(0),
+        }
+    }
 }
 
 impl Default for DepthGauge {
@@ -111,7 +119,7 @@ pub struct DecodingOptions {
     /// Maximum number of array elements. 0 actually means 0, i.e. no array permitted
     pub max_array_length: usize,
     /// Decoding depth gauge is used to check for recursion
-    pub decoding_depth_gauge: Arc<DepthGauge>,
+    pub decoding_depth_gauge: DepthGauge,
 }
 
 impl Default for DecodingOptions {
@@ -123,7 +131,7 @@ impl Default for DecodingOptions {
             max_string_length: constants::MAX_STRING_LENGTH,
             max_byte_string_length: constants::MAX_BYTE_STRING_LENGTH,
             max_array_length: constants::MAX_ARRAY_LENGTH,
-            decoding_depth_gauge: Arc::new(DepthGauge::default()),
+            decoding_depth_gauge: DepthGauge::default(),
         }
     }
 }
@@ -136,7 +144,7 @@ impl DecodingOptions {
             max_string_length: 8192,
             max_byte_string_length: 8192,
             max_array_length: 8192,
-            decoding_depth_gauge: Arc::new(DepthGauge::minimal()),
+            decoding_depth_gauge: DepthGauge::minimal(),
             ..Default::default()
         }
     }
@@ -147,8 +155,8 @@ impl DecodingOptions {
         Self::default()
     }
 
-    pub fn depth_lock(&self) -> core::result::Result<DepthLock, StatusCode> {
-        DepthLock::obtain(self.decoding_depth_gauge.clone())
+    pub fn depth_lock<'a>(&'a self) -> core::result::Result<DepthLock<'a>, StatusCode> {
+        DepthLock::obtain(&self.decoding_depth_gauge)
     }
 }
 
@@ -442,7 +450,7 @@ mod tests {
         {
             let mut v = Vec::new();
             for _ in 0..max_depth {
-                v.push(DepthLock::obtain(dg.clone()).unwrap());
+                v.push(DepthLock::obtain(&dg).unwrap());
             }
 
             // Depth should now be MAX_DECODING_DEPTH
@@ -455,7 +463,7 @@ mod tests {
 
             // Next obtain should fail
             assert_eq!(
-                DepthLock::obtain(dg.clone()).unwrap_err(),
+                DepthLock::obtain(&dg).unwrap_err(),
                 StatusCode::BadDecodingError
             );
 

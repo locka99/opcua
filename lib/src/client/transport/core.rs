@@ -5,6 +5,7 @@ use std::time::Instant;
 use futures::future::Either;
 use parking_lot::RwLock;
 
+use crate::core::comms::buffer::SendBuffer;
 use crate::core::comms::message_chunk::MessageIsFinalType;
 use crate::core::comms::{
     chunker::Chunker, message_chunk::MessageChunk, message_chunk_info::ChunkInfo,
@@ -12,8 +13,6 @@ use crate::core::comms::{
 };
 use crate::core::supported_message::SupportedMessage;
 use crate::types::StatusCode;
-
-use super::buffer::SendBuffer;
 
 #[derive(Debug)]
 struct MessageChunkWithChunkInfo {
@@ -121,13 +120,7 @@ impl TransportState {
                 StatusCode::BadUnexpectedError
             }
             Message::Chunk(chunk) => self.process_chunk(chunk).err().unwrap_or(StatusCode::Good),
-            Message::Error(error) => {
-                if let Some(status_code) = StatusCode::from_u32(error.error) {
-                    status_code
-                } else {
-                    StatusCode::BadUnexpectedError
-                }
-            }
+            Message::Error(error) => StatusCode::from(error.error),
             m => {
                 error!("Expected a recognized message, got {:?}", m);
                 StatusCode::BadUnexpectedError

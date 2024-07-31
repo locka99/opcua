@@ -22,7 +22,7 @@ use crate::{
     types::{
         ApplicationDescription, DecodingOptions, EndpointDescription, FindServersRequest,
         GetEndpointsRequest, MessageSecurityMode, RegisterServerRequest, RegisteredServer,
-        StatusCode,
+        StatusCode, UAString,
     },
 };
 
@@ -458,12 +458,14 @@ impl Client {
         &self,
         endpoint: &EndpointDescription,
         channel: &AsyncSecureChannel,
+        locale_ids: Option<Vec<UAString>>,
+        profile_uris: Option<Vec<UAString>>,
     ) -> Result<Vec<EndpointDescription>, StatusCode> {
         let request = GetEndpointsRequest {
             request_header: channel.make_request_header(self.config.request_timeout),
             endpoint_url: endpoint.endpoint_url.clone(),
-            locale_ids: None,
-            profile_uris: None,
+            locale_ids,
+            profile_uris,
         };
         // Send the message and wait for a response.
         let response = channel.send(request, self.config.request_timeout).await?;
@@ -492,46 +494,79 @@ impl Client {
         &self,
         server_url: impl Into<String>,
     ) -> Result<Vec<EndpointDescription>, StatusCode> {
+        self.get_endpoints(server_url, &[], &[]).await
+    }
+
+    /// Get the list of endpoints for the server at the given URL.
+    ///
+    /// # Arguments
+    ///
+    /// * `server_url` - URL of the discovery server to get endpoints from.
+    /// * `locale_ids` - List of required locale IDs on the given server endpoint.
+    /// * `profile_uris` - Returned endpoints should match one of these profile URIs.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<EndpointDescription>)` - A list of the available endpoints on the server.
+    /// * `Err(StatusCode)` - Request failed, [Status code](StatusCode) is the reason for failure.
+    pub async fn get_endpoints(
+        &self,
+        server_url: impl Into<String>,
+        locale_ids: &[&str],
+        profile_uris: &[&str],
+    ) -> Result<Vec<EndpointDescription>, StatusCode> {
         let server_url = server_url.into();
         if !is_opc_ua_binary_url(&server_url) {
-            Err(StatusCode::BadTcpEndpointUrlInvalid)
-        } else {
-            let preferred_locales = Vec::new();
-            // Most of these fields mean nothing when getting endpoints
-            let endpoint = EndpointDescription::from(server_url.as_ref());
-            let session_info = SessionInfo {
-                endpoint: endpoint.clone(),
-                user_identity_token: IdentityToken::Anonymous,
-                preferred_locales,
-            };
-            let channel = self.channel_from_session_info(session_info);
-
-            let mut evt_loop = channel.connect().await?;
-
-            let send_fut = self.get_server_endpoints_inner(&endpoint, &channel);
-            pin!(send_fut);
-
-            let res = loop {
-                select! {
-                    r = evt_loop.poll() => {
-                        if let TransportPollResult::Closed(e) = r {
-                            return Err(e);
-                        }
-                    },
-                    res = &mut send_fut => break res
-                }
-            };
-
-            channel.close_channel().await;
-
-            loop {
-                if matches!(evt_loop.poll().await, TransportPollResult::Closed(_)) {
-                    break;
-                }
-            }
-
-            res
+            return Err(StatusCode::BadTcpEndpointUrlInvalid);
         }
+        let preferred_locales = Vec::new();
+        // Most of these fields mean nothing when getting endpoints
+        let endpoint = EndpointDescription::from(server_url.as_ref());
+        let session_info = SessionInfo {
+            endpoint: endpoint.clone(),
+            user_identity_token: IdentityToken::Anonymous,
+            preferred_locales,
+        };
+        let channel = self.channel_from_session_info(session_info);
+
+        let mut evt_loop = channel.connect().await?;
+
+        let send_fut = self.get_server_endpoints_inner(
+            &endpoint,
+            &channel,
+            if locale_ids.is_empty() {
+                None
+            } else {
+                Some(locale_ids.iter().map(|i| (*i).into()).collect())
+            },
+            if profile_uris.is_empty() {
+                None
+            } else {
+                Some(profile_uris.iter().map(|i| (*i).into()).collect())
+            },
+        );
+        pin!(send_fut);
+
+        let res = loop {
+            select! {
+                r = evt_loop.poll() => {
+                    if let TransportPollResult::Closed(e) = r {
+                        return Err(e);
+                    }
+                },
+                res = &mut send_fut => break res
+            }
+        };
+
+        channel.close_channel().await;
+
+        loop {
+            if matches!(evt_loop.poll().await, TransportPollResult::Closed(_)) {
+                break;
+            }
+        }
+
+        res
     }
 
     async fn find_servers_inner(
@@ -572,7 +607,7 @@ impl Client {
     /// * `Ok(Vec<ApplicationDescription>)` - List of descriptions for servers known to the discovery server.
     /// * `Err(StatusCode)` - Request failed, [Status code](StatusCode) is the reason for failure.
     pub async fn find_servers(
-        &mut self,
+        &self,
         discovery_endpoint_url: impl Into<String>,
     ) -> Result<Vec<ApplicationDescription>, StatusCode> {
         let discovery_endpoint_url = discovery_endpoint_url.into();

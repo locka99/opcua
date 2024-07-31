@@ -28,7 +28,7 @@ pub struct LocalizedText {
 impl<'a> From<&'a str> for LocalizedText {
     fn from(value: &'a str) -> Self {
         Self {
-            locale: UAString::from(""),
+            locale: UAString::null(),
             text: UAString::from(value),
         }
     }
@@ -37,7 +37,7 @@ impl<'a> From<&'a str> for LocalizedText {
 impl From<&String> for LocalizedText {
     fn from(value: &String) -> Self {
         Self {
-            locale: UAString::from(""),
+            locale: UAString::null(),
             text: UAString::from(value),
         }
     }
@@ -46,7 +46,7 @@ impl From<&String> for LocalizedText {
 impl From<String> for LocalizedText {
     fn from(value: String) -> Self {
         Self {
-            locale: UAString::from(""),
+            locale: UAString::null(),
             text: UAString::from(value),
         }
     }

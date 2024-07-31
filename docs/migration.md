@@ -12,7 +12,7 @@ Any version breaking changes are described below.
 use opcua::sync::*;
 ```
 
-They haven't been added to the `opcua::client::prelude` or `opcua::server::prelude` in case
+They haven't been added to the `opcua::client::prelude` or `opcua::types` in case
 your code uses `std::sync` types for other reasons that you need to resolve manually.
 
 ## Migrating from 0.9 and below

@@ -22,7 +22,7 @@ use crate::types::{encoding::*, string::*};
 ///        NamespaceUriassociated with the NamespaceIndexportion of the QualifiedNameis encoded as
 ///        JSON string unless the NamespaceIndexis 1 or if NamespaceUriis unknown. In these cases,
 ///        the NamespaceIndexis encoded as a JSON number.
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize, Eq, Hash)]
 #[serde(rename_all = "PascalCase")]
 pub struct QualifiedName {
     /// The namespace index

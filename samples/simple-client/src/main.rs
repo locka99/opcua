@@ -45,7 +45,7 @@ Usage:
     }
 }
 
-const DEFAULT_URL: &str = "opc.tcp://localhost:4855";
+const DEFAULT_URL: &str = "opc.tcp://127.0.0.1:4855";
 
 #[tokio::main]
 async fn main() -> Result<(), ()> {
@@ -116,7 +116,7 @@ async fn subscribe_to_variables(session: Arc<Session>, ns: u16) -> Result<(), St
     println!("Created a subscription with id = {}", subscription_id);
 
     // Create some monitored items
-    let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4"]
+    let items_to_create: Vec<MonitoredItemCreateRequest> = ["v1", "v2", "v3", "v4", "v5"]
         .iter()
         .map(|v| NodeId::new(ns, *v).into())
         .collect();

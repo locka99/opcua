@@ -356,7 +356,7 @@ impl ClientConfig {
             session_retry_max: Duration::from_secs(30),
             keep_alive_interval: Duration::from_secs(10),
             request_timeout: Duration::from_secs(60),
-            min_publish_interval: Duration::from_secs(1),
+            min_publish_interval: Duration::from_millis(100),
             publish_timeout: Duration::from_secs(60),
             max_inflight_publish: 2,
             session_timeout: 0,

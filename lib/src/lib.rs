@@ -8,8 +8,6 @@ extern crate tempdir;
 extern crate bitflags;
 #[macro_use]
 extern crate serde_derive;
-#[cfg(feature = "http")]
-extern crate actix_web;
 #[cfg(test)]
 extern crate serde_json;
 #[macro_use]
@@ -114,9 +112,4 @@ fn from_hex(v: &str) -> Vec<u8> {
         0 => b.into_iter().collect(),
         _ => panic!("Invalid hex length"),
     }
-}
-
-mod prelude {
-    #[cfg(feature = "server")]
-    pub use crate::server::prelude::*;
 }

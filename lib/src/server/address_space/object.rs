@@ -4,7 +4,13 @@
 
 //! Contains the implementation of `Object` and `ObjectBuilder`.
 
-use crate::types::service_types::ObjectAttributes;
+use crate::{
+    types::service_types::ObjectAttributes,
+    types::{
+        AttributeId, AttributesMask, DataValue, NumericRange, ObjectTypeId, StatusCode,
+        TimestampsToReturn, Variant,
+    },
+};
 
 use super::{base::Base, node::Node, node::NodeBase, EventNotifier};
 
@@ -19,6 +25,11 @@ impl ObjectBuilder {
 
     pub fn event_notifier(mut self, event_notifier: EventNotifier) -> Self {
         self.node.set_event_notifier(event_notifier);
+        self
+    }
+
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
         self
     }
 
@@ -48,8 +59,8 @@ impl ObjectBuilder {
 /// An `Object` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct Object {
-    base: Base,
-    event_notifier: EventNotifier,
+    pub(super) base: Base,
+    pub(super) event_notifier: EventNotifier,
 }
 
 impl Default for Object {

@@ -9,7 +9,7 @@ use std::io::{Read, Write};
 use crate::types::{
     byte_string::ByteString, date_time::*, encoding::*, guid::Guid, localized_text::LocalizedText,
     node_id::NodeId, qualified_name::QualifiedName, service_types::TimestampsToReturn,
-    status_codes::StatusCode, string::UAString, variant::Variant,
+    status_code::StatusCode, string::UAString, variant::Variant,
 };
 
 bitflags! {
@@ -126,7 +126,7 @@ impl BinaryEncoder<DataValue> for DataValue {
         };
         // Status
         let status = if encoding_mask.contains(DataValueFlags::HAS_STATUS) {
-            let status = StatusCode::from_bits_truncate(u32::decode(stream, decoding_options)?);
+            let status = StatusCode::from(u32::decode(stream, decoding_options)?);
             Some(status)
         } else {
             None
@@ -400,6 +400,27 @@ impl DataValue {
         }
     }
 
+    /// Creates a `DataValue` from the supplied value and timestamp. If you are passing a value to the Attribute::Write service
+    /// on a server from a server, you may consider this from the specification:
+    ///
+    /// _If the SourceTimestamp or the ServerTimestamp is specified, the Server shall use these values.
+    /// The Server returns a Bad_WriteNotSupported error if it does not support writing of timestamps_
+    ///
+    /// In which case, use the `value_only()` constructor, or make explicit which fields you pass.
+    pub fn new_at<V>(value: V, time: DateTime) -> DataValue
+    where
+        V: Into<Variant>,
+    {
+        DataValue {
+            value: Some(value.into()),
+            status: Some(StatusCode::Good),
+            source_timestamp: Some(time),
+            source_picoseconds: Some(0),
+            server_timestamp: Some(time),
+            server_picoseconds: Some(0),
+        }
+    }
+
     /// Creates an empty DataValue
     pub fn null() -> DataValue {
         DataValue {
@@ -472,7 +493,7 @@ impl DataValue {
     /// Test if the value held by this data value is known to be good
     /// Anything other than Good is assumed to be invalid.
     pub fn is_valid(&self) -> bool {
-        self.status().status().is_good()
+        self.status().is_good()
     }
 
     fn encoding_mask(&self) -> DataValueFlags {

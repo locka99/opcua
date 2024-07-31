@@ -10,19 +10,19 @@ use super::node::{Node, NodeBase};
 #[derive(Debug)]
 pub(crate) struct Base {
     /// The node id of this node
-    node_id: NodeId,
+    pub(super) node_id: NodeId,
     /// The node class of this node
-    node_class: NodeClass,
+    pub(super) node_class: NodeClass,
     /// The node's browse name which must be unique amongst its siblings
-    browse_name: QualifiedName,
+    pub(super) browse_name: QualifiedName,
     /// The human readable display name
-    display_name: LocalizedText,
+    pub(super) display_name: LocalizedText,
     /// The description of the node (optional)
-    description: Option<LocalizedText>,
+    pub(super) description: Option<LocalizedText>,
     /// Write mask bits (optional)
-    write_mask: Option<u32>,
+    pub(super) write_mask: Option<u32>,
     /// User write mask bits (optional)
-    user_write_mask: Option<u32>,
+    pub(super) user_write_mask: Option<u32>,
 }
 
 impl NodeBase for Base {
@@ -30,24 +30,24 @@ impl NodeBase for Base {
         self.node_class
     }
 
-    fn node_id(&self) -> NodeId {
-        self.node_id.clone()
+    fn node_id(&self) -> &NodeId {
+        &self.node_id
     }
 
-    fn browse_name(&self) -> QualifiedName {
-        self.browse_name.clone()
+    fn browse_name(&self) -> &QualifiedName {
+        &self.browse_name
     }
 
-    fn display_name(&self) -> LocalizedText {
-        self.display_name.clone()
+    fn display_name(&self) -> &LocalizedText {
+        &self.display_name
     }
 
     fn set_display_name(&mut self, display_name: LocalizedText) {
         self.display_name = display_name;
     }
 
-    fn description(&self) -> Option<LocalizedText> {
-        self.description.clone()
+    fn description(&self) -> Option<&LocalizedText> {
+        self.description.as_ref()
     }
 
     fn set_description(&mut self, description: LocalizedText) {
@@ -82,10 +82,13 @@ impl Node for Base {
     ) -> Option<DataValue> {
         match attribute_id {
             AttributeId::NodeClass => Some((self.node_class as i32).into()),
-            AttributeId::NodeId => Some(self.node_id().into()),
-            AttributeId::BrowseName => Some(self.browse_name().into()),
-            AttributeId::DisplayName => Some(self.display_name().into()),
-            AttributeId::Description => self.description().map(|description| description.into()),
+            AttributeId::NodeId => Some(self.node_id().clone().into()),
+            AttributeId::BrowseName => Some(self.browse_name().clone().into()),
+            AttributeId::DisplayName => Some(self.display_name().clone().into()),
+            AttributeId::Description => self
+                .description()
+                .cloned()
+                .map(|description| description.into()),
             AttributeId::WriteMask => self.write_mask.map(|v| v.into()),
             AttributeId::UserWriteMask => self.user_write_mask.map(|v| v.into()),
             _ => None,

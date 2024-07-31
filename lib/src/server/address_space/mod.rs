@@ -1,134 +1,34 @@
-// OPCUA for Rust
-// SPDX-License-Identifier: MPL-2.0
-// Copyright (C) 2017-2024 Adam Lock
+mod address_space;
+mod generic;
+mod utils;
 
-//! Provides functionality to create an address space, find nodes, add nodes, change attributes
-//! and values on nodes.
+pub use address_space::{AddressSpace, Reference, ReferenceDirection, ReferenceRef};
+pub use data_type::{DataType, DataTypeBuilder};
+pub use generic::new_node_from_attributes;
+pub use method::{Method, MethodBuilder};
+pub use node::{HasNodeId, Node, NodeBase, NodeType};
+pub use object::{Object, ObjectBuilder};
+pub use object_type::{ObjectType, ObjectTypeBuilder};
+pub use reference_type::{ReferenceType, ReferenceTypeBuilder};
+pub use utils::*;
+pub use variable::{Variable, VariableBuilder};
+pub use variable_type::{VariableType, VariableTypeBuilder};
+pub use view::{View, ViewBuilder};
 
-use std::{result::Result, sync::Arc};
-
-use crate::sync::*;
-use crate::types::status_code::StatusCode;
-use crate::types::{
-    AttributeId, DataValue, NodeId, NumericRange, QualifiedName, TimestampsToReturn,
-};
-
-use super::callbacks::{AttributeGetter, AttributeSetter};
-
-pub use self::address_space::AddressSpace;
-
-/// An implementation of attribute getter that can be easily constructed from a mutable function
-pub struct AttrFnGetter<F>
-where
-    F: FnMut(
-            &NodeId,
-            TimestampsToReturn,
-            AttributeId,
-            NumericRange,
-            &QualifiedName,
-            f64,
-        ) -> Result<Option<DataValue>, StatusCode>
-        + Send,
-{
-    getter: F,
-}
-
-impl<F> AttributeGetter for AttrFnGetter<F>
-where
-    F: FnMut(
-            &NodeId,
-            TimestampsToReturn,
-            AttributeId,
-            NumericRange,
-            &QualifiedName,
-            f64,
-        ) -> Result<Option<DataValue>, StatusCode>
-        + Send,
-{
-    fn get(
-        &mut self,
-        node_id: &NodeId,
-        timestamps_to_return: TimestampsToReturn,
-        attribute_id: AttributeId,
-        index_range: NumericRange,
-        data_encoding: &QualifiedName,
-        max_age: f64,
-    ) -> Result<Option<DataValue>, StatusCode> {
-        (self.getter)(
-            node_id,
-            timestamps_to_return,
-            attribute_id,
-            index_range,
-            data_encoding,
-            max_age,
-        )
-    }
-}
-
-impl<F> AttrFnGetter<F>
-where
-    F: FnMut(
-            &NodeId,
-            TimestampsToReturn,
-            AttributeId,
-            NumericRange,
-            &QualifiedName,
-            f64,
-        ) -> Result<Option<DataValue>, StatusCode>
-        + Send,
-{
-    pub fn new(getter: F) -> AttrFnGetter<F> {
-        AttrFnGetter { getter }
-    }
-
-    pub fn new_boxed(getter: F) -> Arc<Mutex<AttrFnGetter<F>>> {
-        Arc::new(Mutex::new(Self::new(getter)))
-    }
-}
-
-/// An implementation of attribute setter that can be easily constructed using a mutable function
-pub struct AttrFnSetter<F>
-where
-    F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode> + Send,
-{
-    setter: F,
-}
-
-impl<F> AttributeSetter for AttrFnSetter<F>
-where
-    F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode> + Send,
-{
-    fn set(
-        &mut self,
-        node_id: &NodeId,
-        attribute_id: AttributeId,
-        index_range: NumericRange,
-        data_value: DataValue,
-    ) -> Result<(), StatusCode> {
-        (self.setter)(node_id, attribute_id, index_range, data_value)
-    }
-}
-
-impl<F> AttrFnSetter<F>
-where
-    F: FnMut(&NodeId, AttributeId, NumericRange, DataValue) -> Result<(), StatusCode> + Send,
-{
-    pub fn new(setter: F) -> AttrFnSetter<F> {
-        AttrFnSetter { setter }
-    }
-
-    pub fn new_boxed(setter: F) -> Arc<Mutex<AttrFnSetter<F>>> {
-        Arc::new(Mutex::new(Self::new(setter)))
-    }
+// TODO: Remove, this is for compat with old generated code.
+pub(crate) mod types {
+    pub use super::{
+        AddressSpace, DataType, Method, NodeBase, Object, ObjectType, ReferenceDirection,
+        ReferenceType, Variable, VariableType,
+    };
 }
 
 // A macro for creating builders. Builders can be used for more conveniently creating objects,
 // variables etc.
 macro_rules! node_builder_impl {
     ( $node_builder_ty:ident, $node_ty:ident ) => {
-        use $crate::server::address_space::{
-            address_space::AddressSpace, references::ReferenceDirection,
-        };
+        use $crate::server::address_space::{address_space::AddressSpace, ReferenceDirection};
+        use $crate::types::{LocalizedText, NodeId, QualifiedName, ReferenceTypeId};
 
         /// A builder for constructing a node of same name. This can be used as an easy way
         /// to create a node and the references it has to another node in a simple fashion.
@@ -154,7 +54,7 @@ macro_rules! node_builder_impl {
                 .display_name(display_name)
             }
 
-            pub fn get_node_id(&self) -> NodeId {
+            pub fn get_node_id(&self) -> &NodeId {
                 self.node.node_id()
             }
 
@@ -379,10 +279,8 @@ macro_rules! node_builder_impl_property_of {
 /// node has a base: Base
 macro_rules! node_base_impl {
     ( $node_struct:ident ) => {
-        use crate::{
-            server::address_space::node::NodeType,
-            types::{status_code::StatusCode, *},
-        };
+        use crate::server::address_space::NodeType;
+        use crate::types::{NodeClass, WriteMask};
 
         impl Into<NodeType> for $node_struct {
             fn into(self) -> NodeType {
@@ -390,20 +288,20 @@ macro_rules! node_base_impl {
             }
         }
 
-        impl NodeBase for $node_struct {
+        impl crate::server::address_space::NodeBase for $node_struct {
             fn node_class(&self) -> NodeClass {
                 self.base.node_class()
             }
 
-            fn node_id(&self) -> NodeId {
+            fn node_id(&self) -> &NodeId {
                 self.base.node_id()
             }
 
-            fn browse_name(&self) -> QualifiedName {
+            fn browse_name(&self) -> &QualifiedName {
                 self.base.browse_name()
             }
 
-            fn display_name(&self) -> LocalizedText {
+            fn display_name(&self) -> &LocalizedText {
                 self.base.display_name()
             }
 
@@ -411,7 +309,7 @@ macro_rules! node_base_impl {
                 self.base.set_display_name(display_name);
             }
 
-            fn description(&self) -> Option<LocalizedText> {
+            fn description(&self) -> Option<&LocalizedText> {
                 self.base.description()
             }
 
@@ -438,25 +336,19 @@ macro_rules! node_base_impl {
     };
 }
 
-pub mod address_space;
-pub mod base;
-pub mod data_type;
-pub mod method;
-pub mod node;
-pub mod object;
-pub mod object_type;
-pub mod reference_type;
-pub mod references;
-pub mod relative_path;
-pub mod variable;
-pub mod variable_type;
-pub mod view;
-
-#[rustfmt::skip]
-#[cfg(feature = "generated-address-space")]
+mod base;
+mod data_type;
 mod generated;
-#[cfg(feature = "generated-address-space")]
-mod method_impls;
+mod method;
+mod node;
+mod object;
+mod object_type;
+mod reference_type;
+mod variable;
+mod variable_type;
+mod view;
+
+pub use generated::populate_address_space;
 
 bitflags! {
     pub struct AccessLevel: u8 {
@@ -490,19 +382,4 @@ bitflags! {
         const HISTORY_READ = 4;
         const HISTORY_WRITE = 8;
     }
-}
-
-pub mod types {
-    pub use super::address_space::AddressSpace;
-    pub use super::data_type::{DataType, DataTypeBuilder};
-    pub use super::method::{Method, MethodBuilder};
-    pub use super::node::{NodeBase, NodeType};
-    pub use super::object::{Object, ObjectBuilder};
-    pub use super::object_type::{ObjectType, ObjectTypeBuilder};
-    pub use super::reference_type::{ReferenceType, ReferenceTypeBuilder};
-    pub use super::references::ReferenceDirection;
-    pub use super::variable::{Variable, VariableBuilder};
-    pub use super::variable_type::{VariableType, VariableTypeBuilder};
-    pub use super::view::{View, ViewBuilder};
-    pub use super::{AttrFnGetter, AttrFnSetter};
 }

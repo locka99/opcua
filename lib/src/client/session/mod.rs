@@ -39,6 +39,7 @@ impl From<(EndpointDescription, IdentityToken)> for SessionInfo {
 pub use client::Client;
 pub use connect::SessionConnectMode;
 pub use event_loop::{SessionActivity, SessionEventLoop, SessionPollResult};
+pub use services::attributes::{HistoryReadAction, HistoryUpdateAction};
 pub use services::subscriptions::{
     DataChangeCallback, EventCallback, MonitoredItem, OnSubscriptionNotification, Subscription,
     SubscriptionCallbacks,

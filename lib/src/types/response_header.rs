@@ -9,7 +9,7 @@ use std::{
 
 use crate::types::{
     data_types::*, date_time::DateTime, diagnostic_info::DiagnosticInfo, encoding::*,
-    extension_object::ExtensionObject, request_header::RequestHeader, status_codes::StatusCode,
+    extension_object::ExtensionObject, request_header::RequestHeader, status_code::StatusCode,
     string::UAString,
 };
 
@@ -66,13 +66,29 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
     }
 }
 
+pub trait AsRequestHandle {
+    fn as_request_handle(&self) -> u32;
+}
+
+impl AsRequestHandle for &RequestHeader {
+    fn as_request_handle(&self) -> u32 {
+        self.request_handle
+    }
+}
+
+impl AsRequestHandle for u32 {
+    fn as_request_handle(&self) -> u32 {
+        *self
+    }
+}
+
 impl ResponseHeader {
-    pub fn new_good(request_header: &RequestHeader) -> ResponseHeader {
+    pub fn new_good(request_header: impl AsRequestHandle) -> ResponseHeader {
         ResponseHeader::new_service_result(request_header, StatusCode::Good)
     }
 
     pub fn new_service_result(
-        request_header: &RequestHeader,
+        request_header: impl AsRequestHandle,
         service_result: StatusCode,
     ) -> ResponseHeader {
         ResponseHeader::new_timestamped_service_result(
@@ -84,12 +100,12 @@ impl ResponseHeader {
 
     pub fn new_timestamped_service_result(
         timestamp: DateTime,
-        request_header: &RequestHeader,
+        request_header: impl AsRequestHandle,
         service_result: StatusCode,
     ) -> ResponseHeader {
         ResponseHeader {
             timestamp,
-            request_handle: request_header.request_handle,
+            request_handle: request_header.as_request_handle(),
             service_result,
             service_diagnostics: DiagnosticInfo::default(),
             string_table: None,

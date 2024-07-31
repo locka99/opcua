@@ -173,7 +173,7 @@ impl MessageHeader {
 /// Implementation of the HEL message in OPC UA
 #[derive(Debug, Clone, PartialEq)]
 pub struct HelloMessage {
-    pub message_header: MessageHeader,
+    message_header: MessageHeader,
     pub protocol_version: u32,
     pub receive_buffer_size: u32,
     pub send_buffer_size: u32,
@@ -282,7 +282,7 @@ impl HelloMessage {
 /// Implementation of the ACK message in OPC UA
 #[derive(Debug, Clone, PartialEq)]
 pub struct AcknowledgeMessage {
-    pub message_header: MessageHeader,
+    message_header: MessageHeader,
     pub protocol_version: u32,
     pub receive_buffer_size: u32,
     pub send_buffer_size: u32,
@@ -324,10 +324,31 @@ impl BinaryEncoder<AcknowledgeMessage> for AcknowledgeMessage {
     }
 }
 
+impl AcknowledgeMessage {
+    pub fn new(
+        protocol_version: u32,
+        receive_buffer_size: u32,
+        send_buffer_size: u32,
+        max_message_size: u32,
+        max_chunk_count: u32,
+    ) -> Self {
+        let mut ack = AcknowledgeMessage {
+            message_header: MessageHeader::new(MessageType::Acknowledge),
+            protocol_version,
+            receive_buffer_size,
+            send_buffer_size,
+            max_message_size,
+            max_chunk_count,
+        };
+        ack.message_header.message_size = ack.byte_len() as u32;
+        ack
+    }
+}
+
 /// Implementation of the ERR message in OPC UA
 #[derive(Debug, Clone, PartialEq)]
 pub struct ErrorMessage {
-    pub message_header: MessageHeader,
+    message_header: MessageHeader,
     pub error: u32,
     pub reason: UAString,
 }
@@ -359,12 +380,155 @@ impl BinaryEncoder<ErrorMessage> for ErrorMessage {
 
 impl ErrorMessage {
     pub fn from_status_code(status_code: StatusCode) -> ErrorMessage {
+        Self::new(status_code, &status_code.sub_code().description())
+    }
+
+    pub fn new(status_code: StatusCode, reason: &str) -> ErrorMessage {
         let mut error = ErrorMessage {
             message_header: MessageHeader::new(MessageType::Error),
             error: status_code.bits(),
-            reason: UAString::from(status_code.description()),
+            reason: UAString::from(reason),
         };
         error.message_header.message_size = error.byte_len() as u32;
         error
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Cursor;
+
+    use crate::{
+        core::comms::tcp_types::{
+            AcknowledgeMessage, BinaryEncoder, HelloMessage, MessageHeader, MessageType,
+        },
+        types::{
+            ApplicationDescription, ByteString, DecodingOptions, EndpointDescription,
+            MessageSecurityMode, UAString,
+        },
+    };
+
+    fn hello_data() -> Vec<u8> {
+        vec![
+            0x48, 0x45, 0x4c, 0x46, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x0a, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x19, 0x00, 0x00, 0x00, 0x6f, 0x70, 0x63, 0x2e, 0x74, 0x63, 0x70, 0x3a, 0x2f, 0x2f,
+            0x31, 0x32, 0x37, 0x2e, 0x30, 0x2e, 0x30, 0x2e, 0x31, 0x3a, 0x31, 0x32, 0x33, 0x34,
+            0x2f,
+        ]
+    }
+
+    fn ack_data() -> Vec<u8> {
+        vec![
+            0x41, 0x43, 0x4b, 0x46, 0x1c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x08, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x01, 0xff, 0xff, 0x00, 0x00,
+        ]
+    }
+
+    #[test]
+    pub fn hello() {
+        let mut stream = Cursor::new(hello_data());
+        let decoding_options = DecodingOptions::test();
+        let hello = HelloMessage::decode(&mut stream, &decoding_options).unwrap();
+        println!("hello = {:?}", hello);
+        assert_eq!(hello.message_header.message_type, MessageType::Hello);
+        assert_eq!(hello.message_header.message_size, 57);
+        assert_eq!(hello.protocol_version, 0);
+        assert_eq!(hello.receive_buffer_size, 655360);
+        assert_eq!(hello.send_buffer_size, 655360);
+        assert_eq!(hello.max_message_size, 0);
+        assert_eq!(hello.max_chunk_count, 0);
+        assert_eq!(
+            hello.endpoint_url,
+            UAString::from("opc.tcp://127.0.0.1:1234/")
+        );
+    }
+
+    #[test]
+    pub fn acknowledge() {
+        let mut stream = Cursor::new(ack_data());
+        let decoding_options = DecodingOptions::test();
+        let ack = AcknowledgeMessage::decode(&mut stream, &decoding_options).unwrap();
+        println!("ack = {:?}", ack);
+        assert_eq!(ack.message_header.message_type, MessageType::Acknowledge);
+        assert_eq!(ack.message_header.message_size, 28);
+        assert_eq!(ack.protocol_version, 0);
+        assert_eq!(ack.receive_buffer_size, 524288);
+        assert_eq!(ack.send_buffer_size, 524288);
+        assert_eq!(ack.max_message_size, 16777216);
+        assert_eq!(ack.max_chunk_count, 65535);
+    }
+
+    #[test]
+    fn endpoint_url() {
+        // Ensure hello with None endpoint is invalid
+        // Ensure hello with URL > 4096 chars is invalid
+        let mut h = HelloMessage {
+            message_header: MessageHeader {
+                message_type: MessageType::Invalid,
+                message_size: 0,
+            },
+            protocol_version: 0,
+            receive_buffer_size: 0,
+            send_buffer_size: 0,
+            max_message_size: 0,
+            max_chunk_count: 0,
+            endpoint_url: UAString::null(),
+        };
+
+        let endpoints = vec![EndpointDescription {
+            endpoint_url: UAString::from("opc.tcp://foo"),
+            security_policy_uri: UAString::null(),
+            security_mode: MessageSecurityMode::None,
+            server: ApplicationDescription::default(),
+            security_level: 0,
+            server_certificate: ByteString::null(),
+            transport_profile_uri: UAString::null(),
+            user_identity_tokens: None,
+        }];
+
+        // Negative tests
+        assert!(!h.matches_endpoint(&endpoints));
+        h.endpoint_url = UAString::from("");
+        assert!(!h.matches_endpoint(&endpoints));
+        h.endpoint_url = UAString::from("opc.tcp://foo/blah");
+        assert!(!h.matches_endpoint(&endpoints));
+        // 4097 bytes
+        h.endpoint_url = UAString::from((0..4097).map(|_| 'A').collect::<String>());
+        assert!(!h.is_endpoint_valid_length());
+
+        // Positive tests
+        h.endpoint_url = UAString::from("opc.tcp://foo/");
+        assert!(h.matches_endpoint(&endpoints));
+        h.endpoint_url = UAString::from("opc.tcp://bar/"); // Ignore hostname
+        assert!(h.matches_endpoint(&endpoints));
+        h.endpoint_url = UAString::from((0..4096).map(|_| 'A').collect::<String>());
+        assert!(h.is_endpoint_valid_length())
+    }
+
+    #[test]
+    fn valid_buffer_sizes() {
+        // Test that invalid buffer sizes are rejected, while valid buffer sizes are accepted
+        let mut h = HelloMessage {
+            message_header: MessageHeader {
+                message_type: MessageType::Invalid,
+                message_size: 0,
+            },
+            protocol_version: 0,
+            receive_buffer_size: 0,
+            send_buffer_size: 0,
+            max_message_size: 0,
+            max_chunk_count: 0,
+            endpoint_url: UAString::null(),
+        };
+        assert!(!h.is_valid_buffer_sizes());
+        h.receive_buffer_size = 8195;
+        assert!(!h.is_valid_buffer_sizes());
+        h.send_buffer_size = 8195;
+        assert!(!h.is_valid_buffer_sizes());
+        h.receive_buffer_size = 8196;
+        assert!(!h.is_valid_buffer_sizes());
+        h.send_buffer_size = 8196;
+        assert!(h.is_valid_buffer_sizes());
     }
 }
