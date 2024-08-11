@@ -25,8 +25,6 @@ use crate::client::{
     },
 };
 
-
-
 /// Wrapper around an open secure channel
 pub struct AsyncSecureChannel {
     session_info: SessionInfo,
@@ -36,9 +34,7 @@ pub struct AsyncSecureChannel {
     transport_config: TransportConfiguration,
     state: SecureChannelState,
     issue_channel_lock: tokio::sync::Mutex<()>,
-
     request_send: ArcSwapOption<RequestSend>,
-    lifetime: Duration,
 }
 
 pub struct SecureChannelEventLoop {
@@ -100,9 +96,10 @@ impl AsyncSecureChannel {
             // succession.
             // Also, if the channel is currently being renewed, we need to wait for the new security token.
             let guard = self.issue_channel_lock.lock().await;
-            let should_renew_security_token = {
+
+            let (should_renew_security_token, secure_channel_lifetime) = {
                 let secure_channel = trace_read_lock!(self.secure_channel);
-                secure_channel.should_renew_security_token()
+                (secure_channel.should_renew_security_token(), secure_channel.token_lifetime())
             };
 
             if should_renew_security_token {
@@ -110,7 +107,7 @@ impl AsyncSecureChannel {
                     SecurityTokenRequestType::Renew,
                     Duration::from_secs(30),
                     send.clone(),
-                    self.lifetime
+                    self.secure_channel.
                 );
 
                 let resp = request.send().await?;

@@ -3,9 +3,7 @@
 // Copyright (C) 2017-2024 Adam Lock
 
 use std::{
-    io::{Cursor, Write},
-    ops::Range,
-    sync::Arc,
+    error::Error, fmt, io::{Cursor, Write}, ops::Range, sync::Arc
 };
 
 use chrono::{Duration, TimeDelta};
@@ -34,6 +32,54 @@ pub enum Role {
     Client,
     Server,
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum SecureChannelLifetimeError {
+    IsZero,
+    ExceedsMaxSize,
+}
+
+impl fmt::Display for SecureChannelLifetimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            SecureChannelLifetimeError::IsZero => write!(f, "Lifetime must be greater than 0 ms"),
+            SecureChannelLifetimeError::ExceedsMaxSize => write!(f, "Lifetime cannot exceed {} ms", u32::MAX),
+        }
+    }
+}
+
+impl Error for SecureChannelLifetimeError {}
+
+#[derive(Debug, Clone, Copy)]
+pub struct SecureChannelLifetime {
+    duration: std::time::Duration
+}
+
+impl SecureChannelLifetime {
+    pub fn new(duration: std::time::Duration) -> Result<Self, SecureChannelLifetimeError> {
+        let ms = duration.as_millis();
+        if ms == 0 {
+            Err(SecureChannelLifetimeError::IsZero)
+        } else if ms > u32::MAX as u128 {
+            Err(SecureChannelLifetimeError::ExceedsMaxSize)
+        } else {
+            Ok(Self {duration})
+        }
+    }
+
+    pub fn as_millis(&self) -> u32 {
+        self.duration.as_millis() as u32
+    }
+}
+
+impl TryFrom<std::time::Duration> for SecureChannelLifetime {
+    type Error = SecureChannelLifetimeError;
+
+    fn try_from(duration: std::time::Duration) -> Result<Self, Self::Error> {
+        Self::new(duration)
+    }
+}
+
 
 /// Holds all of the security information related to this session
 #[derive(Debug)]
@@ -68,12 +114,15 @@ pub struct SecureChannel {
     local_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Decoding options
     decoding_options: DecodingOptions,
+    lifetime: SecureChannelLifetime
 }
 
 impl SecureChannel {
     /// For testing purposes only
     #[cfg(test)]
     pub fn new_no_certificate_store() -> SecureChannel {
+        use std::time::Duration;
+
         SecureChannel {
             role: Role::Unknown,
             security_policy: SecurityPolicy::None,
@@ -90,6 +139,7 @@ impl SecureChannel {
             local_keys: None,
             remote_keys: None,
             decoding_options: DecodingOptions::default(),
+            lifetime: SecureChannelLifetime::new(Duration::from_secs(60))
         }
     }
 
