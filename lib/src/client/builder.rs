@@ -4,6 +4,8 @@ use crate::server::prelude::Config;
 
 use super::{Client, ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
 
+use super::transport;
+
 #[derive(Default)]
 pub struct ClientBuilder {
     config: ClientConfig,
@@ -286,7 +288,7 @@ impl ClientBuilder {
     }
 
     /// Sets the secure channel lifetime.
-    pub fn secure_channel_lifetime(mut self, secure_channel_lifetime: Duration) -> Self {
+    pub fn secure_channel_lifetime(mut self, secure_channel_lifetime: SecureChannelLifetime) -> Self {
         self.config.secure_channel_lifetime = secure_channel_lifetime;
         self
     }

@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc, time::Duration};
+use std::{error::Error, fmt, str::FromStr, sync::Arc, time::Duration};
 
 use crate::{
     client::{session::SessionInfo, transport::core::TransportPollResult},
@@ -25,6 +25,8 @@ use crate::client::{
     },
 };
 
+
+
 /// Wrapper around an open secure channel
 pub struct AsyncSecureChannel {
     session_info: SessionInfo,
@@ -36,6 +38,7 @@ pub struct AsyncSecureChannel {
     issue_channel_lock: tokio::sync::Mutex<()>,
 
     request_send: ArcSwapOption<RequestSend>,
+    lifetime: Duration,
 }
 
 pub struct SecureChannelEventLoop {
@@ -107,6 +110,7 @@ impl AsyncSecureChannel {
                     SecurityTokenRequestType::Renew,
                     Duration::from_secs(30),
                     send.clone(),
+                    self.lifetime
                 );
 
                 let resp = request.send().await?;
@@ -176,6 +180,7 @@ impl AsyncSecureChannel {
             SecurityTokenRequestType::Issue,
             Duration::from_secs(30),
             send.clone(),
+            self.lifetime
         );
 
         let request_fut = request.send();
