@@ -382,9 +382,10 @@ impl ClientConfig {
 
 #[cfg(test)]
 mod tests {
+    use std::time::Duration;
     use std::{self, collections::BTreeMap, path::PathBuf};
 
-    use crate::client::ClientBuilder;
+    use crate::{client::ClientBuilder, prelude::SecureChannelLifetime};
     use crate::core::config::Config;
     use crate::crypto::SecurityPolicy;
     use crate::types::*;
@@ -540,5 +541,18 @@ mod tests {
             },
         );
         assert!(!config.is_valid());
+    }
+
+    #[test]
+    fn default_security_channel_lifetime_is_1_minute() {
+        let config = default_sample_config();
+        assert_eq!(config.secure_channel_lifetime.as_millis(), 60000);
+    }
+
+    #[test]
+    fn security_channel_lifetime_is_configurable() {
+        let lifetime = SecureChannelLifetime::new(Duration::from_secs(30)).unwrap();
+        let config = sample_builder().secure_channel_lifetime(lifetime).config();
+        assert_eq!(config.secure_channel_lifetime.as_millis(), 30000);
     }
 }
