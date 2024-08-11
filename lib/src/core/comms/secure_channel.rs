@@ -119,8 +119,6 @@ impl SecureChannel {
     /// For testing purposes only
     #[cfg(test)]
     pub fn new_no_certificate_store() -> SecureChannel {
-        use std::time::Duration;
-
         SecureChannel {
             role: Role::Unknown,
             security_policy: SecurityPolicy::None,

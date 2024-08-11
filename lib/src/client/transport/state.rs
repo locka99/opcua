@@ -9,7 +9,7 @@ use crate::{
     client::{session::process_unexpected_response, transport::OutgoingMessage}, core::{
         comms::secure_channel::SecureChannel, handle::AtomicHandle,
         supported_message::SupportedMessage,
-    }, crypto::SecurityPolicy, prelude::SecureChannelLifetime, sync::RwLock, types::{
+    }, crypto::SecurityPolicy, sync::RwLock, types::{
         DateTime, DiagnosticBits, MessageSecurityMode, NodeId, OpenSecureChannelRequest,
         RequestHeader, SecurityTokenRequestType, StatusCode,
     }

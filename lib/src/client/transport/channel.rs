@@ -1,4 +1,4 @@
-use std::{error::Error, fmt, str::FromStr, sync::Arc, time::Duration};
+use std::{str::FromStr, sync::Arc, time::Duration};
 
 use crate::{
     client::{session::SessionInfo, transport::core::TransportPollResult}, core::{
