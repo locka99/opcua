@@ -358,7 +358,7 @@ impl ClientConfig {
             request_timeout: Duration::from_secs(60),
             min_publish_interval: Duration::from_secs(1),
             publish_timeout: Duration::from_secs(60),
-            secure_channel_lifetime: SecureChannelLifetime::new(Duration::from_secs(60)).expect("hardcoded valid duration"),
+            secure_channel_lifetime: SecureChannelLifetime::default(),
             max_inflight_publish: 2,
             session_timeout: 0,
             decoding_options: DecodingOptions {

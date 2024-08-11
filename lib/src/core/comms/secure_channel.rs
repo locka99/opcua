@@ -36,14 +36,14 @@ pub enum Role {
 #[derive(Debug, Clone, PartialEq)]
 pub enum SecureChannelLifetimeError {
     IsZero,
-    ExceedsMaxSize,
+    TooBig,
 }
 
 impl fmt::Display for SecureChannelLifetimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SecureChannelLifetimeError::IsZero => write!(f, "Lifetime must be greater than 0 ms"),
-            SecureChannelLifetimeError::ExceedsMaxSize => write!(f, "Lifetime cannot exceed {} ms", u32::MAX),
+            SecureChannelLifetimeError::TooBig => write!(f, "Lifetime cannot exceed {} ms", u32::MAX),
         }
     }
 }
@@ -61,7 +61,7 @@ impl SecureChannelLifetime {
         if ms == 0 {
             Err(SecureChannelLifetimeError::IsZero)
         } else if ms > u32::MAX as u128 {
-            Err(SecureChannelLifetimeError::ExceedsMaxSize)
+            Err(SecureChannelLifetimeError::TooBig)
         } else {
             Ok(Self {duration})
         }
@@ -77,6 +77,13 @@ impl TryFrom<std::time::Duration> for SecureChannelLifetime {
 
     fn try_from(duration: std::time::Duration) -> Result<Self, Self::Error> {
         Self::new(duration)
+    }
+}
+
+impl Default for SecureChannelLifetime {
+    fn default() -> Self {
+        SecureChannelLifetime::new(std::time::Duration::from_secs(60))
+        .expect("Hardcoded default duration is a valid lifetime")
     }
 }
 

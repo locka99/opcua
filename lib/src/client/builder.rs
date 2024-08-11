@@ -5,7 +5,6 @@ use crate::server::prelude::Config;
 
 use super::{Client, ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
 
-use super::transport;
 
 #[derive(Default)]
 pub struct ClientBuilder {
