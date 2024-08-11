@@ -117,10 +117,9 @@ impl SecureChannelState {
         request_type: SecurityTokenRequestType,
         timeout: Duration,
         sender: RequestSend,
+        lifetime: Duration
     ) -> Request {
         trace!("issue_or_renew_secure_channel({:?})", request_type);
-
-        const REQUESTED_LIFETIME: u32 = 60000; // TODO
 
         let (security_mode, security_policy, client_nonce) = {
             let mut secure_channel = trace_write_lock!(self.secure_channel);
@@ -137,7 +136,7 @@ impl SecureChannelState {
         info!("security_mode = {:?}", security_mode);
         info!("security_policy = {:?}", security_policy);
 
-        let requested_lifetime = REQUESTED_LIFETIME;
+        let requested_lifetime = lifetime.as_millis().min(u32::MAX as u128) as u32;
         let request = OpenSecureChannelRequest {
             request_header: self.make_request_header(timeout),
             client_protocol_version: 0,

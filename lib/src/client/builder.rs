@@ -279,13 +279,13 @@ impl ClientBuilder {
         self
     }
 
-    /// Session name - the default name to use for a new session
+    /// Session name - the default name to use for a new session.
     pub fn session_name(mut self, session_name: impl Into<String>) -> Self {
         self.config.session_name = session_name.into();
         self
     }
 
-    /// Sets the secure channel lifetime, in milliseconds.
+    /// Sets the secure channel lifetime.
     pub fn secure_channel_lifetime(mut self, secure_channel_lifetime: Duration) -> Self {
         self.config.secure_channel_lifetime = secure_channel_lifetime;
         self
