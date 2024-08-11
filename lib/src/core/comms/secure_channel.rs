@@ -50,7 +50,7 @@ impl fmt::Display for SecureChannelLifetimeError {
 
 impl Error for SecureChannelLifetimeError {}
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
 pub struct SecureChannelLifetime {
     duration: std::time::Duration
 }
@@ -79,7 +79,6 @@ impl TryFrom<std::time::Duration> for SecureChannelLifetime {
         Self::new(duration)
     }
 }
-
 
 /// Holds all of the security information related to this session
 #[derive(Debug)]
@@ -113,8 +112,7 @@ pub struct SecureChannel {
     /// Server (i.e. our end's set of keys) Symmetric Signing Key, Decrypt Key, IV
     local_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Decoding options
-    decoding_options: DecodingOptions,
-    lifetime: SecureChannelLifetime
+    decoding_options: DecodingOptions
 }
 
 impl SecureChannel {
@@ -139,7 +137,6 @@ impl SecureChannel {
             local_keys: None,
             remote_keys: None,
             decoding_options: DecodingOptions::default(),
-            lifetime: SecureChannelLifetime::new(Duration::from_secs(60))
         }
     }
 

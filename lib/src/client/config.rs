@@ -13,9 +13,7 @@ use std::{
 };
 
 use crate::{
-    core::config::Config,
-    crypto::SecurityPolicy,
-    types::{ApplicationType, MessageSecurityMode, UAString},
+    core::config::Config, crypto::SecurityPolicy, prelude::SecureChannelLifetime, types::{ApplicationType, MessageSecurityMode, UAString}
 };
 
 use super::retry::SessionRetryPolicy;
@@ -229,7 +227,7 @@ pub struct ClientConfig {
     /// Session name
     pub(crate) session_name: String,
     /// Requested secure channel lifetime
-    pub(crate) secure_channel_lifetime: Duration,
+    pub(crate) secure_channel_lifetime: SecureChannelLifetime,
 }
 
 impl Config for ClientConfig {
@@ -360,7 +358,7 @@ impl ClientConfig {
             request_timeout: Duration::from_secs(60),
             min_publish_interval: Duration::from_secs(1),
             publish_timeout: Duration::from_secs(60),
-            secure_channel_lifetime: Duration::from_millis(60000),
+            secure_channel_lifetime: SecureChannelLifetime::new(Duration::from_secs(60)).expect("hardcoded valid duration"),
             max_inflight_publish: 2,
             session_timeout: 0,
             decoding_options: DecodingOptions {

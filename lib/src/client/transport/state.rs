@@ -113,7 +113,7 @@ impl SecureChannelState {
         request_type: SecurityTokenRequestType,
         timeout: Duration,
         sender: RequestSend,
-        lifetime: SecureChannelLifetime
+        requested_lifetime: u32
     ) -> Request {
         trace!("issue_or_renew_secure_channel({:?})", request_type);
 
@@ -132,14 +132,13 @@ impl SecureChannelState {
         info!("security_mode = {:?}", security_mode);
         info!("security_policy = {:?}", security_policy);
 
-        let requested_lifetime = lifetime.as_millis();
         let request = OpenSecureChannelRequest {
             request_header: self.make_request_header(timeout),
             client_protocol_version: 0,
             request_type,
             security_mode,
             client_nonce,
-            requested_lifetime,
+            requested_lifetime
         };
 
         Request::new(request, sender, timeout)

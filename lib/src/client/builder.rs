@@ -1,5 +1,6 @@
 use std::{path::PathBuf, time::Duration};
 
+use crate::prelude::SecureChannelLifetime;
 use crate::server::prelude::Config;
 
 use super::{Client, ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
