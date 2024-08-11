@@ -228,6 +228,8 @@ pub struct ClientConfig {
     pub(crate) performance: Performance,
     /// Session name
     pub(crate) session_name: String,
+    /// Requested secure channel lifetime
+    pub(crate) secure_channel_lifetime: Duration,
 }
 
 impl Config for ClientConfig {
@@ -358,6 +360,7 @@ impl ClientConfig {
             request_timeout: Duration::from_secs(60),
             min_publish_interval: Duration::from_secs(1),
             publish_timeout: Duration::from_secs(60),
+            secure_channel_lifetime: Duration::from_millis(60000),
             max_inflight_publish: 2,
             session_timeout: 0,
             decoding_options: DecodingOptions {

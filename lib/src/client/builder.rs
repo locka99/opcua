@@ -284,4 +284,10 @@ impl ClientBuilder {
         self.config.session_name = session_name.into();
         self
     }
+
+    /// Sets the secure channel lifetime, in milliseconds.
+    pub fn secure_channel_lifetime(mut self, secure_channel_lifetime: Duration) -> Self {
+        self.config.secure_channel_lifetime = secure_channel_lifetime;
+        self
+    }
 }
