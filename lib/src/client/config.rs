@@ -385,6 +385,7 @@ mod tests {
     use std::time::Duration;
     use std::{self, collections::BTreeMap, path::PathBuf};
 
+    use crate::prelude::SecureChannelLifetimeError;
     use crate::{client::ClientBuilder, prelude::SecureChannelLifetime};
     use crate::core::config::Config;
     use crate::crypto::SecurityPolicy;
@@ -554,5 +555,25 @@ mod tests {
         let lifetime = SecureChannelLifetime::new(Duration::from_secs(30)).unwrap();
         let config = sample_builder().secure_channel_lifetime(lifetime).config();
         assert_eq!(config.secure_channel_lifetime.as_millis(), 30000);
+    }
+
+    #[test]
+    fn security_channel_lifetime_cant_be_zero() {
+        let lifetime = SecureChannelLifetime::new(Duration::from_secs(0));
+        assert!(matches!(lifetime, Err(SecureChannelLifetimeError::IsZero)))
+    }
+
+    #[test]
+    fn security_channel_lifetime_cant_exceed_u32_max() {
+        let too_large = Duration::from_millis(u32::MAX as u64 + 1);
+        let lifetime = SecureChannelLifetime::new(too_large);
+        assert!(matches!(lifetime, Err(SecureChannelLifetimeError::ExceedsMaxDuration)));
+    }
+
+    #[test]
+    fn security_channel_lifetime_can_hold_max_u32() {
+        let too_large = Duration::from_millis(u32::MAX as u64);
+        let lifetime = SecureChannelLifetime::new(too_large);
+        assert!(lifetime.is_ok());
     }
 }

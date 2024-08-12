@@ -36,14 +36,14 @@ pub enum Role {
 #[derive(Debug, Clone, PartialEq)]
 pub enum SecureChannelLifetimeError {
     IsZero,
-    TooBig,
+    ExceedsMaxDuration,
 }
 
 impl fmt::Display for SecureChannelLifetimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SecureChannelLifetimeError::IsZero => write!(f, "Lifetime must be greater than 0 ms"),
-            SecureChannelLifetimeError::TooBig => write!(f, "Lifetime cannot exceed {} ms", u32::MAX),
+            SecureChannelLifetimeError::ExceedsMaxDuration => write!(f, "Lifetime cannot exceed {} ms", u32::MAX),
         }
     }
 }
@@ -51,9 +51,7 @@ impl fmt::Display for SecureChannelLifetimeError {
 impl Error for SecureChannelLifetimeError {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
-pub struct SecureChannelLifetime {
-    duration: std::time::Duration
-}
+pub struct SecureChannelLifetime(u32);
 
 impl SecureChannelLifetime {
     pub fn new(duration: std::time::Duration) -> Result<Self, SecureChannelLifetimeError> {
@@ -61,14 +59,14 @@ impl SecureChannelLifetime {
         if ms == 0 {
             Err(SecureChannelLifetimeError::IsZero)
         } else if ms > u32::MAX as u128 {
-            Err(SecureChannelLifetimeError::TooBig)
+            Err(SecureChannelLifetimeError::ExceedsMaxDuration)
         } else {
-            Ok(Self {duration})
+            Ok(Self(ms as u32))
         }
     }
 
     pub fn as_millis(&self) -> u32 {
-        self.duration.as_millis() as u32
+        self.0
     }
 }
 
