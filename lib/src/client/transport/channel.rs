@@ -31,7 +31,7 @@ pub struct AsyncSecureChannel {
     state: SecureChannelState,
     issue_channel_lock: tokio::sync::Mutex<()>,
     request_send: ArcSwapOption<RequestSend>,
-    lifetime: SecureChannelLifetime
+    channel_lifetime: SecureChannelLifetime
 }
 
 pub struct SecureChannelEventLoop {
@@ -53,7 +53,7 @@ impl AsyncSecureChannel {
         ignore_clock_skew: bool,
         auth_token: Arc<ArcSwap<NodeId>>,
         transport_config: TransportConfiguration,
-        lifetime: SecureChannelLifetime
+        channel_lifetime: SecureChannelLifetime
     ) -> Self {
         let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
             certificate_store.clone(),
@@ -70,7 +70,7 @@ impl AsyncSecureChannel {
             certificate_store,
             session_retry_policy,
             request_send: Default::default(),
-            lifetime
+            channel_lifetime
         }
     }
 
@@ -96,9 +96,9 @@ impl AsyncSecureChannel {
             // Also, if the channel is currently being renewed, we need to wait for the new security token.
             let guard = self.issue_channel_lock.lock().await;
 
-            let (should_renew_security_token, secure_channel_lifetime) = {
+            let should_renew_security_token = {
                 let secure_channel = trace_read_lock!(self.secure_channel);
-                (secure_channel.should_renew_security_token(), secure_channel.token_lifetime())
+                secure_channel.should_renew_security_token()
             };
 
             if should_renew_security_token {
@@ -106,7 +106,7 @@ impl AsyncSecureChannel {
                     SecurityTokenRequestType::Renew,
                     Duration::from_secs(30),
                     send.clone(),
-                    secure_channel_lifetime
+                    self.channel_lifetime.as_millis()
                 );
 
                 let resp = request.send().await?;
@@ -176,7 +176,7 @@ impl AsyncSecureChannel {
             SecurityTokenRequestType::Issue,
             Duration::from_secs(30),
             send.clone(),
-            self.lifetime.as_millis()
+            self.channel_lifetime.as_millis()
         );
 
         let request_fut = request.send();
