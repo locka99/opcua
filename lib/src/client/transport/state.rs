@@ -6,13 +6,17 @@ use std::{
 use tokio::sync::mpsc::error::SendTimeoutError;
 
 use crate::{
-    client::{session::process_unexpected_response, transport::OutgoingMessage}, core::{
+    client::{session::process_unexpected_response, transport::OutgoingMessage},
+    core::{
         comms::secure_channel::SecureChannel, handle::AtomicHandle,
         supported_message::SupportedMessage,
-    }, crypto::SecurityPolicy, sync::RwLock, types::{
+    },
+    crypto::SecurityPolicy,
+    sync::RwLock,
+    types::{
         DateTime, DiagnosticBits, MessageSecurityMode, NodeId, OpenSecureChannelRequest,
         RequestHeader, SecurityTokenRequestType, StatusCode,
-    }
+    },
 };
 use arc_swap::ArcSwap;
 
@@ -113,7 +117,7 @@ impl SecureChannelState {
         request_type: SecurityTokenRequestType,
         timeout: Duration,
         sender: RequestSend,
-        requested_lifetime: u32
+        requested_lifetime: u32,
     ) -> Request {
         trace!("issue_or_renew_secure_channel({:?})", request_type);
 
@@ -138,7 +142,7 @@ impl SecureChannelState {
             request_type,
             security_mode,
             client_nonce,
-            requested_lifetime
+            requested_lifetime,
         };
 
         Request::new(request, sender, timeout)

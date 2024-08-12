@@ -12,7 +12,6 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use opcua::client::{ClientBuilder, EventCallback, IdentityToken, Session};
-use opcua::core::prelude::SecureChannelLifetime;
 use opcua::crypto::SecurityPolicy;
 use opcua::types::{
     AttributeId, ContentFilter, EventFilter, ExtensionObject, MessageSecurityMode,
@@ -80,9 +79,6 @@ async fn main() -> Result<(), ()> {
         .trust_server_certs(true)
         .create_sample_keypair(true)
         .session_retry_limit(3)
-        .secure_channel_lifetime(
-            SecureChannelLifetime::new(
-                Duration::from_secs(60)).unwrap())
         .client()
         .unwrap();
 

@@ -13,7 +13,10 @@ use std::{
 };
 
 use crate::{
-    core::config::Config, crypto::SecurityPolicy, prelude::SecureChannelLifetime, types::{ApplicationType, MessageSecurityMode, UAString}
+    core::config::Config,
+    crypto::SecurityPolicy,
+    prelude::SecureChannelLifetime,
+    types::{ApplicationType, MessageSecurityMode, UAString},
 };
 
 use super::retry::SessionRetryPolicy;
@@ -385,11 +388,11 @@ mod tests {
     use std::time::Duration;
     use std::{self, collections::BTreeMap, path::PathBuf};
 
-    use crate::prelude::SecureChannelLifetimeError;
-    use crate::{client::ClientBuilder, prelude::SecureChannelLifetime};
     use crate::core::config::Config;
     use crate::crypto::SecurityPolicy;
+    use crate::prelude::SecureChannelLifetimeError;
     use crate::types::*;
+    use crate::{client::ClientBuilder, prelude::SecureChannelLifetime};
 
     use super::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
 
@@ -567,7 +570,10 @@ mod tests {
     fn security_channel_lifetime_cant_exceed_u32_max() {
         let too_large = Duration::from_millis(u32::MAX as u64 + 1);
         let lifetime = SecureChannelLifetime::new(too_large);
-        assert!(matches!(lifetime, Err(SecureChannelLifetimeError::ExceedsMaxDuration)));
+        assert!(matches!(
+            lifetime,
+            Err(SecureChannelLifetimeError::ExceedsMaxDuration)
+        ));
     }
 
     #[test]

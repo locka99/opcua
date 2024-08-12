@@ -3,7 +3,11 @@
 // Copyright (C) 2017-2024 Adam Lock
 
 use std::{
-    error::Error, fmt, io::{Cursor, Write}, ops::Range, sync::Arc
+    error::Error,
+    fmt,
+    io::{Cursor, Write},
+    ops::Range,
+    sync::Arc,
 };
 
 use chrono::{Duration, TimeDelta};
@@ -43,7 +47,9 @@ impl fmt::Display for SecureChannelLifetimeError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             SecureChannelLifetimeError::IsZero => write!(f, "Lifetime must be greater than 0 ms"),
-            SecureChannelLifetimeError::ExceedsMaxDuration => write!(f, "Lifetime cannot exceed {} ms", u32::MAX),
+            SecureChannelLifetimeError::ExceedsMaxDuration => {
+                write!(f, "Lifetime cannot exceed {} ms", u32::MAX)
+            }
         }
     }
 }
@@ -81,7 +87,7 @@ impl TryFrom<std::time::Duration> for SecureChannelLifetime {
 impl Default for SecureChannelLifetime {
     fn default() -> Self {
         SecureChannelLifetime::new(std::time::Duration::from_secs(60))
-        .expect("Hardcoded default duration is a valid lifetime")
+            .expect("Hardcoded default duration is a valid lifetime")
     }
 }
 
@@ -117,7 +123,7 @@ pub struct SecureChannel {
     /// Server (i.e. our end's set of keys) Symmetric Signing Key, Decrypt Key, IV
     local_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Decoding options
-    decoding_options: DecodingOptions
+    decoding_options: DecodingOptions,
 }
 
 impl SecureChannel {
