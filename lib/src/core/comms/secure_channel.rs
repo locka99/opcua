@@ -60,17 +60,6 @@ impl Error for SecureChannelLifetimeError {}
 pub struct SecureChannelLifetime(u32);
 
 impl SecureChannelLifetime {
-    pub fn new(duration: std::time::Duration) -> Result<Self, SecureChannelLifetimeError> {
-        let ms = duration.as_millis();
-        if ms == 0 {
-            Err(SecureChannelLifetimeError::IsZero)
-        } else if ms > u32::MAX as u128 {
-            Err(SecureChannelLifetimeError::ExceedsMaxDuration)
-        } else {
-            Ok(Self(ms as u32))
-        }
-    }
-
     pub fn as_millis(&self) -> u32 {
         self.0
     }
@@ -80,14 +69,20 @@ impl TryFrom<std::time::Duration> for SecureChannelLifetime {
     type Error = SecureChannelLifetimeError;
 
     fn try_from(duration: std::time::Duration) -> Result<Self, Self::Error> {
-        Self::new(duration)
+        let ms = duration.as_millis();
+        if ms == 0 {
+            Err(SecureChannelLifetimeError::IsZero)
+        } else if ms > u32::MAX as u128 {
+            Err(SecureChannelLifetimeError::ExceedsMaxDuration)
+        } else {
+            Ok(Self(ms as u32))
+        }
     }
 }
 
 impl Default for SecureChannelLifetime {
     fn default() -> Self {
-        SecureChannelLifetime::new(std::time::Duration::from_secs(60))
-            .expect("Hardcoded default duration is a valid lifetime")
+        SecureChannelLifetime(60_000)
     }
 }
 
