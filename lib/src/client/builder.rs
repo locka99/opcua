@@ -285,7 +285,7 @@ impl ClientBuilder {
         self
     }
 
-    /// Sets the secure channel lifetime, in milliseconds.
+    /// Sets the secure channel lifetime, in milliseconds. Default is 1 minute.
     pub fn secure_channel_lifetime(mut self, secure_channel_lifetime: u32) -> Self {
         self.config.secure_channel_lifetime = secure_channel_lifetime;
         self
