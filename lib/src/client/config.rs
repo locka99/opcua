@@ -384,7 +384,6 @@ impl ClientConfig {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
     use std::{self, collections::BTreeMap, path::PathBuf};
 
     use crate::client::ClientBuilder;
