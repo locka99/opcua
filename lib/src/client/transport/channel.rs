@@ -34,8 +34,8 @@ pub struct AsyncSecureChannel {
     transport_config: TransportConfiguration,
     state: SecureChannelState,
     issue_channel_lock: tokio::sync::Mutex<()>,
-
     request_send: ArcSwapOption<RequestSend>,
+    channel_lifetime: u32,
 }
 
 pub struct SecureChannelEventLoop {
@@ -57,6 +57,7 @@ impl AsyncSecureChannel {
         ignore_clock_skew: bool,
         auth_token: Arc<ArcSwap<NodeId>>,
         transport_config: TransportConfiguration,
+        channel_lifetime: u32,
     ) -> Self {
         let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
             certificate_store.clone(),
@@ -73,6 +74,7 @@ impl AsyncSecureChannel {
             certificate_store,
             session_retry_policy,
             request_send: Default::default(),
+            channel_lifetime,
         }
     }
 
@@ -97,6 +99,7 @@ impl AsyncSecureChannel {
             // succession.
             // Also, if the channel is currently being renewed, we need to wait for the new security token.
             let guard = self.issue_channel_lock.lock().await;
+
             let should_renew_security_token = {
                 let secure_channel = trace_read_lock!(self.secure_channel);
                 secure_channel.should_renew_security_token()
@@ -107,6 +110,7 @@ impl AsyncSecureChannel {
                     SecurityTokenRequestType::Renew,
                     Duration::from_secs(30),
                     send.clone(),
+                    self.channel_lifetime,
                 );
 
                 let resp = request.send().await?;
@@ -176,6 +180,7 @@ impl AsyncSecureChannel {
             SecurityTokenRequestType::Issue,
             Duration::from_secs(30),
             send.clone(),
+            self.channel_lifetime,
         );
 
         let request_fut = request.send();

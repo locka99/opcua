@@ -90,6 +90,7 @@ impl Session {
                     max_message_size: config.decoding_options.max_message_size,
                     max_chunk_count: config.decoding_options.max_chunk_count,
                 },
+                config.secure_channel_lifetime
             ),
             internal_session_id: AtomicU32::new(NEXT_SESSION_ID.fetch_add(1, Ordering::Relaxed)),
             state_watch_rx,
