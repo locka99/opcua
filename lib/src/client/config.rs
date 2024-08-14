@@ -228,7 +228,7 @@ pub struct ClientConfig {
     pub(crate) performance: Performance,
     /// Session name
     pub(crate) session_name: String,
-    /// Requested secure channel lifetime in milliseconds
+    /// Secure channel lifetime in milliseconds
     pub(crate) secure_channel_lifetime: u32,
 }
 
@@ -387,10 +387,10 @@ mod tests {
     use std::time::Duration;
     use std::{self, collections::BTreeMap, path::PathBuf};
 
+    use crate::client::ClientBuilder;
     use crate::core::config::Config;
     use crate::crypto::SecurityPolicy;
     use crate::types::*;
-    use crate::client::ClientBuilder;
 
     use super::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
 
