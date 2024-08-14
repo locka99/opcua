@@ -3,8 +3,6 @@
 // Copyright (C) 2017-2024 Adam Lock
 
 use std::{
-    error::Error,
-    fmt,
     io::{Cursor, Write},
     ops::Range,
     sync::Arc,
@@ -35,55 +33,6 @@ pub enum Role {
     Unknown,
     Client,
     Server,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum SecureChannelLifetimeError {
-    IsZero,
-    ExceedsMaxDuration,
-}
-
-impl fmt::Display for SecureChannelLifetimeError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            SecureChannelLifetimeError::IsZero => write!(f, "Lifetime must be greater than 0 ms"),
-            SecureChannelLifetimeError::ExceedsMaxDuration => {
-                write!(f, "Lifetime cannot exceed {} ms", u32::MAX)
-            }
-        }
-    }
-}
-
-impl Error for SecureChannelLifetimeError {}
-
-#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
-pub struct SecureChannelLifetime(u32);
-
-impl SecureChannelLifetime {
-    pub fn as_millis(&self) -> u32 {
-        self.0
-    }
-}
-
-impl TryFrom<std::time::Duration> for SecureChannelLifetime {
-    type Error = SecureChannelLifetimeError;
-
-    fn try_from(duration: std::time::Duration) -> Result<Self, Self::Error> {
-        let ms = duration.as_millis();
-        if ms == 0 {
-            Err(SecureChannelLifetimeError::IsZero)
-        } else if ms > u32::MAX as u128 {
-            Err(SecureChannelLifetimeError::ExceedsMaxDuration)
-        } else {
-            Ok(Self(ms as u32))
-        }
-    }
-}
-
-impl Default for SecureChannelLifetime {
-    fn default() -> Self {
-        SecureChannelLifetime(60_000)
-    }
 }
 
 /// Holds all of the security information related to this session

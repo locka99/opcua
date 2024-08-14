@@ -1,10 +1,8 @@
 use std::{path::PathBuf, time::Duration};
 
-use crate::prelude::SecureChannelLifetime;
 use crate::server::prelude::Config;
 
 use super::{Client, ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
-
 
 #[derive(Default)]
 pub struct ClientBuilder {
@@ -287,8 +285,8 @@ impl ClientBuilder {
         self
     }
 
-    /// Sets the secure channel lifetime.
-    pub fn secure_channel_lifetime(mut self, secure_channel_lifetime: SecureChannelLifetime) -> Self {
+    /// Sets the secure channel lifetime, in milliseconds.
+    pub fn secure_channel_lifetime(mut self, secure_channel_lifetime: u32) -> Self {
         self.config.secure_channel_lifetime = secure_channel_lifetime;
         self
     }

@@ -15,7 +15,6 @@ use std::{
 use crate::{
     core::config::Config,
     crypto::SecurityPolicy,
-    prelude::SecureChannelLifetime,
     types::{ApplicationType, MessageSecurityMode, UAString},
 };
 
@@ -229,8 +228,8 @@ pub struct ClientConfig {
     pub(crate) performance: Performance,
     /// Session name
     pub(crate) session_name: String,
-    /// Requested secure channel lifetime
-    pub(crate) secure_channel_lifetime: SecureChannelLifetime,
+    /// Requested secure channel lifetime in milliseconds
+    pub(crate) secure_channel_lifetime: u32,
 }
 
 impl Config for ClientConfig {
@@ -361,7 +360,7 @@ impl ClientConfig {
             request_timeout: Duration::from_secs(60),
             min_publish_interval: Duration::from_secs(1),
             publish_timeout: Duration::from_secs(60),
-            secure_channel_lifetime: SecureChannelLifetime::default(),
+            secure_channel_lifetime: 60000,
             max_inflight_publish: 2,
             session_timeout: 0,
             decoding_options: DecodingOptions {
@@ -390,9 +389,8 @@ mod tests {
 
     use crate::core::config::Config;
     use crate::crypto::SecurityPolicy;
-    use crate::prelude::SecureChannelLifetimeError;
     use crate::types::*;
-    use crate::{client::ClientBuilder, prelude::SecureChannelLifetime};
+    use crate::client::ClientBuilder;
 
     use super::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
 
@@ -550,36 +548,12 @@ mod tests {
     #[test]
     fn default_security_channel_lifetime_is_1_minute() {
         let config = default_sample_config();
-        assert_eq!(config.secure_channel_lifetime.as_millis(), 60000);
+        assert_eq!(config.secure_channel_lifetime, 60000);
     }
 
     #[test]
     fn security_channel_lifetime_is_configurable() {
-        let lifetime = SecureChannelLifetime::try_from(Duration::from_secs(30)).unwrap();
-        let config = sample_builder().secure_channel_lifetime(lifetime).config();
-        assert_eq!(config.secure_channel_lifetime.as_millis(), 30000);
-    }
-
-    #[test]
-    fn security_channel_lifetime_cant_be_zero() {
-        let lifetime = SecureChannelLifetime::try_from(Duration::from_secs(0));
-        assert!(matches!(lifetime, Err(SecureChannelLifetimeError::IsZero)))
-    }
-
-    #[test]
-    fn security_channel_lifetime_cant_exceed_u32_max() {
-        let too_large = Duration::from_millis(u32::MAX as u64 + 1);
-        let lifetime = SecureChannelLifetime::try_from(too_large);
-        assert!(matches!(
-            lifetime,
-            Err(SecureChannelLifetimeError::ExceedsMaxDuration)
-        ));
-    }
-
-    #[test]
-    fn security_channel_lifetime_can_hold_max_u32() {
-        let too_large = Duration::from_millis(u32::MAX as u64);
-        let lifetime = SecureChannelLifetime::try_from(too_large);
-        assert!(lifetime.is_ok());
+        let config = sample_builder().secure_channel_lifetime(30000).config();
+        assert_eq!(config.secure_channel_lifetime, 30000);
     }
 }

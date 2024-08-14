@@ -7,7 +7,6 @@ use crate::{
         supported_message::SupportedMessage,
     },
     crypto::{CertificateStore, SecurityPolicy},
-    prelude::SecureChannelLifetime,
     sync::RwLock,
     types::{
         ByteString, CloseSecureChannelRequest, DecodingOptions, NodeId, RequestHeader,
@@ -36,7 +35,7 @@ pub struct AsyncSecureChannel {
     state: SecureChannelState,
     issue_channel_lock: tokio::sync::Mutex<()>,
     request_send: ArcSwapOption<RequestSend>,
-    channel_lifetime: SecureChannelLifetime,
+    channel_lifetime: u32,
 }
 
 pub struct SecureChannelEventLoop {
@@ -58,7 +57,7 @@ impl AsyncSecureChannel {
         ignore_clock_skew: bool,
         auth_token: Arc<ArcSwap<NodeId>>,
         transport_config: TransportConfiguration,
-        channel_lifetime: SecureChannelLifetime,
+        channel_lifetime: u32,
     ) -> Self {
         let secure_channel = Arc::new(RwLock::new(SecureChannel::new(
             certificate_store.clone(),
@@ -111,7 +110,7 @@ impl AsyncSecureChannel {
                     SecurityTokenRequestType::Renew,
                     Duration::from_secs(30),
                     send.clone(),
-                    self.channel_lifetime.as_millis(),
+                    self.channel_lifetime,
                 );
 
                 let resp = request.send().await?;
@@ -181,7 +180,7 @@ impl AsyncSecureChannel {
             SecurityTokenRequestType::Issue,
             Duration::from_secs(30),
             send.clone(),
-            self.channel_lifetime.as_millis(),
+            self.channel_lifetime,
         );
 
         let request_fut = request.send();
