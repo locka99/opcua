@@ -88,13 +88,13 @@ impl callbacks::Method for Boop {
         // Validate input to be a string
         debug!("Boop method called");
         let in1_status = if let Some(ref input_arguments) = request.input_arguments {
-            if let Some(in1) = input_arguments.get(0) {
+            if let Some(in1) = input_arguments.first() {
                 if let Variant::String(_) = in1 {
                     StatusCode::Good
                 } else {
                     StatusCode::BadInvalidArgument
                 }
-            } else if input_arguments.len() == 0 {
+            } else if input_arguments.is_empty() {
                 return Err(StatusCode::BadArgumentsMissing);
             } else {
                 // Shouldn't get here because there is 1 argument
@@ -152,14 +152,14 @@ impl callbacks::Method for HelloX {
         // Validate input to be a string
         let mut out1 = Variant::Empty;
         let in1_status = if let Some(ref input_arguments) = request.input_arguments {
-            if let Some(in1) = input_arguments.get(0) {
+            if let Some(in1) = input_arguments.first() {
                 if let Variant::String(in1) = in1 {
                     out1 = Variant::from(format!("Hello {}!", &in1));
                     StatusCode::Good
                 } else {
                     StatusCode::BadTypeMismatch
                 }
-            } else if input_arguments.len() == 0 {
+            } else if input_arguments.is_empty() {
                 return Err(StatusCode::BadArgumentsMissing);
             } else {
                 // Shouldn't get here because there is 1 argument

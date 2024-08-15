@@ -19,9 +19,8 @@ use crate::types::{
         enums::DeadbandType, AnonymousIdentityToken, ApplicationDescription, ApplicationType,
         Argument, CallMethodRequest, DataChangeFilter, DataChangeTrigger, DataSetFieldFlags,
         EndpointDescription, MessageSecurityMode, MonitoredItemCreateRequest, MonitoringMode,
-        MonitoringParameters, ReadValueId, ServerDiagnosticsSummaryDataType,
-        ServiceCounterDataType, ServiceFault, SignatureData, UserNameIdentityToken,
-        UserTokenPolicy, UserTokenType,
+        MonitoringParameters, ReadValueId, ServiceCounterDataType, ServiceFault, SignatureData,
+        UserNameIdentityToken, UserTokenPolicy, UserTokenType,
     },
     status_code::StatusCode,
     string::UAString,
@@ -346,25 +345,6 @@ impl Into<CallMethodRequest> for (NodeId, NodeId, Option<Vec<Variant>>) {
     }
 }
 
-impl Default for ServerDiagnosticsSummaryDataType {
-    fn default() -> Self {
-        ServerDiagnosticsSummaryDataType {
-            server_view_count: 0,
-            current_session_count: 0,
-            cumulated_session_count: 0,
-            security_rejected_session_count: 0,
-            rejected_session_count: 0,
-            session_timeout_count: 0,
-            session_abort_count: 0,
-            current_subscription_count: 0,
-            cumulated_subscription_count: 0,
-            publishing_interval_count: 0,
-            security_rejected_requests_count: 0,
-            rejected_requests_count: 0,
-        }
-    }
-}
-
 impl<'a> From<&'a str> for EndpointDescription {
     fn from(v: &'a str) -> Self {
         EndpointDescription::from((
@@ -477,15 +457,6 @@ impl From<(&str, DataTypeId)> for Argument {
     }
 }
 
-impl Default for ServiceCounterDataType {
-    fn default() -> Self {
-        Self {
-            total_count: 0,
-            error_count: 0,
-        }
-    }
-}
-
 impl ServiceCounterDataType {
     pub fn success(&mut self) {
         self.total_count += 1;
@@ -515,7 +486,7 @@ impl<'de> Deserialize<'de> for DataSetFieldFlags {
     {
         deserializer
             .deserialize_i16(Int16Visitor)
-            .map(|v| DataSetFieldFlags::from_bits_truncate(v))
+            .map(DataSetFieldFlags::from_bits_truncate)
     }
 }
 

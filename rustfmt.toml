@@ -1,6 +1,0 @@
-ignore = [
-    "core/src/supported_messsages.rs",
-    "server/src/address_space/generated",
-    "types/src/node_ids.rs",
-    "types/src/service_types",
-]
