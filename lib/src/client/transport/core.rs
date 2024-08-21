@@ -181,10 +181,11 @@ impl TransportState {
 
         match chunk_info.message_header.is_final {
             MessageIsFinalType::Intermediate => {
-                debug!(
-                    "receive chunk intermediate {}:{}",
+                trace!(
+                    "receive chunk intermediate {}:{}. Length {}",
                     chunk_info.sequence_header.request_id,
-                    chunk_info.sequence_header.sequence_number
+                    chunk_info.sequence_header.sequence_number,
+                    chunk_info.body_length
                 );
                 message_state.chunks.push(MessageChunkWithChunkInfo {
                     header: chunk_info,
@@ -210,6 +211,12 @@ impl TransportState {
                     .send(Err(StatusCode::BadCommunicationError));
             }
             MessageIsFinalType::Final => {
+                trace!(
+                    "receive chunk final {}:{}. Length {}",
+                    chunk_info.sequence_header.request_id,
+                    chunk_info.sequence_header.sequence_number,
+                    chunk_info.body_length
+                );
                 message_state.chunks.push(MessageChunkWithChunkInfo {
                     header: chunk_info,
                     data_with_header: chunk.data,

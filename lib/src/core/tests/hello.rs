@@ -69,12 +69,12 @@ fn valid_buffer_sizes() {
         endpoint_url: UAString::null(),
     };
     assert!(!h.is_valid_buffer_sizes());
-    h.receive_buffer_size = 8195;
+    h.receive_buffer_size = 8191;
     assert!(!h.is_valid_buffer_sizes());
-    h.send_buffer_size = 8195;
+    h.send_buffer_size = 8191;
     assert!(!h.is_valid_buffer_sizes());
-    h.receive_buffer_size = 8196;
+    h.receive_buffer_size = 8192;
     assert!(!h.is_valid_buffer_sizes());
-    h.send_buffer_size = 8196;
+    h.send_buffer_size = 8192;
     assert!(h.is_valid_buffer_sizes());
 }
