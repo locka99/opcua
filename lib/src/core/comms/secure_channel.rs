@@ -1217,7 +1217,6 @@ impl SecureChannel {
                     &mut decrypted_tmp[..],
                 )?;
 
-                // Self::log_crypto_data("Encrypted buffer", &src[..encrypted_range.end]);
                 let encrypted_range =
                     encrypted_range.start..(encrypted_range.start + decrypted_size);
                 dst[encrypted_range.clone()].copy_from_slice(&decrypted_tmp[..decrypted_size]);
