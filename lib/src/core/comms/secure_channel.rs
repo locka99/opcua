@@ -1189,23 +1189,8 @@ impl SecureChannel {
                 self.expect_supported_security_policy();
                 trace!("copying from slice {:?}", ..src.len());
                 dst.copy_from_slice(src);
-                // Verify signature
-
-                let signature_range = signed_range.end..;
-
-                trace!(
-                    "Verifying signed range = {:?}, signature range = {:?}",
-                    signed_range,
-                    signature_range
-                );
-
-                let verification_key = self.verification_key();
-                self.security_policy.symmetric_verify_signature(
-                    verification_key,
-                    &dst[signed_range],
-                    &dst[signature_range],
-                )?;
-
+                let signature_range = signed_range.end..dst.len();
+                self.symmetric_verify_signature_with_trace(dst, signed_range, signature_range)?;
                 Ok(encrypted_range.end)
             }
             MessageSecurityMode::SignAndEncrypt => {
@@ -1247,19 +1232,7 @@ impl SecureChannel {
                     - self.security_policy.symmetric_signature_size())
                     ..encrypted_range.end;
 
-                trace!(
-                    "Verifying signed range = {:?}, signature range = {:?}",
-                    signed_range,
-                    signature_range
-                );
-
-                let verification_key = self.verification_key();
-                self.security_policy.symmetric_verify_signature(
-                    verification_key,
-                    &dst[signed_range],
-                    &dst[signature_range],
-                )?;
-
+                self.symmetric_verify_signature_with_trace(dst, signed_range, signature_range)?;
                 Ok(encrypted_range.end)
             }
             MessageSecurityMode::Invalid => {
@@ -1267,6 +1240,26 @@ impl SecureChannel {
                 panic!("Message security mode is invalid");
             }
         }
+    }
+
+    fn symmetric_verify_signature_with_trace(
+        &self,
+        bytes: &[u8],
+        data_range: Range<usize>, 
+        signature_range: Range<usize>
+    ) -> Result<bool, StatusCode> {
+        trace!(
+            "Verifying signed range = {:?}, signature range = {:?}",
+            data_range,
+            signature_range
+        );
+
+        let verification_key = self.verification_key();
+        self.security_policy.symmetric_verify_signature(
+            verification_key,
+            &bytes[data_range],
+            &bytes[signature_range],
+        )
     }
 
     // Panic code which requires a policy
