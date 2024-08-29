@@ -1187,10 +1187,8 @@ impl SecureChannel {
             }
             MessageSecurityMode::Sign => {
                 self.expect_supported_security_policy();
-                // Copy everything
-                let all = ..src.len();
-                trace!("copying from slice {:?}", all);
-                dst[all].copy_from_slice(&src[all]);
+                trace!("copying from slice {:?}", ..src.len());
+                dst.copy_from_slice(src);
                 // Verify signature
                 trace!(
                     "Verifying range from {:?} to signature {}..",
