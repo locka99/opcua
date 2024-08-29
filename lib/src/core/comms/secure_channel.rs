@@ -1195,11 +1195,12 @@ impl SecureChannel {
                     signed_range,
                     signed_range.end
                 );
+                let signature_range = signed_range.end..;
                 let verification_key = self.verification_key();
                 self.security_policy.symmetric_verify_signature(
                     verification_key,
-                    &dst[signed_range.clone()],
-                    &dst[signed_range.end..],
+                    &dst[signed_range],
+                    &dst[signature_range],
                 )?;
 
                 Ok(encrypted_range.end)
