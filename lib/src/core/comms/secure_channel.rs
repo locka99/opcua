@@ -1190,12 +1190,15 @@ impl SecureChannel {
                 trace!("copying from slice {:?}", ..src.len());
                 dst.copy_from_slice(src);
                 // Verify signature
-                trace!(
-                    "Verifying range from {:?} to signature {}..",
-                    signed_range,
-                    signed_range.end
-                );
+
                 let signature_range = signed_range.end..;
+
+                trace!(
+                    "Verifying signed range = {:?}, signature range = {:?}",
+                    signed_range,
+                    signature_range
+                );
+
                 let verification_key = self.verification_key();
                 self.security_policy.symmetric_verify_signature(
                     verification_key,
@@ -1243,17 +1246,20 @@ impl SecureChannel {
                 let signature_range = (encrypted_range.end
                     - self.security_policy.symmetric_signature_size())
                     ..encrypted_range.end;
+
                 trace!(
-                    "signed range = {:?}, signature range = {:?}",
+                    "Verifying signed range = {:?}, signature range = {:?}",
                     signed_range,
                     signature_range
                 );
+
                 let verification_key = self.verification_key();
                 self.security_policy.symmetric_verify_signature(
                     verification_key,
                     &dst[signed_range],
                     &dst[signature_range],
                 )?;
+
                 Ok(encrypted_range.end)
             }
             MessageSecurityMode::Invalid => {
