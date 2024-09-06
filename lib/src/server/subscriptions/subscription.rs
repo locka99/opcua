@@ -706,7 +706,7 @@ impl Subscription {
 
     /// Start or restart the publishing timer and decrement the LifetimeCounter Variable.
     pub(super) fn start_publishing_timer(&mut self) {
-        self.lifetime_counter -= 1;
+        self.lifetime_counter = self.lifetime_counter.saturating_sub(1);
         trace!("Decrementing life time counter {}", self.lifetime_counter);
     }
 
