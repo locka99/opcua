@@ -13,8 +13,7 @@ use crate::types::{
     node_ids::{DataTypeId, ObjectId},
     profiles,
     qualified_name::QualifiedName,
-    request_header::RequestHeader,
-    response_header::ResponseHeader,
+    response_header::{AsRequestHandle, ResponseHeader},
     service_types::{
         enums::DeadbandType, AnonymousIdentityToken, ApplicationDescription, ApplicationType,
         Argument, CallMethodRequest, DataChangeFilter, DataChangeTrigger, DataSetFieldFlags,
@@ -22,7 +21,7 @@ use crate::types::{
         MonitoringParameters, ReadValueId, ServiceCounterDataType, ServiceFault, SignatureData,
         UserNameIdentityToken, UserTokenPolicy, UserTokenType,
     },
-    status_codes::StatusCode,
+    status_code::StatusCode,
     string::UAString,
     variant::Variant,
 };
@@ -34,7 +33,7 @@ pub trait MessageInfo {
 }
 
 impl ServiceFault {
-    pub fn new(request_header: &RequestHeader, service_result: StatusCode) -> ServiceFault {
+    pub fn new(request_header: impl AsRequestHandle, service_result: StatusCode) -> ServiceFault {
         ServiceFault {
             response_header: ResponseHeader::new_service_result(request_header, service_result),
         }

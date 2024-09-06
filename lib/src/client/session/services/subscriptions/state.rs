@@ -60,7 +60,7 @@ impl SubscriptionState {
         std::mem::take(&mut self.acknowledgements)
     }
 
-    fn add_acknowledgement(&mut self, subscription_id: u32, sequence_number: u32) {
+    pub(crate) fn add_acknowledgement(&mut self, subscription_id: u32, sequence_number: u32) {
         self.acknowledgements.push(SubscriptionAcknowledgement {
             subscription_id,
             sequence_number,
@@ -88,6 +88,19 @@ impl SubscriptionState {
     /// Get a reference to a subscription by ID.
     pub fn get(&self, subscription_id: u32) -> Option<&Subscription> {
         self.subscriptions.get(&subscription_id)
+    }
+
+    /// Get the number of subscriptions.
+    pub fn len(&self) -> usize {
+        self.subscriptions.len()
+    }
+
+    /// Get the number of subscriptions that have publishing enabled.
+    pub fn len_active(&self) -> usize {
+        self.subscriptions
+            .iter()
+            .filter(|s| s.1.publishing_enabled)
+            .count()
     }
 
     pub(crate) fn add_subscription(&mut self, subscription: Subscription) {

@@ -4,17 +4,37 @@
 
 //! Contains the implementation of `Method` and `MethodBuilder`.
 
-use crate::types::service_types::DataTypeAttributes;
+use crate::{
+    types::service_types::DataTypeAttributes,
+    types::{
+        AttributeId, AttributesMask, DataValue, NumericRange, StatusCode, TimestampsToReturn,
+        Variant,
+    },
+};
 
 use super::{base::Base, node::Node, node::NodeBase};
 
 node_builder_impl!(DataTypeBuilder, DataType);
+node_builder_impl_subtype!(DataTypeBuilder);
+
+impl DataTypeBuilder {
+    pub fn is_abstract(mut self, is_abstract: bool) -> Self {
+        self.node.set_is_abstract(is_abstract);
+        self
+    }
+
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
+        self
+    }
+}
 
 /// A `DataType` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct DataType {
-    base: Base,
-    is_abstract: bool,
+    pub(super) base: Base,
+    pub(super) is_abstract: bool,
+    // TODO: Handle DataTypeDefinition. Requires codegen extensions
 }
 
 impl Default for DataType {

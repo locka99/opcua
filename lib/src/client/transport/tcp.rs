@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use super::buffer::SendBuffer;
 use super::core::{OutgoingMessage, TransportPollResult, TransportState};
 use crate::core::comms::{
+    buffer::SendBuffer,
     secure_channel::SecureChannel,
     tcp_codec::{Message, TcpCodec},
     tcp_types::HelloMessage,

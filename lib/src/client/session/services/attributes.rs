@@ -24,20 +24,20 @@ pub enum HistoryReadAction {
     ReadAtTimeDetails(ReadAtTimeDetails),
 }
 
-impl From<HistoryReadAction> for ExtensionObject {
-    fn from(action: HistoryReadAction) -> Self {
+impl From<&HistoryReadAction> for ExtensionObject {
+    fn from(action: &HistoryReadAction) -> Self {
         match action {
             HistoryReadAction::ReadEventDetails(v) => {
-                Self::from_encodable(ObjectId::ReadEventDetails_Encoding_DefaultBinary, &v)
+                Self::from_encodable(ObjectId::ReadEventDetails_Encoding_DefaultBinary, v)
             }
             HistoryReadAction::ReadRawModifiedDetails(v) => {
-                Self::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &v)
+                Self::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, v)
             }
             HistoryReadAction::ReadProcessedDetails(v) => {
-                Self::from_encodable(ObjectId::ReadProcessedDetails_Encoding_DefaultBinary, &v)
+                Self::from_encodable(ObjectId::ReadProcessedDetails_Encoding_DefaultBinary, v)
             }
             HistoryReadAction::ReadAtTimeDetails(v) => {
-                Self::from_encodable(ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary, &v)
+                Self::from_encodable(ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary, v)
             }
         }
     }
@@ -157,7 +157,7 @@ impl Session {
     ///
     pub async fn history_read(
         &self,
-        history_read_details: HistoryReadAction,
+        history_read_details: &HistoryReadAction,
         timestamps_to_return: TimestampsToReturn,
         release_continuation_points: bool,
         nodes_to_read: &[HistoryReadValueId],

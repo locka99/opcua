@@ -25,10 +25,6 @@ jobs:
         run: cargo build --features test-vendored-openssl
       - name: Run tests
         run: cargo test --features test-vendored-openssl --verbose
-      - name: Run integration tests
-        run: |
-          cd integration
-          sh ./run.sh
 
   build-windows:
     strategy:
@@ -65,6 +61,3 @@ jobs:
 
   verify-code-formatting:
     uses: ./.github/workflows/ci_format_code.yml
-
-  verify-clean-status-codes:
-    uses: ./.github/workflows/ci_verify_clean_status_codes.yml

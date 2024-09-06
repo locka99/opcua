@@ -121,9 +121,9 @@ use std::path::PathBuf;
 pub use builder::ClientBuilder;
 pub use config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_TOKEN_ID};
 pub use session::{
-    Client, DataChangeCallback, EventCallback, MonitoredItem, OnSubscriptionNotification, Session,
-    SessionActivity, SessionConnectMode, SessionEventLoop, SessionPollResult, Subscription,
-    SubscriptionCallbacks,
+    Client, DataChangeCallback, EventCallback, HistoryReadAction, HistoryUpdateAction,
+    MonitoredItem, OnSubscriptionNotification, Session, SessionActivity, SessionConnectMode,
+    SessionEventLoop, SessionPollResult, Subscription, SubscriptionCallbacks,
 };
 pub use transport::AsyncSecureChannel;
 

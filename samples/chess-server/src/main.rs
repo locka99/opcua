@@ -3,13 +3,16 @@
 // Copyright (C) 2017-2024 Adam Lock
 
 use std::env;
-use std::path::PathBuf;
 use std::sync::Arc;
-use std::thread;
 use std::time::Duration;
 
-use opcua::server::prelude::*;
+use opcua::server::address_space::VariableBuilder;
+use opcua::server::node_manager::memory::{
+    simple_node_manager, NamespaceMetadata, SimpleNodeManager,
+};
+use opcua::server::{ServerBuilder, SubscriptionCache};
 use opcua::sync::Mutex;
+use opcua::types::*;
 
 mod game;
 
@@ -32,7 +35,8 @@ fn default_engine_path() -> String {
     })
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let engine_path = if env::args().len() > 1 {
         env::args().nth(1).unwrap()
     } else {
@@ -42,20 +46,33 @@ fn main() {
     let game = Arc::new(Mutex::new(game::Game::new(&engine_path)));
 
     // Create an OPC UA server with sample configuration and default node set
-    let server = Server::new(ServerConfig::load(&PathBuf::from("../server.conf")).unwrap());
+    let (server, handle) = ServerBuilder::new()
+        .with_config_from("../server.conf")
+        .with_node_manager(simple_node_manager(
+            NamespaceMetadata {
+                namespace_uri: "urn:chess-server".to_owned(),
+                ..Default::default()
+            },
+            "chess",
+        ))
+        .build()
+        .unwrap();
+    let node_manager = handle
+        .node_managers()
+        .get_of_type::<SimpleNodeManager>()
+        .unwrap();
+    let ns = handle.get_namespace_index("urn:chess-server").unwrap();
 
-    let address_space = server.address_space();
+    {
+        let mut address_space = node_manager.address_space().write();
 
-    let ns = {
-        let mut address_space = address_space.write();
-
-        let ns = address_space
-            .register_namespace("urn:chess-server")
-            .unwrap();
-
-        let board_node_id = address_space
-            .add_folder("Board", "Board", &NodeId::objects_folder_id())
-            .unwrap();
+        let board_node_id = NodeId::new(2, "board");
+        address_space.add_folder(
+            &board_node_id,
+            "Board",
+            "Board",
+            &NodeId::objects_folder_id(),
+        );
 
         BOARD_SQUARES.iter().for_each(|square| {
             // Variable represents each square's state
@@ -76,19 +93,19 @@ fn main() {
                 .value(false)
                 .insert(&mut address_space);
         });
-
-        let game = game.lock();
-        update_board_state(&game, &mut address_space, ns);
-
-        ns
     };
+
+    {
+        let game = game.lock();
+        update_board_state(&game, &node_manager, 2, &handle.subscriptions());
+    }
 
     // Spawn a thread for the game which will update server state
 
     // Each variable will hold a value representing what's in the square. A client can subscribe to the content
     // of the variables and observe games being played.
 
-    thread::spawn(move || {
+    tokio::task::spawn(async move {
         let sleep_time = Duration::from_millis(1500);
         let mut game = game.lock();
         loop {
@@ -113,28 +130,36 @@ fn main() {
                 game.make_move(bestmove);
                 game.print_board();
 
-                {
-                    let mut address_space = address_space.write();
-                    update_board_state(&game, &mut address_space, ns);
-                }
+                update_board_state(&game, &node_manager, ns, &handle.subscriptions());
             }
 
-            thread::sleep(sleep_time);
+            tokio::time::sleep(sleep_time).await;
         }
     });
 
-    // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
-    server.run();
+    // Run the server.
+    server.run().await.unwrap();
 }
 
-fn update_board_state(game: &game::Game, address_space: &mut AddressSpace, ns: u16) {
+fn update_board_state(
+    game: &game::Game,
+    nm: &SimpleNodeManager,
+    ns: u16,
+    subscriptions: &SubscriptionCache,
+) {
     let now = DateTime::now();
     BOARD_SQUARES.iter().for_each(|square| {
         // Piece on the square
         let square_value = game.square_from_str(square);
         let node_id = NodeId::new(ns, *square);
 
-        let _ = address_space.set_variable_value(node_id, square_value as u8, &now, &now);
+        nm.set_value(
+            subscriptions,
+            &node_id,
+            None,
+            DataValue::new_at(square_value as u8, now),
+        )
+        .unwrap();
 
         // Highlight the square
         let node_id = NodeId::new(ns, format!("{}.highlight", square));
@@ -143,6 +168,12 @@ fn update_board_state(game: &game::Game, address_space: &mut AddressSpace, ns: u
         } else {
             false
         };
-        let _ = address_space.set_variable_value(node_id, highlight_square, &now, &now);
+        nm.set_value(
+            subscriptions,
+            &node_id,
+            None,
+            DataValue::new_at(highlight_square, now),
+        )
+        .unwrap();
     });
 }

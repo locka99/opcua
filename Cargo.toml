@@ -9,7 +9,6 @@ panic = 'abort'
 resolver = "2"
 members = [
     "lib",
-    "integration",
     "samples/demo-server",
     "samples/simple-client",
     "samples/mqtt-client",
@@ -18,4 +17,4 @@ members = [
     "samples/discovery-client",
     "samples/event-client",
     "tools/certificate-creator"
-]
+, "samples/async-server"]

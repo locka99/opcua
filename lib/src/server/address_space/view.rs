@@ -4,7 +4,13 @@
 
 //! Contains the implementation of `View` and `ViewBuilder`.
 
-use crate::types::service_types::ViewAttributes;
+use crate::{
+    types::service_types::ViewAttributes,
+    types::{
+        AttributeId, AttributesMask, DataValue, NumericRange, StatusCode, TimestampsToReturn,
+        Variant,
+    },
+};
 
 use super::{base::Base, node::Node, node::NodeBase, EventNotifier};
 
@@ -22,14 +28,19 @@ impl ViewBuilder {
         self.node.set_event_notifier(event_notifier);
         self
     }
+
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
+        self
+    }
 }
 
 /// A `View` is a type of node within the `AddressSpace`.
 #[derive(Debug)]
 pub struct View {
-    base: Base,
-    event_notifier: EventNotifier,
-    contains_no_loops: bool,
+    pub(super) base: Base,
+    pub(super) event_notifier: EventNotifier,
+    pub(super) contains_no_loops: bool,
 }
 
 impl Default for View {

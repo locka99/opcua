@@ -107,8 +107,4 @@ pub mod runtime;
 #[rustfmt::skip]
 pub mod supported_message;
 
-/// Contains most of the things that are typically required from a client / server.
-pub mod prelude {
-    pub use super::{comms::prelude::*, config::Config, supported_message::*};
-    pub use crate::types::{status_code::StatusCode, *};
-}
+pub use supported_message::SupportedMessage;

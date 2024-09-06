@@ -2,46 +2,57 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (C) 2017-2024 Adam Lock
 
-use opcua::server::prelude::*;
+use std::sync::Arc;
 
-pub fn add_control_switches(server: &mut Server, ns: u16) {
+use opcua::{
+    server::{
+        address_space::VariableBuilder, node_manager::memory::SimpleNodeManager, SubscriptionCache,
+    },
+    types::{DataTypeId, NodeId, StatusCode, Variant},
+};
+use tokio_util::sync::CancellationToken;
+
+pub fn add_control_switches(
+    ns: u16,
+    manager: Arc<SimpleNodeManager>,
+    subscriptions: Arc<SubscriptionCache>,
+    token: CancellationToken,
+) {
     // The address space is guarded so obtain a lock to change it
     let abort_node_id = NodeId::new(ns, "abort");
-
-    let address_space = server.address_space();
-    let server_state = server.server_state();
+    let control_folder_id = NodeId::new(ns, "control");
 
     {
-        let mut address_space = address_space.write();
-        let folder_id = address_space
-            .add_folder("Control", "Control", &NodeId::objects_folder_id())
-            .unwrap();
+        let mut address_space = manager.address_space().write();
+        address_space.add_folder(
+            &control_folder_id,
+            "Control",
+            "Control",
+            &NodeId::objects_folder_id(),
+        );
 
         VariableBuilder::new(&abort_node_id, "Abort", "Abort")
             .data_type(DataTypeId::Boolean)
             .value(false)
             .writable()
-            .organized_by(&folder_id)
+            .organized_by(&control_folder_id)
             .insert(&mut address_space);
     }
 
-    server.add_polling_action(1000, move || {
-        let address_space = address_space.read();
-        // Test for abort flag
-        let abort = if let Ok(v) = address_space.get_variable_value(abort_node_id.clone()) {
-            match v.value {
-                Some(Variant::Boolean(v)) => v,
-                _ => {
-                    panic!("Abort value should be true or false");
+    let mgr_ref = manager.clone();
+    manager
+        .inner()
+        .add_write_callback(abort_node_id.clone(), move |v, _| {
+            if let Some(Variant::Boolean(val)) = v.value {
+                if val {
+                    token.cancel();
                 }
+                mgr_ref
+                    .set_value(&subscriptions, &abort_node_id, None, v)
+                    .unwrap();
+                StatusCode::Good
+            } else {
+                StatusCode::BadTypeMismatch
             }
-        } else {
-            panic!("Abort value should be in address space");
-        };
-        // Check if abort has been set to true, in which case abort
-        if abort {
-            let mut server_state = server_state.write();
-            server_state.abort();
-        }
-    });
+        });
 }

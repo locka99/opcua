@@ -49,7 +49,7 @@ Here is a minimal, functioning server.
 ```rust
 extern crate opcua;
 
-use opcua::server::prelude::*;
+use opcua::types::*;
 
 fn main() {
     let server: Server = ServerBuilder::new_sample().server().unwrap();

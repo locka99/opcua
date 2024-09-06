@@ -21,7 +21,7 @@ appveyor = { repository = "locka99/opcua" }
 
 [features]
 default = ["server", "client"]
-all = ["server", "client", "console-logging", "http"]
+all = ["server", "client", "console-logging"]
 # This is for CI/CD testing on platforms with unresolved OpenSSL deps, don't use otherwise.
 test-vendored-openssl = ["all", "vendored-openssl"]
 # Server default settings
@@ -38,8 +38,6 @@ generated-address-space = []
 discovery-server-registration = ["client"]
 # OpenSSL can be compiled and statically linked to with this feature
 vendored-openssl = ["openssl/vendored"]
-# Servers might want to show a web server with metric / diagnostic info
-http = ["actix-files", "actix-web"]
 
 [dependencies]
 log = "0.4"
@@ -70,10 +68,10 @@ foreign-types = "0.3"
 # dependencies below are only required when certain features are enabled
 rumqttc = { version = "0.23", optional = true }
 env_logger = { version = "0.10", optional = true }
-actix-web = { version = "4.4", optional = true }
-actix-files = { version = "0.6", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 arc-swap = "1.6.0"
+async-trait = "0.1.79"
+hashbrown = "0.14.5"
 
 [dev-dependencies]
 tempdir = "0.3"

@@ -21,9 +21,11 @@ use crate::types::{
     encoding::*,
     guid::Guid,
     node_ids::{ObjectId, ReferenceTypeId},
-    status_codes::StatusCode,
+    status_code::StatusCode,
     string::*,
 };
+
+use super::node_ids::VariableId;
 
 /// The kind of identifier, numeric, string, guid or byte
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
@@ -522,6 +524,15 @@ impl NodeId {
         match self.identifier {
             Identifier::Numeric(id) if self.namespace == 0 => {
                 ObjectId::try_from(id).map_err(|_| NodeIdError)
+            }
+            _ => Err(NodeIdError),
+        }
+    }
+
+    pub fn as_variable_id(&self) -> std::result::Result<VariableId, NodeIdError> {
+        match self.identifier {
+            Identifier::Numeric(id) if self.namespace == 0 => {
+                VariableId::try_from(id).map_err(|_| NodeIdError)
             }
             _ => Err(NodeIdError),
         }

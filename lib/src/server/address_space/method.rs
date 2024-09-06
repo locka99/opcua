@@ -4,19 +4,19 @@
 
 //! Contains the implementation of `Method` and `MethodBuilder`.
 
-use std::sync::Arc;
-
-use crate::sync::*;
-use crate::types::service_types::{Argument, MethodAttributes};
+use crate::{
+    types::service_types::{Argument, MethodAttributes},
+    types::{
+        AttributeId, AttributesMask, DataTypeId, DataValue, ExtensionObject, NumericRange,
+        ObjectId, StatusCode, TimestampsToReturn, VariableTypeId, Variant, VariantTypeId,
+    },
+};
 
 use super::{
-    address_space::MethodCallback,
     base::Base,
     node::{Node, NodeBase},
     variable::VariableBuilder,
 };
-
-use crate::server::session::SessionManager;
 
 node_builder_impl!(MethodBuilder, Method);
 node_builder_impl_component_of!(MethodBuilder);
@@ -25,20 +25,40 @@ node_builder_impl_generates_event!(MethodBuilder);
 impl MethodBuilder {
     /// Specify output arguments from the method. This will create an OutputArguments
     /// variable child of the method which describes the out parameters.
-    pub fn output_args(self, address_space: &mut AddressSpace, arguments: &[Argument]) -> Self {
-        self.insert_args("OutputArguments", address_space, arguments);
+    pub fn output_args(
+        self,
+        address_space: &mut AddressSpace,
+        node_id: &NodeId,
+        arguments: &[Argument],
+    ) -> Self {
+        self.insert_args(node_id, "OutputArguments", address_space, arguments);
         self
     }
 
     /// Specify input arguments to the method. This will create an InputArguments
     /// variable child of the method which describes the in parameters.
-    pub fn input_args(self, address_space: &mut AddressSpace, arguments: &[Argument]) -> Self {
-        self.insert_args("InputArguments", address_space, arguments);
+    pub fn input_args(
+        self,
+        address_space: &mut AddressSpace,
+        node_id: &NodeId,
+        arguments: &[Argument],
+    ) -> Self {
+        self.insert_args(node_id, "InputArguments", address_space, arguments);
         self
     }
 
-    pub fn callback(mut self, callback: MethodCallback) -> Self {
-        self.node.set_callback(callback);
+    pub fn executable(mut self, executable: bool) -> Self {
+        self.node.set_executable(executable);
+        self
+    }
+
+    pub fn user_executable(mut self, executable: bool) -> Self {
+        self.node.set_user_executable(executable);
+        self
+    }
+
+    pub fn write_mask(mut self, write_mask: WriteMask) -> Self {
+        self.node.set_write_mask(write_mask);
         self
     }
 
@@ -57,14 +77,14 @@ impl MethodBuilder {
 
     fn insert_args(
         &self,
+        node_id: &NodeId,
         args_name: &str,
         address_space: &mut AddressSpace,
         arguments: &[Argument],
     ) {
         let fn_node_id = self.node.node_id();
-        let args_id = NodeId::next_numeric(fn_node_id.namespace);
         let args_value = Self::args_to_variant(arguments);
-        VariableBuilder::new(&args_id, args_name, args_name)
+        VariableBuilder::new(node_id, args_name, args_name)
             .property_of(fn_node_id)
             .has_type_definition(VariableTypeId::PropertyType)
             .data_type(DataTypeId::Argument)
@@ -79,11 +99,9 @@ impl MethodBuilder {
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub struct Method {
-    base: Base,
-    executable: bool,
-    user_executable: bool,
-    #[derivative(Debug = "ignore")]
-    callback: Option<MethodCallback>,
+    pub(super) base: Base,
+    pub(super) executable: bool,
+    pub(super) user_executable: bool,
 }
 
 impl Default for Method {
@@ -92,7 +110,6 @@ impl Default for Method {
             base: Base::new(NodeClass::Method, &NodeId::null(), "", ""),
             executable: false,
             user_executable: false,
-            callback: None,
         }
     }
 }
@@ -164,7 +181,6 @@ impl Method {
             base: Base::new(NodeClass::Method, node_id, browse_name, display_name),
             executable,
             user_executable,
-            callback: None,
         }
     }
 
@@ -205,7 +221,7 @@ impl Method {
     }
 
     pub fn is_valid(&self) -> bool {
-        self.has_callback() && self.base.is_valid()
+        self.base.is_valid()
     }
 
     pub fn executable(&self) -> bool {
@@ -225,31 +241,5 @@ impl Method {
 
     pub fn set_user_executable(&mut self, user_executable: bool) {
         self.user_executable = user_executable;
-    }
-
-    pub fn set_callback(&mut self, callback: MethodCallback) {
-        self.callback = Some(callback);
-    }
-
-    pub fn has_callback(&self) -> bool {
-        self.callback.is_some()
-    }
-
-    pub fn call(
-        &mut self,
-        session_id: &NodeId,
-        session_manager: Arc<RwLock<SessionManager>>,
-        request: &CallMethodRequest,
-    ) -> Result<CallMethodResult, StatusCode> {
-        if let Some(ref mut callback) = self.callback {
-            // Call the handler
-            callback.call(session_id, session_manager, request)
-        } else {
-            error!(
-                "Method call to {} has no handler, treating as invalid",
-                self.node_id()
-            );
-            Err(StatusCode::BadMethodInvalid)
-        }
     }
 }
