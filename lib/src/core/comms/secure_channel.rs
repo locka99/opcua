@@ -1194,7 +1194,7 @@ impl SecureChannel {
                 let signature_range = signed_range.end..src.len();
                 let verification_key = self.verification_key();
                 trace!(
-                    "Verifying range from {:?} to signature {:?}..",
+                    "signed range = {:?}, signature range = {:?}",
                     signed_range,
                     signature_range
                 );
