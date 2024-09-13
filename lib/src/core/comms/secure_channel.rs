@@ -1188,7 +1188,7 @@ impl SecureChannel {
             }
             MessageSecurityMode::Sign => {
                 self.expect_supported_security_policy();
-                dst.copy_from_slice(&src);
+                dst.copy_from_slice(src);
 
                 // Verify signature
                 let signature_range = signed_range.end..src.len();
