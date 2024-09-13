@@ -1182,8 +1182,7 @@ impl SecureChannel {
     ) -> Result<usize, StatusCode> {
         match self.security_mode {
             MessageSecurityMode::None => {
-                // Just copy everything from src to dst
-                dst[..].copy_from_slice(src);
+                dst.copy_from_slice(src);
                 Ok(src.len())
             }
             MessageSecurityMode::Sign => {
