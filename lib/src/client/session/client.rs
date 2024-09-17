@@ -114,9 +114,9 @@ impl Client {
             Ok(endpoints) => endpoints,
         };
 
-        info!("Server has these endpoints:");
+        debug!("server has these endpoints:");
         endpoints.iter().for_each(|e| {
-            info!(
+            debug!(
                 "  {} - {:?} / {:?}",
                 e.endpoint_url,
                 SecurityPolicy::from_str(e.security_policy_uri.as_ref()).unwrap(),

@@ -133,9 +133,9 @@ impl SecureChannelState {
             )
         };
 
-        info!("Making secure channel request");
-        info!("security_mode = {:?}", security_mode);
-        info!("security_policy = {:?}", security_policy);
+        debug!("Making secure channel request");
+        debug!("security_mode = {:?}", security_mode);
+        debug!("security_policy = {:?}", security_policy);
 
         let requested_lifetime = REQUESTED_LIFETIME;
         let request = OpenSecureChannelRequest {
