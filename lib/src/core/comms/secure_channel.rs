@@ -1209,7 +1209,13 @@ impl SecureChannel {
             }
             MessageSecurityMode::SignAndEncrypt => {
                 self.expect_supported_security_policy();
+
+                // There is an expectation that the block is padded so, this is a quick test
                 let ciphertext_size = encrypted_range.end - encrypted_range.start;
+                //                if ciphertext_size % 16 != 0 {
+                //                    error!("The cipher text size is not padded properly, size = {}", ciphertext_size);
+                //                    return Err(StatusCode::BadUnexpectedError);
+                //                }
 
                 // Copy security header
                 dst[..encrypted_range.start].copy_from_slice(&src[..encrypted_range.start]);
@@ -1229,6 +1235,7 @@ impl SecureChannel {
                     &mut decrypted_tmp[..],
                 )?;
 
+                // Self::log_crypto_data("Encrypted buffer", &src[..encrypted_range.end]);
                 let encrypted_range =
                     encrypted_range.start..(encrypted_range.start + decrypted_size);
                 dst[encrypted_range.clone()].copy_from_slice(&decrypted_tmp[..decrypted_size]);
