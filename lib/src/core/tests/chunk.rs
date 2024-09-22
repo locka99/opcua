@@ -473,6 +473,33 @@ fn security_policy_symmetric_encrypt_decrypt() {
 }
 
 #[test]
+fn security_policy_symmetric_encrypt_decrypt_ciphertext_invalid_padding_returns_error() {
+    let (secure_channel1, secure_channel2) = make_secure_channels(
+        MessageSecurityMode::SignAndEncrypt,
+        SecurityPolicy::Basic128Rsa15,
+    );
+
+    let src = vec![0u8; 100];
+    let mut dst = vec![0u8; 200];
+
+    let encrypted_len = secure_channel1
+        .symmetric_sign_and_encrypt(&src, 0..80, 20..100, &mut dst)
+        .unwrap();
+    assert_eq!(encrypted_len, 100);
+
+    let mut src2 = vec![0u8; 200];
+
+    // length of encrypted range should be dividable by 16
+    let invalid_encrypted_range = 21..100;
+
+    let error = secure_channel2
+        .symmetric_decrypt_and_verify(&dst, 0..80, invalid_encrypted_range, &mut src2)
+        .unwrap_err();
+
+    assert!(error.contains(StatusCode::BadUnexpectedError))
+}
+
+#[test]
 fn asymmetric_decrypt_and_verify_sample_chunk() {
     let _ = Test::setup();
 
