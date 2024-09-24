@@ -23,6 +23,7 @@ const RECEIVE_BUFFER_SIZE: usize = u16::MAX as usize;
 const SEND_BUFFER_SIZE: usize = u16::MAX as usize;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(default)]
 pub struct TcpConfig {
     /// Timeout for hello on a session in seconds
     pub hello_timeout: u32,
@@ -30,6 +31,16 @@ pub struct TcpConfig {
     pub host: String,
     /// The port number of the service
     pub port: u16,
+}
+
+impl Default for TcpConfig {
+    fn default() -> Self {
+        Self {
+            host: "127.0.0.1".to_string(),
+            port: constants::DEFAULT_RUST_OPC_UA_SERVER_PORT,
+            hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
@@ -128,6 +139,7 @@ impl ServerUserToken {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(default)]
 pub struct Limits {
     /// Indicates if clients are able to modify the address space through the node management service
     /// set. This is a very broad flag and is likely to require more fine grained per user control
@@ -181,6 +193,7 @@ impl Default for Limits {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(default)]
 pub struct CertificateValidation {
     /// Auto trusts client certificates. For testing/samples only unless you're sure what you're
     /// doing.
@@ -518,7 +531,8 @@ impl ServerEndpoint {
     }
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
+#[serde(default)]
 pub struct Performance {
     /// Use a single-threaded executor. The default executor uses a thread pool with a worker
     /// thread for each CPU core available on the system.
@@ -526,6 +540,7 @@ pub struct Performance {
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+#[serde(default)]
 pub struct ServerConfig {
     /// An id for this server
     pub application_name: String,
@@ -653,20 +668,14 @@ impl Default for ServerConfig {
             pki_dir,
             certificate_validation: CertificateValidation::default(),
             discovery_server_url: None,
-            tcp_config: TcpConfig {
-                host: "127.0.0.1".to_string(),
-                port: constants::DEFAULT_RUST_OPC_UA_SERVER_PORT,
-                hello_timeout: constants::DEFAULT_HELLO_TIMEOUT_SECONDS,
-            },
+            tcp_config: Default::default(),
             limits: Limits::default(),
             user_tokens: BTreeMap::new(),
             locale_ids: vec!["en".to_string()],
             discovery_urls: Vec::new(),
             default_endpoint: None,
             endpoints: BTreeMap::new(),
-            performance: Performance {
-                single_threaded_executor: false,
-            },
+            performance: Default::default(),
         }
     }
 }
@@ -703,10 +712,7 @@ impl ServerConfig {
             create_sample_keypair: false,
             certificate_path: None,
             private_key_path: None,
-            certificate_validation: CertificateValidation {
-                trust_client_certs: false,
-                check_time: true,
-            },
+            certificate_validation: Default::default(),
             pki_dir,
             discovery_server_url,
             tcp_config: TcpConfig {
@@ -720,9 +726,7 @@ impl ServerConfig {
             discovery_urls,
             default_endpoint: None,
             endpoints,
-            performance: Performance {
-                single_threaded_executor: false,
-            },
+            performance: Default::default(),
         }
     }
 
