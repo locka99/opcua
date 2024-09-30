@@ -1212,10 +1212,13 @@ impl SecureChannel {
 
                 // There is an expectation that the block is padded so, this is a quick test
                 let ciphertext_size = encrypted_range.end - encrypted_range.start;
-                //                if ciphertext_size % 16 != 0 {
-                //                    error!("The cipher text size is not padded properly, size = {}", ciphertext_size);
-                //                    return Err(StatusCode::BadUnexpectedError);
-                //                }
+                if ciphertext_size % 16 != 0 {
+                    error!(
+                        "The cipher text size is not padded properly, size = {}",
+                        ciphertext_size
+                    );
+                    return Err(StatusCode::BadUnexpectedError);
+                }
 
                 // Copy security header
                 dst[..encrypted_range.start].copy_from_slice(&src[..encrypted_range.start]);
