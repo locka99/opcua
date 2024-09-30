@@ -197,7 +197,7 @@ impl Client {
             .unwrap())
     }
 
-    /// Connects to an a server directly using provided [`SessionInfo`].
+    /// Connects to a server directly using provided SessionInfo.
     ///
     /// This function returns both a reference to the session, and a `SessionEventLoop`. You must run and
     /// poll the event loop in order to actually establish a connection.
@@ -237,7 +237,7 @@ impl Client {
         }
     }
 
-    /// Creates a new [`AsyncSession`] using the default endpoint specified in the config. If
+    /// Creates a new [`Session`] using the default endpoint specified in the config. If
     /// there is no default, or the endpoint does not exist, this function will return an error
     ///
     /// This function returns both a reference to the session, and a `SessionEventLoop`. You must run and
@@ -264,7 +264,7 @@ impl Client {
         self.new_session_from_info(session_info)
     }
 
-    /// Creates a new [`AsyncSession`] using the named endpoint id. If there is no
+    /// Creates a new [`Session`] using the named endpoint id. If there is no
     /// endpoint of that id in the config, this function will return an error
     ///
     /// This function returns both a reference to the session, and a `SessionEventLoop`. You must run and

@@ -104,11 +104,6 @@
 //!    }
 //!}
 //! ```
-//!
-//! [`Client`]: ./client/struct.Client.html
-//! [`ClientConfig`]: ./config/struct.ClientConfig.html
-//! [`ClientBuilder`]: ./client_builder/struct.ClientBuilder.html
-//! [`Session`]: ./session/struct.Session.html
 
 mod builder;
 mod config;

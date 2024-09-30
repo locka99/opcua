@@ -370,7 +370,7 @@ impl PublicKey {
 
 /// This module contains a bunch of nasty stuff to implement OAEP-SHA256 since there are no helpers in OpenSSL to do it
 ///
-/// https://stackoverflow.com/questions/17784022/how-to-encrypt-data-using-rsa-with-sha-256-as-hash-function-and-mgf1-as-mask-ge
+/// <https://stackoverflow.com/questions/17784022/how-to-encrypt-data-using-rsa-with-sha-256-as-hash-function-and-mgf1-as-mask-ge>
 mod oaep_sha256 {
     use foreign_types::ForeignType;
     use libc::*;
