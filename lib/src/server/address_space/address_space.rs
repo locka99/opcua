@@ -1034,8 +1034,8 @@ impl AddressSpace {
             let _ = variable.set_value_direct(
                 value,
                 StatusCode::Good,
-                source_timestamp,
                 server_timestamp,
+                source_timestamp,
             );
             true
         } else {
