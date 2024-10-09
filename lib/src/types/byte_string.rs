@@ -125,7 +125,7 @@ impl BinaryEncoder<ByteString> for ByteString {
         } else if len as usize > decoding_options.max_byte_string_length {
             error!(
                 "ByteString length {} exceeds decoding limit {}",
-                len, decoding_options.max_string_length
+                len, decoding_options.max_byte_string_length
             );
             Err(StatusCode::BadDecodingError)
         } else {
