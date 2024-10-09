@@ -203,7 +203,7 @@ impl AsyncSecureChannel {
         &self,
     ) -> Result<(TcpTransport, tokio::sync::mpsc::Sender<OutgoingMessage>), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
-        info!("Connect");
+        debug!("connect");
         let security_policy =
             SecurityPolicy::from_str(self.session_info.endpoint.security_policy_uri.as_ref())
                 .unwrap();
@@ -229,9 +229,9 @@ impl AsyncSecureChannel {
                 let _ = secure_channel.set_remote_cert_from_byte_string(
                     &self.session_info.endpoint.server_certificate,
                 );
-                info!("Security policy = {:?}", security_policy);
-                info!(
-                    "Security mode = {:?}",
+                debug!("security policy = {:?}", security_policy);
+                debug!(
+                    "security mode = {:?}",
                     self.session_info.endpoint.security_mode
                 );
             }

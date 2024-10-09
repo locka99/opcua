@@ -262,8 +262,8 @@ impl TransportState {
             .sequence_number;
         for c in chunks {
             if c.header.sequence_header.sequence_number != expect_sequence_number {
-                info!(
-                    "receive wrong chunk expect seq={},got={}",
+                warn!(
+                    "received wrong chunk expected seq={}, got={}",
                     expect_sequence_number, c.header.sequence_header.sequence_number
                 );
                 continue; //may be duplicate chunk
