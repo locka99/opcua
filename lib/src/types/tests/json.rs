@@ -6,7 +6,7 @@ use crate::types::{
     byte_string::ByteString, data_value::DataValue, date_time::DateTime,
     diagnostic_info::DiagnosticInfo, expanded_node_id::ExpandedNodeId, guid::Guid,
     localized_text::LocalizedText, node_id::NodeId, qualified_name::QualifiedName,
-    status_codes::StatusCode, string::UAString, variant::Variant,
+    status_code::StatusCode, string::UAString, variant::Variant,
 };
 
 #[test]

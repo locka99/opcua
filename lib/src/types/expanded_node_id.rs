@@ -18,7 +18,7 @@ use crate::types::{
     encoding::*,
     guid::Guid,
     node_id::{Identifier, NodeId},
-    status_codes::StatusCode,
+    status_code::StatusCode,
     string::*,
 };
 

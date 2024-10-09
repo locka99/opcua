@@ -22,7 +22,7 @@ use crate::types::{
         MonitoringParameters, ReadValueId, ServiceCounterDataType, ServiceFault, SignatureData,
         UserNameIdentityToken, UserTokenPolicy, UserTokenType,
     },
-    status_codes::StatusCode,
+    status_code::StatusCode,
     string::UAString,
     variant::Variant,
 };

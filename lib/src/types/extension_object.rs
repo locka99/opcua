@@ -12,7 +12,7 @@ use std::{
 
 use super::{
     byte_string::ByteString, encoding::*, node_id::NodeId, node_ids::ObjectId,
-    status_codes::StatusCode, string::XmlElement,
+    status_code::StatusCode, string::XmlElement,
 };
 
 #[derive(Debug)]

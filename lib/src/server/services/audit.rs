@@ -134,8 +134,8 @@ pub fn log_certificate_error(
     let node_id = next_node_id(address_space);
     let now = DateTime::now();
 
-    match status_code.status() {
-        StatusCode::BadCertificateTimeInvalid => {
+    match status_code.sub_code() {
+        SubStatusCode::BadCertificateTimeInvalid => {
             let event = AuditCertificateExpiredEventType::new(node_id, now)
                 .client_audit_entry_id(request_header.audit_entry_id.clone());
             let _ = server_state.raise_and_log(event);

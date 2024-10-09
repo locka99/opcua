@@ -1,5 +1,5 @@
 use crate::types::{
-    data_value::DataValue, date_time::DateTime, guid::Guid, status_codes::StatusCode,
+    data_value::DataValue, date_time::DateTime, guid::Guid, status_code::StatusCode,
     variant::Variant,
 };
 
