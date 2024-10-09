@@ -253,7 +253,7 @@ impl SecureChannel {
                         receiver_certificate_thumbprint,
                     )
                 };
-                debug!(
+                trace!(
                     "AsymmetricSecurityHeader = {:?}",
                     asymmetric_security_header
                 );
@@ -747,10 +747,10 @@ impl SecureChannel {
                 &mut decrypted_data,
             )?;
 
-            // Now we need to strip off signature
+            // Value returned from symmetric_decrypt_and_verify is the end of the actual decrypted data.
             Self::update_message_size_and_truncate(
                 decrypted_data,
-                decrypted_size - signature_size,
+                decrypted_size,
                 &self.decoding_options,
             )?
         } else {
@@ -1205,7 +1205,7 @@ impl SecureChannel {
                     &dst[signed_range.end..],
                 )?;
 
-                Ok(encrypted_range.end)
+                Ok(signed_range.end)
             }
             MessageSecurityMode::SignAndEncrypt => {
                 self.expect_supported_security_policy();
@@ -1251,12 +1251,20 @@ impl SecureChannel {
                     signature_range
                 );
                 let verification_key = self.verification_key();
+                let signature_start = signature_range.start;
                 self.security_policy.symmetric_verify_signature(
                     verification_key,
                     &dst[signed_range],
                     &dst[signature_range],
                 )?;
-                Ok(encrypted_range.end)
+
+                let key_size = key.key_length();
+
+                // Verify that the padding is correct and get the padded range.
+                let padding_range = self.verify_padding(dst, key_size, signature_start)?;
+
+                // Decrypted range minus padding and signature.
+                Ok(padding_range.start)
             }
             MessageSecurityMode::Invalid => {
                 // Use the security policy to decrypt the block using the token

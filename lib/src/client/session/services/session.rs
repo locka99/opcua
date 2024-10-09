@@ -67,18 +67,6 @@ impl Session {
         if let SupportedMessage::CreateSessionResponse(response) = response {
             process_service_result(&response.response_header)?;
 
-            let session_id = {
-                self.session_id.store(Arc::new(response.session_id.clone()));
-                response.session_id.clone()
-            };
-            self.auth_token
-                .store(Arc::new(response.authentication_token));
-
-            self.channel.update_from_created_session(
-                &response.server_nonce,
-                &response.server_certificate,
-            )?;
-
             let security_policy = self.channel.security_policy();
 
             if security_policy != SecurityPolicy::None {
@@ -106,6 +94,18 @@ impl Session {
                     return Err(StatusCode::BadCertificateInvalid);
                 }
             }
+
+            let session_id = {
+                self.session_id.store(Arc::new(response.session_id.clone()));
+                response.session_id.clone()
+            };
+            self.auth_token
+                .store(Arc::new(response.authentication_token));
+
+            self.channel.update_from_created_session(
+                &response.server_nonce,
+                &response.server_certificate,
+            )?;
 
             Ok(session_id)
         } else {

@@ -466,7 +466,8 @@ fn security_policy_symmetric_encrypt_decrypt() {
     let decrypted_len = secure_channel2
         .symmetric_decrypt_and_verify(&dst, 0..80, 20..100, &mut src2)
         .unwrap();
-    assert_eq!(decrypted_len, 100);
+    // End is at 100 - signature (20) - 1
+    assert_eq!(decrypted_len, 79);
 
     // Compare the data, not the signature
     assert_eq!(&src[..80], &src2[..80]);
