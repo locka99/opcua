@@ -1188,21 +1188,20 @@ impl SecureChannel {
             }
             MessageSecurityMode::Sign => {
                 self.expect_supported_security_policy();
-                // Copy everything
-                let all = ..src.len();
-                trace!("copying from slice {:?}", all);
-                dst[all].copy_from_slice(&src[all]);
+                dst.copy_from_slice(src);
+
                 // Verify signature
-                trace!(
-                    "Verifying range from {:?} to signature {}..",
-                    signed_range,
-                    signed_range.end
-                );
+                let signature_range = signed_range.end..src.len();
                 let verification_key = self.verification_key();
+                trace!(
+                    "signed range = {:?}, signature range = {:?}",
+                    signed_range,
+                    signature_range
+                );
                 self.security_policy.symmetric_verify_signature(
                     verification_key,
-                    &dst[signed_range.clone()],
-                    &dst[signed_range.end..],
+                    &dst[signed_range],
+                    &dst[signature_range],
                 )?;
 
                 Ok(encrypted_range.end)
