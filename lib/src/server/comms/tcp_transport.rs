@@ -10,7 +10,10 @@
 //! Publish requests are sent based on the number of subscriptions and the responses / handling are
 //! left to asynchronous event handlers.
 use chrono::{self, Utc};
-use futures::StreamExt;
+use futures::{
+    future::{Either, Shared},
+    pin_mut, StreamExt,
+};
 use std::{net::SocketAddr, sync::Arc};
 use tokio::{
     self,
@@ -19,7 +22,11 @@ use tokio::{
         tcp::{OwnedReadHalf, OwnedWriteHalf},
         TcpStream,
     },
-    sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+    sync::{
+        mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender},
+        oneshot::Receiver,
+    },
+    task::JoinHandle,
     time::{interval_at, Duration, Instant},
 };
 
@@ -199,7 +206,12 @@ impl TcpTransport {
 
     /// This is the entry point for the session. This function is asynchronous - it spawns tokio
     /// tasks to handle the session execution loop so this function will returns immediately.
-    pub fn run(connection: Arc<RwLock<TcpTransport>>, socket: TcpStream, looping_interval_ms: f64) {
+    pub fn run(
+        connection: Arc<RwLock<TcpTransport>>,
+        socket: TcpStream,
+        looping_interval_ms: f64,
+        abort_handler: Shared<Receiver<()>>,
+    ) -> JoinHandle<()> {
         info!(
             "Socket info:\n  Linger - {},\n  TTL - {}",
             if let Ok(v) = socket.linger() {
@@ -236,7 +248,8 @@ impl TcpTransport {
             looping_interval_ms,
             send_buffer_size,
             receive_buffer_size,
-        ));
+            abort_handler,
+        ))
     }
 
     async fn write_bytes_task(mut write_state: WriteState) -> WriteState {
@@ -259,6 +272,7 @@ impl TcpTransport {
         looping_interval_ms: f64,
         send_buffer_size: usize,
         receive_buffer_size: usize,
+        abort_handler: Shared<Receiver<()>>,
     ) {
         // The reader task will send responses, the writer task will receive responses
         let (tx, rx) = unbounded_channel();
@@ -289,21 +303,44 @@ impl TcpTransport {
 
         // Spawn all the tasks that monitor the session - the subscriptions, finished state,
         // reading and writing.
-        let final_status = tokio::select! {
-            _ = Self::spawn_subscriptions_task(transport.clone(), tx.clone(), looping_interval_ms) => {
+        let (subscribe, write, read) = futures::future::join3(
+            async {
+                let status =
+                    Self::spawn_subscriptions_task(transport.clone(), tx, looping_interval_ms)
+                        .await;
                 log::trace!("Closing connection because the subscription task failed");
-                Ok(())
-            }
-            status = Self::spawn_writing_loop_task(writer, rx, secure_channel, transport.clone(), send_buffer) => {
+                status
+            },
+            async {
+                let status = Self::spawn_writing_loop_task(
+                    writer,
+                    rx,
+                    secure_channel,
+                    transport.clone(),
+                    send_buffer,
+                )
+                .await;
                 log::trace!("Closing connection after the write task ended");
                 status
-            }
-            status = Self::spawn_reading_loop_task(read_state, send_buffer_size, receive_buffer_size) => {
+            },
+            async {
+                let status = Self::spawn_reading_loop_task(
+                    read_state,
+                    send_buffer_size,
+                    receive_buffer_size,
+                    abort_handler,
+                )
+                .await;
                 log::trace!("Closing connection after the read task ended");
                 status
-            }
-        }.err().unwrap_or(StatusCode::Good);
-
+            },
+        )
+        .await;
+        let final_status = subscribe
+            .and(write)
+            .and(read)
+            .err()
+            .unwrap_or(StatusCode::Good);
         log::info!("Closing connection with status {}", final_status);
         // Both the read and write halves of the tcp stream are dropped at this point,
         // and the connection is closed
@@ -394,6 +431,7 @@ impl TcpTransport {
         read_state: ReadState,
         send_buffer_size: usize,
         receive_buffer_size: usize,
+        abort_handler: Shared<Receiver<()>>,
     ) -> Result<(), StatusCode> {
         let (transport, mut sender) = { (read_state.transport.clone(), read_state.sender.clone()) };
 
@@ -416,24 +454,33 @@ impl TcpTransport {
             receive_buffer_size,
         )?;
 
-        while let Some(next_msg) = framed_read.next().await {
-            match next_msg {
-                Ok(tcp_codec::Message::Chunk(chunk)) => {
-                    log::trace!("Received message chunk: {:?}", chunk);
-                    let mut transport = trace_write_lock!(transport);
-                    transport.process_chunk(chunk, &mut sender)?
-                }
-                Ok(unexpected) => {
-                    log::error!("Received unexpected message: {:?}", unexpected);
-                    return Err(StatusCode::BadCommunicationError);
-                }
-                Err(err) => {
-                    error!("Server reader error {:?}", err);
-                    return Err(StatusCode::BadCommunicationError);
+        let read_task = async move {
+            while let Some(msg) = framed_read.next().await {
+                match msg {
+                    Ok(tcp_codec::Message::Chunk(chunk)) => {
+                        log::trace!("Received message chunk: {:?}", chunk);
+                        let mut transport = trace_write_lock!(transport);
+                        transport.process_chunk(chunk, &mut sender)?
+                    }
+                    Ok(unexpected) => {
+                        log::error!("Received unexpected message: {:?}", unexpected);
+                        return Err(StatusCode::BadCommunicationError);
+                    }
+                    Err(err) => {
+                        error!("Server reader error {:?}", err);
+                        return Err(StatusCode::BadCommunicationError);
+                    }
                 }
             }
+            Ok(())
+        };
+
+        pin_mut!(abort_handler);
+        pin_mut!(read_task);
+        match futures::future::select(&mut abort_handler, &mut read_task).await {
+            Either::Left(_) => Ok(()),
+            Either::Right((r, _)) => r,
         }
-        Ok(())
     }
 
     /// Start the subscription timer to service subscriptions
@@ -456,6 +503,10 @@ impl TcpTransport {
 
             let transport = trace_read_lock!(transport);
             let session_manager = trace_read_lock!(transport.session_manager);
+
+            if transport.is_server_abort() || sender.is_closed() {
+                break Ok(());
+            }
 
             for (_node_id, session) in session_manager.sessions.iter() {
                 let mut session = trace_write_lock!(session);
