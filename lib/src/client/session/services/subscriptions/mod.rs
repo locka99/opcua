@@ -1,4 +1,6 @@
 pub mod event_loop;
+pub use event_loop::SubscriptionActivity;
+
 mod service;
 pub mod state;
 

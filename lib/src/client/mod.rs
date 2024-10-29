@@ -123,7 +123,7 @@ pub use config::{ClientConfig, ClientEndpoint, ClientUserToken, ANONYMOUS_USER_T
 pub use session::{
     Client, DataChangeCallback, EventCallback, MonitoredItem, OnSubscriptionNotification, Session,
     SessionActivity, SessionConnectMode, SessionEventLoop, SessionPollResult, Subscription,
-    SubscriptionCallbacks,
+    SubscriptionActivity, SubscriptionCallbacks,
 };
 pub use transport::AsyncSecureChannel;
 
