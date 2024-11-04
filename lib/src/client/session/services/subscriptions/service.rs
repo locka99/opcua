@@ -38,7 +38,7 @@ impl Session {
     ) -> Result<u32, StatusCode> {
         let request = CreateSubscriptionRequest {
             request_header: self.make_request_header(),
-            requested_publishing_interval: publishing_interval.as_secs_f64(),
+            requested_publishing_interval: publishing_interval.as_millis() as f64,
             requested_lifetime_count: lifetime_count,
             requested_max_keep_alive_count: max_keep_alive_count,
             max_notifications_per_publish,
