@@ -123,15 +123,23 @@ impl Session {
     /// * `Err(StatusCode)` - Request failed, [Status code](StatusCode) is the reason for failure.
     ///
     pub(crate) async fn activate_session(&self) -> Result<(), StatusCode> {
-        let secure_channel = trace_read_lock!(self.channel.secure_channel);
+        // Do this in a block to release the lock before awaiting any async calls.
+        let (server_cert, server_nonce, user_identity_token, user_token_signature) = {
+            let secure_channel = trace_read_lock!(self.channel.secure_channel);
 
-        let (user_identity_token, user_token_signature) =
-            self.user_identity_token(&secure_channel)?;
+            let (user_identity_token, user_token_signature) =
+                self.user_identity_token(&secure_channel)?;
 
-        let server_cert = secure_channel.remote_cert();
-        let server_nonce = secure_channel.remote_nonce_as_byte_string();
+            let server_cert = secure_channel.remote_cert();
+            let server_nonce = secure_channel.remote_nonce_as_byte_string();
 
-        drop(secure_channel);
+            (
+                server_cert,
+                server_nonce,
+                user_identity_token,
+                user_token_signature,
+            )
+        };
 
         let locale_ids = if self.session_info.preferred_locales.is_empty() {
             None

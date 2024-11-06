@@ -1,6 +1,10 @@
-use std::{sync::Arc, time::Instant};
+use std::sync::Arc;
 
 use futures::{future::Either, stream::FuturesUnordered, Future, Stream, StreamExt};
+use tokio::{
+    sync::watch,
+    time::{sleep_until, Instant},
+};
 
 use crate::{
     client::{
@@ -26,9 +30,9 @@ pub enum SubscriptionActivity {
 /// and subscription keep-alive.
 pub struct SubscriptionEventLoop {
     session: Arc<Session>,
-    trigger_publish_recv: tokio::sync::watch::Receiver<Instant>,
     max_inflight_publish: usize,
     last_external_trigger: Instant,
+    trigger_publish_rx: watch::Receiver<Instant>,
     // This is true if the client has received a message BadTooManyPublishRequests
     // and is waiting for a response before making further requests.
     is_waiting_for_response: bool,
@@ -41,18 +45,15 @@ impl SubscriptionEventLoop {
     ///
     ///  * `session` - A shared reference to an [AsyncSession].
     ///  * `trigger_publish_recv` - A channel used to transmit external publish triggers.
-    ///  This is used to trigger publish outside of the normal schedule, for example when
-    ///  a new subscription is created.
-    pub fn new(
-        session: Arc<Session>,
-        trigger_publish_recv: tokio::sync::watch::Receiver<Instant>,
-    ) -> Self {
-        let last_external_trigger = trigger_publish_recv.borrow().clone();
+    ///    This is used to trigger publish outside of the normal schedule, for example when
+    ///    a new subscription is created.
+    pub fn new(session: Arc<Session>, trigger_publish_rx: watch::Receiver<Instant>) -> Self {
+        let last_external_trigger = *trigger_publish_rx.borrow();
         Self {
             max_inflight_publish: session.max_inflight_publish,
-            last_external_trigger,
-            trigger_publish_recv,
             session,
+            last_external_trigger,
+            trigger_publish_rx,
             is_waiting_for_response: false,
         }
     }
@@ -65,24 +66,22 @@ impl SubscriptionEventLoop {
             |(mut slf, mut futures)| async move {
                 // Store the next publish time, or None if there are no active subscriptions.
                 let mut next = slf.session.next_publish_time(false);
-                let mut recv: tokio::sync::watch::Receiver<Instant> =
-                    slf.trigger_publish_recv.clone();
+                let mut recv = slf.trigger_publish_rx.clone();
 
                 let res = loop {
                     // Future for the next periodic publish. We do not send publish requests if there
-                    // are no active subscriptions. In this case, simply return the non-terminating
-                    // future.
+                    // are no active subscriptions. In this case we return the non-terminating future.
                     let next_tick_fut = if let Some(next) = next {
                         if slf.is_waiting_for_response && !futures.is_empty() {
                             Either::Right(futures::future::pending::<()>())
                         } else {
-                            Either::Left(tokio::time::sleep_until(next.into()))
+                            Either::Left(sleep_until(next))
                         }
                     } else {
                         Either::Right(futures::future::pending::<()>())
                     };
-                    // If FuturesUnordered is empty, it will immediately yield `None`. We don't want that,
-                    // so if it is empty we return the non-terminating future.
+                    // If FuturesUnordered is empty, it will immediately yield `None`. We don't
+                    // want that, so if it is empty we return the non-terminating future.
                     let next_publish_fut = if futures.is_empty() {
                         Either::Left(futures::future::pending())
                     } else {
@@ -97,7 +96,7 @@ impl SubscriptionEventLoop {
                                 // On an external trigger, we always publish.
                                 futures.push(slf.static_publish());
                                 next = slf.session.next_publish_time(true);
-                                slf.last_external_trigger = v.clone();
+                                slf.last_external_trigger = *v;
                             }
                         }
                         _ = next_tick_fut => {

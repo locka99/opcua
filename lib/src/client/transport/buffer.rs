@@ -108,7 +108,7 @@ impl SendBuffer {
             self.last_sent_sequence_number += chunks.len() as u32;
 
             // Send chunks
-            self.chunks.extend(chunks.into_iter());
+            self.chunks.extend(chunks);
             Ok(request_id)
         }
     }

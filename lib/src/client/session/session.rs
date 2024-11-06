@@ -1,12 +1,13 @@
-use std::{
-    sync::{
-        atomic::{AtomicU32, Ordering},
-        Arc,
-    },
-    time::{Duration, Instant},
+use std::sync::{
+    atomic::{AtomicU32, Ordering},
+    Arc,
 };
 
 use arc_swap::ArcSwap;
+use tokio::{
+    sync::watch,
+    time::{Duration, Instant},
+};
 
 use crate::{
     client::{
@@ -40,8 +41,8 @@ lazy_static! {
 ///
 pub struct Session {
     pub(super) channel: AsyncSecureChannel,
-    pub(super) state_watch_rx: tokio::sync::watch::Receiver<SessionState>,
-    pub(super) state_watch_tx: tokio::sync::watch::Sender<SessionState>,
+    pub(super) state_watch_rx: watch::Receiver<SessionState>,
+    pub(super) state_watch_tx: watch::Sender<SessionState>,
     pub(super) certificate_store: Arc<RwLock<CertificateStore>>,
     pub(super) session_id: Arc<ArcSwap<NodeId>>,
     pub(super) auth_token: Arc<ArcSwap<NodeId>>,
@@ -56,7 +57,7 @@ pub struct Session {
     pub(super) max_inflight_publish: usize,
     pub subscription_state: Mutex<SubscriptionState>,
     pub(super) monitored_item_handle: AtomicHandle,
-    pub(super) trigger_publish_tx: tokio::sync::watch::Sender<Instant>,
+    pub(super) trigger_publish_tx: watch::Sender<Instant>,
 }
 
 impl Session {
@@ -70,9 +71,8 @@ impl Session {
         config: &ClientConfig,
     ) -> (Arc<Self>, SessionEventLoop) {
         let auth_token: Arc<ArcSwap<NodeId>> = Default::default();
-        let (state_watch_tx, state_watch_rx) =
-            tokio::sync::watch::channel(SessionState::Disconnected);
-        let (trigger_publish_tx, trigger_publish_rx) = tokio::sync::watch::channel(Instant::now());
+        let (state_watch_tx, state_watch_rx) = watch::channel(SessionState::Disconnected);
+        let (trigger_publish_tx, trigger_publish_rx) = watch::channel(Instant::now());
 
         let session = Arc::new(Session {
             channel: AsyncSecureChannel::new(
@@ -115,8 +115,8 @@ impl Session {
             SessionEventLoop::new(
                 session,
                 session_retry_policy,
-                trigger_publish_rx,
                 config.keep_alive_interval,
+                trigger_publish_rx,
             ),
         )
     }
@@ -150,18 +150,16 @@ impl Session {
     async fn wait_for_state(&self, connected: bool) -> bool {
         let mut rx = self.state_watch_rx.clone();
 
-        let res = match rx
+        let result = rx
             .wait_for(|s| {
                 connected && matches!(*s, SessionState::Connected)
                     || !connected && matches!(*s, SessionState::Disconnected)
             })
             .await
-        {
-            Ok(_) => true,
-            Err(_) => false,
-        };
+            .is_ok();
 
-        res
+        #[expect(clippy::let_and_return)]
+        result
     }
 
     /// The internal ID of the session, used to keep track of multiple sessions in the same program.

@@ -3,7 +3,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-use tokio::sync::mpsc::error::SendTimeoutError;
+use arc_swap::ArcSwap;
+use tokio::sync::mpsc::{self, error::SendTimeoutError};
 
 use crate::{
     client::{session::process_unexpected_response, transport::OutgoingMessage},
@@ -18,9 +19,8 @@ use crate::{
         RequestHeader, SecurityTokenRequestType, StatusCode,
     },
 };
-use arc_swap::ArcSwap;
 
-pub(crate) type RequestSend = tokio::sync::mpsc::Sender<OutgoingMessage>;
+pub(crate) type RequestSend = mpsc::Sender<OutgoingMessage>;
 
 lazy_static! {
     static ref NEXT_SESSION_ID: AtomicU32 = AtomicU32::new(1);
@@ -75,6 +75,7 @@ impl Request {
     pub async fn send(self) -> Result<SupportedMessage, StatusCode> {
         let (cb_send, cb_recv) = tokio::sync::oneshot::channel();
 
+        // trace!("Sending request: {:?}", self.payload);
         let message = OutgoingMessage {
             request: self.payload,
             callback: Some(cb_send),
@@ -88,7 +89,10 @@ impl Request {
         }
 
         match cb_recv.await {
-            Ok(r) => r,
+            Ok(r) => {
+                // trace!("Received response: {:?}", r);
+                r
+            }
             // Should not really happen, would mean something paniced.
             Err(_) => Err(StatusCode::BadConnectionClosed),
         }

@@ -1,7 +1,6 @@
-use std::{
-    collections::HashMap,
-    time::{Duration, Instant},
-};
+use std::collections::HashMap;
+
+use tokio::time::{Duration, Instant};
 
 use crate::types::{
     DecodingOptions, MonitoringMode, NotificationMessage, SubscriptionAcknowledgement,
@@ -24,7 +23,7 @@ impl SubscriptionState {
     /// # Arguments
     ///
     /// * `min_publishing_interval` - The minimum accepted publishing interval, any lower values
-    /// will be set to this.
+    ///   will be set to this.
     pub(crate) fn new(min_publish_interval: Duration) -> Self {
         Self {
             subscriptions: HashMap::new(),
@@ -40,16 +39,13 @@ impl SubscriptionState {
             return None;
         }
 
-        let next = self
-            .subscriptions
+        self.subscriptions
             .values()
             .filter(|s| s.publishing_enabled())
             .map(|s| s.publishing_interval().max(self.min_publish_interval))
             .min()
-            .or_else(|| self.keep_alive_timeout)
-            .map(|e| self.last_publish + e);
-
-        next
+            .or(self.keep_alive_timeout)
+            .map(|e| self.last_publish + e)
     }
 
     pub(crate) fn set_last_publish(&mut self) {
@@ -68,7 +64,7 @@ impl SubscriptionState {
     }
 
     pub(crate) fn re_queue_acknowledgements(&mut self, acks: Vec<SubscriptionAcknowledgement>) {
-        self.acknowledgements.extend(acks.into_iter());
+        self.acknowledgements.extend(acks);
     }
 
     /// List of subscription IDs.

@@ -1,4 +1,4 @@
-use std::time::Duration;
+use tokio::time::Duration;
 
 pub(crate) struct ExponentialBackoff {
     max_sleep: Duration,
@@ -26,7 +26,7 @@ impl Iterator for ExponentialBackoff {
             return None;
         }
 
-        let next_sleep = self.current_sleep.clone();
+        let next_sleep = self.current_sleep;
         self.current_sleep = self.max_sleep.min(self.current_sleep * 2);
         self.retry_count += 1;
 

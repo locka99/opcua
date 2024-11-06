@@ -1,4 +1,6 @@
-use std::{path::PathBuf, time::Duration};
+use std::path::PathBuf;
+
+use tokio::time::Duration;
 
 use crate::server::prelude::Config;
 
@@ -16,6 +18,7 @@ impl ClientBuilder {
     }
 
     /// Creates a `ClientBuilder` using a configuration file as the initial state.
+    #[expect(clippy::result_unit_err)]
     pub fn from_config(path: impl Into<PathBuf>) -> Result<ClientBuilder, ()> {
         Ok(ClientBuilder {
             config: ClientConfig::load(&path.into())?,

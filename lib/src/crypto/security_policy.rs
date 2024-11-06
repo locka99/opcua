@@ -563,7 +563,7 @@ impl SecurityPolicy {
                 let mut their_signature = vec![0u8; their_key.size()];
                 self.asymmetric_sign(&their_key, data, their_signature.as_mut_slice())?;
                 trace!(
-                    "Using their_key, signature should be {:?}",
+                    "Using their key, signature should be {:?}",
                     &their_signature
                 );
             }

@@ -1,20 +1,29 @@
 use std::sync::Arc;
 
-use super::buffer::SendBuffer;
-use super::core::{OutgoingMessage, TransportPollResult, TransportState};
-use crate::core::comms::{
-    secure_channel::SecureChannel,
-    tcp_codec::{Message, TcpCodec},
-    tcp_types::HelloMessage,
-    url::hostname_port_from_url,
-};
-use crate::core::supported_message::SupportedMessage;
-use crate::types::{encoding::BinaryEncoder, StatusCode};
 use futures::StreamExt;
 use parking_lot::RwLock;
-use tokio::io::{AsyncWriteExt, ReadHalf, WriteHalf};
-use tokio::net::TcpStream;
+use tokio::{
+    io::{AsyncWriteExt, ReadHalf, WriteHalf},
+    net::TcpStream,
+    sync::mpsc,
+};
 use tokio_util::codec::FramedRead;
+
+use crate::{
+    core::{
+        comms::{
+            secure_channel::SecureChannel,
+            tcp_codec::{Message, TcpCodec},
+            tcp_types::HelloMessage,
+            url::hostname_port_from_url,
+        },
+        supported_message::SupportedMessage,
+    },
+    types::{encoding::BinaryEncoder, StatusCode},
+};
+
+use super::buffer::SendBuffer;
+use super::core::{OutgoingMessage, TransportPollResult, TransportState};
 
 #[derive(Debug, Clone, Copy)]
 enum TransportCloseState {
@@ -48,7 +57,7 @@ impl TcpTransport {
     /// calling `run` on the returned transport in order to actually send and receive messages.
     pub async fn connect(
         secure_channel: Arc<RwLock<SecureChannel>>,
-        outgoing_recv: tokio::sync::mpsc::Receiver<OutgoingMessage>,
+        outgoing_recv: mpsc::Receiver<OutgoingMessage>,
         config: TransportConfiguration,
         endpoint_url: &str,
     ) -> Result<Self, StatusCode> {

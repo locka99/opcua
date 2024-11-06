@@ -1,17 +1,25 @@
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Instant;
+use std::{collections::HashMap, sync::Arc, time::Instant};
 
 use futures::future::Either;
 use parking_lot::RwLock;
-
-use crate::core::comms::message_chunk::MessageIsFinalType;
-use crate::core::comms::{
-    chunker::Chunker, message_chunk::MessageChunk, message_chunk_info::ChunkInfo,
-    secure_channel::SecureChannel, tcp_codec::Message,
+use tokio::{
+    sync::{mpsc, oneshot},
+    time::sleep_until,
 };
-use crate::core::supported_message::SupportedMessage;
-use crate::types::StatusCode;
+
+use crate::{
+    core::{
+        comms::{
+            chunker::Chunker,
+            message_chunk::{MessageChunk, MessageIsFinalType},
+            message_chunk_info::ChunkInfo,
+            secure_channel::SecureChannel,
+            tcp_codec::Message,
+        },
+        supported_message::SupportedMessage,
+    },
+    types::StatusCode,
+};
 
 use super::buffer::SendBuffer;
 
@@ -22,14 +30,14 @@ struct MessageChunkWithChunkInfo {
 }
 
 pub(crate) struct MessageState {
-    callback: tokio::sync::oneshot::Sender<Result<SupportedMessage, StatusCode>>,
+    callback: oneshot::Sender<Result<SupportedMessage, StatusCode>>,
     chunks: Vec<MessageChunkWithChunkInfo>,
     deadline: Instant,
 }
 
 pub(super) struct TransportState {
     /// Channel for outgoing requests. Will only be polled if the number of inflight requests is below the limit.
-    outgoing_recv: tokio::sync::mpsc::Receiver<OutgoingMessage>,
+    outgoing_recv: mpsc::Receiver<OutgoingMessage>,
     /// State of pending requests
     message_states: HashMap<u32, MessageState>,
     /// Maximum number of inflight requests, or None if unlimited.
@@ -52,14 +60,14 @@ pub enum TransportPollResult {
 
 pub(crate) struct OutgoingMessage {
     pub request: SupportedMessage,
-    pub callback: Option<tokio::sync::oneshot::Sender<Result<SupportedMessage, StatusCode>>>,
+    pub callback: Option<oneshot::Sender<Result<SupportedMessage, StatusCode>>>,
     pub deadline: Instant,
 }
 
 impl TransportState {
     pub fn new(
         secure_channel: Arc<RwLock<SecureChannel>>,
-        outgoing_recv: tokio::sync::mpsc::Receiver<OutgoingMessage>,
+        outgoing_recv: mpsc::Receiver<OutgoingMessage>,
         max_pending_incoming: usize,
         max_inflight: usize,
     ) -> Self {
@@ -82,7 +90,7 @@ impl TransportState {
             // Check for any messages that have timed out, and get the time until the next message
             // times out
             let timeout_fut = match self.next_timeout() {
-                Some(t) => Either::Left(tokio::time::sleep_until(t.into())),
+                Some(t) => Either::Left(sleep_until(t.into())),
                 None => Either::Right(futures::future::pending::<()>()),
             };
 
@@ -93,9 +101,7 @@ impl TransportState {
                         continue;
                     }
                     outgoing = self.outgoing_recv.recv() => {
-                        let Some(outgoing) = outgoing else {
-                            return None;
-                        };
+                        let outgoing = outgoing?;
                         let request_id = send_buffer.next_request_id();
                         if let Some(callback) = outgoing.callback {
                             self.message_states.insert(request_id, MessageState {

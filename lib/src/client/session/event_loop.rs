@@ -1,9 +1,10 @@
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::sync::Arc;
 
 use futures::{stream::BoxStream, Stream, StreamExt, TryStreamExt};
+use tokio::{
+    sync::watch,
+    time::{interval, sleep_until, Duration, Instant, Interval, MissedTickBehavior},
+};
 
 use crate::{
     client::{
@@ -57,23 +58,23 @@ enum SessionEventLoopState {
 #[must_use = "The session event loop must be started for the session to work"]
 pub struct SessionEventLoop {
     inner: Arc<Session>,
-    trigger_publish_recv: tokio::sync::watch::Receiver<Instant>,
     retry: SessionRetryPolicy,
     keep_alive_interval: Duration,
+    trigger_publish_rx: watch::Receiver<Instant>,
 }
 
 impl SessionEventLoop {
     pub(crate) fn new(
         inner: Arc<Session>,
         retry: SessionRetryPolicy,
-        trigger_publish_recv: tokio::sync::watch::Receiver<Instant>,
         keep_alive_interval: Duration,
+        trigger_publish_rx: watch::Receiver<Instant>,
     ) -> Self {
         Self {
             inner,
             retry,
-            trigger_publish_recv,
             keep_alive_interval,
+            trigger_publish_rx,
         }
     }
 
@@ -183,7 +184,7 @@ impl SessionEventLoop {
                         ))
                     }
                     SessionEventLoopState::Connecting(connector, mut backoff, next_try) => {
-                        tokio::time::sleep_until(next_try.into()).await;
+                        sleep_until(next_try).await;
 
                         match connector.try_connect().await {
                             Ok((channel, result)) => {
@@ -200,7 +201,7 @@ impl SessionEventLoop {
                                         .boxed(),
                                         SubscriptionEventLoop::new(
                                             slf.inner.clone(),
-                                            slf.trigger_publish_recv.clone(),
+                                            slf.trigger_publish_rx.clone(),
                                         )
                                         .run()
                                         .boxed(),
@@ -245,13 +246,13 @@ enum SessionTickEvent {
 }
 
 struct SessionIntervals {
-    keep_alive: tokio::time::Interval,
+    keep_alive: Interval,
 }
 
 impl SessionIntervals {
     pub fn new(keep_alive_interval: Duration) -> Self {
-        let mut keep_alive = tokio::time::interval(keep_alive_interval);
-        keep_alive.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+        let mut keep_alive = interval(keep_alive_interval);
+        keep_alive.set_missed_tick_behavior(MissedTickBehavior::Skip);
 
         Self { keep_alive }
     }

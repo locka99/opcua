@@ -2,6 +2,8 @@ mod client;
 mod connect;
 mod event_loop;
 mod services;
+
+#[expect(clippy::module_inception)]
 mod session;
 
 /// Information about the server endpoint, security policy, security mode and user identity that the session will

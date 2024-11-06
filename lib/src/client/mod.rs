@@ -37,12 +37,13 @@
 //!
 //! ```no_run
 //! use std::sync::Arc;
-//! use std::time::Duration;
+//!
 //! use opcua::client::{ClientBuilder, IdentityToken, Session, DataChangeCallback, MonitoredItem};
 //! use opcua::types::{
 //!     EndpointDescription, MessageSecurityMode, UserTokenPolicy, StatusCode,
 //!     NodeId, TimestampsToReturn, MonitoredItemCreateRequest, DataValue
 //! };
+//! use tokio::time::Duration;
 //!
 //! #[tokio::main]
 //! async fn main() {

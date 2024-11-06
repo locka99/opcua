@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use tokio::{pin, select};
-
 use crate::{
     client::transport::{SecureChannelEventLoop, TransportPollResult},
     types::{NodeId, StatusCode},
@@ -42,10 +40,10 @@ impl SessionConnector {
         let mut event_loop = self.inner.channel.connect_no_retry().await?;
 
         let activate_fut = self.ensure_and_activate_session();
-        pin!(activate_fut);
+        tokio::pin!(activate_fut);
 
         let res = loop {
-            select! {
+            tokio::select! {
                 r = event_loop.poll() => {
                     if let TransportPollResult::Closed(c) = r {
                         return Err(c);

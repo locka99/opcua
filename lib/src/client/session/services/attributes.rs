@@ -18,25 +18,25 @@ use crate::{
 
 /// Enumeration used with Session::history_read()
 pub enum HistoryReadAction {
-    ReadEventDetails(ReadEventDetails),
-    ReadRawModifiedDetails(ReadRawModifiedDetails),
-    ReadProcessedDetails(ReadProcessedDetails),
-    ReadAtTimeDetails(ReadAtTimeDetails),
+    Event(ReadEventDetails),
+    RawModified(ReadRawModifiedDetails),
+    Processed(ReadProcessedDetails),
+    ReadAtTime(ReadAtTimeDetails),
 }
 
 impl From<HistoryReadAction> for ExtensionObject {
     fn from(action: HistoryReadAction) -> Self {
         match action {
-            HistoryReadAction::ReadEventDetails(v) => {
+            HistoryReadAction::Event(v) => {
                 Self::from_encodable(ObjectId::ReadEventDetails_Encoding_DefaultBinary, &v)
             }
-            HistoryReadAction::ReadRawModifiedDetails(v) => {
+            HistoryReadAction::RawModified(v) => {
                 Self::from_encodable(ObjectId::ReadRawModifiedDetails_Encoding_DefaultBinary, &v)
             }
-            HistoryReadAction::ReadProcessedDetails(v) => {
+            HistoryReadAction::Processed(v) => {
                 Self::from_encodable(ObjectId::ReadProcessedDetails_Encoding_DefaultBinary, &v)
             }
-            HistoryReadAction::ReadAtTimeDetails(v) => {
+            HistoryReadAction::ReadAtTime(v) => {
                 Self::from_encodable(ObjectId::ReadAtTimeDetails_Encoding_DefaultBinary, &v)
             }
         }
@@ -45,34 +45,34 @@ impl From<HistoryReadAction> for ExtensionObject {
 
 /// Enumeration used with Session::history_update()
 pub enum HistoryUpdateAction {
-    UpdateDataDetails(UpdateDataDetails),
-    UpdateStructureDataDetails(UpdateStructureDataDetails),
-    UpdateEventDetails(UpdateEventDetails),
-    DeleteRawModifiedDetails(DeleteRawModifiedDetails),
-    DeleteAtTimeDetails(DeleteAtTimeDetails),
-    DeleteEventDetails(DeleteEventDetails),
+    UpdateData(UpdateDataDetails),
+    UpdateStructureData(UpdateStructureDataDetails),
+    UpdateEvent(UpdateEventDetails),
+    DeleteRawModified(DeleteRawModifiedDetails),
+    DeleteAtTime(DeleteAtTimeDetails),
+    DeleteEvent(DeleteEventDetails),
 }
 
 impl From<&HistoryUpdateAction> for ExtensionObject {
     fn from(action: &HistoryUpdateAction) -> Self {
         match action {
-            HistoryUpdateAction::UpdateDataDetails(v) => {
+            HistoryUpdateAction::UpdateData(v) => {
                 Self::from_encodable(ObjectId::UpdateDataDetails_Encoding_DefaultBinary, v)
             }
-            HistoryUpdateAction::UpdateStructureDataDetails(v) => Self::from_encodable(
+            HistoryUpdateAction::UpdateStructureData(v) => Self::from_encodable(
                 ObjectId::UpdateStructureDataDetails_Encoding_DefaultBinary,
                 v,
             ),
-            HistoryUpdateAction::UpdateEventDetails(v) => {
+            HistoryUpdateAction::UpdateEvent(v) => {
                 Self::from_encodable(ObjectId::UpdateEventDetails_Encoding_DefaultBinary, v)
             }
-            HistoryUpdateAction::DeleteRawModifiedDetails(v) => {
+            HistoryUpdateAction::DeleteRawModified(v) => {
                 Self::from_encodable(ObjectId::DeleteRawModifiedDetails_Encoding_DefaultBinary, v)
             }
-            HistoryUpdateAction::DeleteAtTimeDetails(v) => {
+            HistoryUpdateAction::DeleteAtTime(v) => {
                 Self::from_encodable(ObjectId::DeleteAtTimeDetails_Encoding_DefaultBinary, v)
             }
-            HistoryUpdateAction::DeleteEventDetails(v) => {
+            HistoryUpdateAction::DeleteEvent(v) => {
                 Self::from_encodable(ObjectId::DeleteEventDetails_Encoding_DefaultBinary, v)
             }
         }
@@ -120,12 +120,7 @@ impl Session {
             if let SupportedMessage::ReadResponse(response) = response {
                 session_debug!(self, "read(), success");
                 process_service_result(&response.response_header)?;
-                let results = if let Some(results) = response.results {
-                    results
-                } else {
-                    Vec::new()
-                };
-                Ok(results)
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "read() value failed");
                 Err(process_unexpected_response(response))
@@ -184,12 +179,7 @@ impl Session {
         if let SupportedMessage::HistoryReadResponse(response) = response {
             session_debug!(self, "history_read(), success");
             process_service_result(&response.response_header)?;
-            let results = if let Some(results) = response.results {
-                results
-            } else {
-                Vec::new()
-            };
-            Ok(results)
+            Ok(response.results.unwrap_or_default())
         } else {
             session_error!(self, "history_read() value failed");
             Err(process_unexpected_response(response))
@@ -282,12 +272,7 @@ impl Session {
             if let SupportedMessage::HistoryUpdateResponse(response) = response {
                 session_debug!(self, "history_update(), success");
                 process_service_result(&response.response_header)?;
-                let results = if let Some(results) = response.results {
-                    results
-                } else {
-                    Vec::new()
-                };
-                Ok(results)
+                Ok(response.results.unwrap_or_default())
             } else {
                 session_error!(self, "history_update() failed {:?}", response);
                 Err(process_unexpected_response(response))

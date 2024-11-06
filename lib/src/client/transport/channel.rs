@@ -1,7 +1,21 @@
-use std::{str::FromStr, sync::Arc, time::Duration};
+use std::{str::FromStr, sync::Arc};
+
+use arc_swap::{ArcSwap, ArcSwapOption};
+use tokio::{
+    sync::{mpsc, Mutex},
+    time::{sleep, Duration},
+};
 
 use crate::{
-    client::{session::SessionInfo, transport::core::TransportPollResult},
+    client::{
+        retry::SessionRetryPolicy,
+        session::SessionInfo,
+        transport::core::TransportPollResult,
+        transport::{
+            tcp::{TcpTransport, TransportConfiguration},
+            OutgoingMessage,
+        },
+    },
     core::{
         comms::secure_channel::{Role, SecureChannel},
         supported_message::SupportedMessage,
@@ -13,17 +27,8 @@ use crate::{
         SecurityTokenRequestType, StatusCode,
     },
 };
-use arc_swap::{ArcSwap, ArcSwapOption};
 
 use super::state::{Request, RequestSend, SecureChannelState};
-
-use crate::client::{
-    retry::SessionRetryPolicy,
-    transport::{
-        tcp::{TcpTransport, TransportConfiguration},
-        OutgoingMessage,
-    },
-};
 
 /// Wrapper around an open secure channel
 pub struct AsyncSecureChannel {
@@ -33,7 +38,7 @@ pub struct AsyncSecureChannel {
     certificate_store: Arc<RwLock<CertificateStore>>,
     transport_config: TransportConfiguration,
     state: SecureChannelState,
-    issue_channel_lock: tokio::sync::Mutex<()>,
+    issue_channel_lock: Mutex<()>,
 
     request_send: ArcSwapOption<RequestSend>,
 }
@@ -66,7 +71,7 @@ impl AsyncSecureChannel {
 
         Self {
             transport_config,
-            issue_channel_lock: tokio::sync::Mutex::new(()),
+            issue_channel_lock: Mutex::new(()),
             state: SecureChannelState::new(ignore_clock_skew, secure_channel.clone(), auth_token),
             session_info,
             secure_channel,
@@ -133,7 +138,7 @@ impl AsyncSecureChannel {
                         break Err(s);
                     };
 
-                    tokio::time::sleep(delay).await
+                    sleep(delay).await
                 }
             }
         }
@@ -201,7 +206,7 @@ impl AsyncSecureChannel {
 
     async fn create_transport(
         &self,
-    ) -> Result<(TcpTransport, tokio::sync::mpsc::Sender<OutgoingMessage>), StatusCode> {
+    ) -> Result<(TcpTransport, mpsc::Sender<OutgoingMessage>), StatusCode> {
         let endpoint_url = self.session_info.endpoint.endpoint_url.clone();
         info!("Connect");
         let security_policy =
@@ -214,39 +219,38 @@ impl AsyncSecureChannel {
                 self.session_info.endpoint.security_policy_uri.as_ref()
             );
             return Err(StatusCode::BadSecurityPolicyRejected);
-        } else {
-            let (cert, key) = {
-                let certificate_store = trace_write_lock!(self.certificate_store);
-                certificate_store.read_own_cert_and_pkey_optional()
-            };
-
-            {
-                let mut secure_channel = trace_write_lock!(self.secure_channel);
-                secure_channel.set_private_key(key);
-                secure_channel.set_cert(cert);
-                secure_channel.set_security_policy(security_policy);
-                secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
-                let _ = secure_channel.set_remote_cert_from_byte_string(
-                    &self.session_info.endpoint.server_certificate,
-                );
-                info!("Security policy = {:?}", security_policy);
-                info!(
-                    "Security mode = {:?}",
-                    self.session_info.endpoint.security_mode
-                );
-            }
-
-            let (send, recv) = tokio::sync::mpsc::channel(self.transport_config.max_inflight);
-            let transport = TcpTransport::connect(
-                self.secure_channel.clone(),
-                recv,
-                self.transport_config.clone(),
-                endpoint_url.as_ref(),
-            )
-            .await?;
-
-            Ok((transport, send))
         }
+
+        let (cert, key) = {
+            let certificate_store = trace_write_lock!(self.certificate_store);
+            certificate_store.read_own_cert_and_pkey_optional()
+        };
+
+        {
+            let mut secure_channel = trace_write_lock!(self.secure_channel);
+            secure_channel.set_private_key(key);
+            secure_channel.set_cert(cert);
+            secure_channel.set_security_policy(security_policy);
+            secure_channel.set_security_mode(self.session_info.endpoint.security_mode);
+            let _ = secure_channel
+                .set_remote_cert_from_byte_string(&self.session_info.endpoint.server_certificate);
+            debug!("security policy = {:?}", security_policy);
+            debug!(
+                "security mode = {:?}",
+                self.session_info.endpoint.security_mode
+            );
+        }
+
+        let (send, recv) = mpsc::channel(self.transport_config.max_inflight);
+        let transport = TcpTransport::connect(
+            self.secure_channel.clone(),
+            recv,
+            self.transport_config.clone(),
+            endpoint_url.as_ref(),
+        )
+        .await?;
+
+        Ok((transport, send))
     }
 
     /// Close the secure channel, optionally wait for the channel to close.
@@ -262,7 +266,6 @@ impl AsyncSecureChannel {
         if let Some(request) = request {
             if let Err(e) = request.send_no_response().await {
                 error!("Failed to send disconnect message, queue full: {e}");
-                return;
             }
         }
     }

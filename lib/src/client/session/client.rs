@@ -1,7 +1,6 @@
 use std::{path::PathBuf, str::FromStr, sync::Arc};
 
 use chrono::Duration;
-use tokio::{pin, select};
 
 use crate::{
     client::{
@@ -165,9 +164,8 @@ impl Client {
         let server_endpoints = self
             .get_server_endpoints_from_url(server_url)
             .await
-            .map_err(|status_code| {
+            .inspect_err(|status_code| {
                 error!("Cannot get endpoints for server, error - {}", status_code);
-                status_code
             })?;
 
         // Find the server endpoint that matches the one desired
@@ -180,12 +178,11 @@ impl Client {
             endpoint.security_mode,
         )
         .ok_or(StatusCode::BadTcpEndpointUrlInvalid)
-        .map_err(|status_code| {
+        .inspect_err(|_| {
             error!(
                 "Cannot find matching endpoint for {}",
                 endpoint.endpoint_url.as_ref()
             );
-            status_code
         })?;
 
         Ok(self
@@ -509,10 +506,10 @@ impl Client {
             let mut evt_loop = channel.connect().await?;
 
             let send_fut = self.get_server_endpoints_inner(&endpoint, &channel);
-            pin!(send_fut);
+            tokio::pin!(send_fut);
 
             let res = loop {
-                select! {
+                tokio::select! {
                     r = evt_loop.poll() => {
                         if let TransportPollResult::Closed(e) = r {
                             return Err(e);
@@ -549,12 +546,7 @@ impl Client {
         let response = channel.send(request, self.config.request_timeout).await?;
         if let SupportedMessage::FindServersResponse(response) = response {
             process_service_result(&response.response_header)?;
-            let servers = if let Some(servers) = response.servers {
-                servers
-            } else {
-                Vec::new()
-            };
-            Ok(servers)
+            Ok(response.servers.unwrap_or_default())
         } else {
             Err(process_unexpected_response(response))
         }
@@ -588,10 +580,10 @@ impl Client {
         let mut evt_loop = channel.connect().await?;
 
         let send_fut = self.find_servers_inner(discovery_endpoint_url, &channel);
-        pin!(send_fut);
+        tokio::pin!(send_fut);
 
         let res = loop {
-            select! {
+            tokio::select! {
                 r = evt_loop.poll() => {
                     if let TransportPollResult::Closed(e) = r {
                         return Err(e);
@@ -731,7 +723,7 @@ impl Client {
 
         let Some(endpoint) = endpoints
             .iter()
-            .filter(|e| self.is_supported_endpoint(*e))
+            .filter(|e| self.is_supported_endpoint(e))
             .max_by(|a, b| a.security_level.cmp(&b.security_level))
         else {
             error!("Cannot find an endpoint that we call register server on");
@@ -753,10 +745,10 @@ impl Client {
         let mut evt_loop = channel.connect().await?;
 
         let send_fut = self.register_server_inner(server, &channel);
-        pin!(send_fut);
+        tokio::pin!(send_fut);
 
         let res = loop {
-            select! {
+            tokio::select! {
                 r = evt_loop.poll() => {
                     if let TransportPollResult::Closed(e) = r {
                         return Err(e);

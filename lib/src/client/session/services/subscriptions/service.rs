@@ -1,7 +1,6 @@
-use std::{
-    collections::HashSet,
-    time::{Duration, Instant},
-};
+use std::collections::HashSet;
+
+use tokio::time::{Duration, Instant};
 
 use crate::{
     client::{
@@ -50,7 +49,7 @@ impl Session {
             process_service_result(&response.response_header)?;
             let subscription = Subscription::new(
                 response.subscription_id,
-                Duration::from_millis(response.revised_publishing_interval.max(0.0).floor() as u64),
+                Duration::from_millis(response.revised_publishing_interval.max(0.0) as u64),
                 response.revised_lifetime_count,
                 response.revised_max_keep_alive_count,
                 max_notifications_per_publish,
@@ -129,7 +128,7 @@ impl Session {
         max_notifications_per_publish: u32,
         priority: u8,
         publishing_enabled: bool,
-        callback: impl OnSubscriptionNotification + Send + Sync + 'static,
+        callback: impl OnSubscriptionNotification + 'static,
     ) -> Result<u32, StatusCode> {
         self.create_subscription_inner(
             publishing_interval,
@@ -940,8 +939,8 @@ impl Session {
 
             let items_to_create = subscription
                 .monitored_items
-                .iter()
-                .map(|(_, item)| MonitoredItemCreateRequest {
+                .values()
+                .map(|item| MonitoredItemCreateRequest {
                     item_to_monitor: item.item_to_monitor().clone(),
                     monitoring_mode: item.monitoring_mode,
                     requested_parameters: MonitoringParameters {
