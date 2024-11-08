@@ -370,6 +370,7 @@ impl Client {
                 max_message_size: self.config.decoding_options.max_message_size,
                 max_chunk_count: self.config.decoding_options.max_chunk_count,
             },
+            self.config.secure_channel_lifetime
         )
     }
 
