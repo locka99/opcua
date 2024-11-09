@@ -3,12 +3,13 @@
 // Copyright (C) 2017-2024 Adam Lock
 
 use std::{
+    collections::HashMap,
     io::{Cursor, Write},
     ops::Range,
     sync::Arc,
 };
 
-use chrono::{Duration, TimeDelta};
+use chrono::Duration;
 
 use crate::crypto::{
     aeskey::AesKey,
@@ -33,6 +34,12 @@ pub enum Role {
     Unknown,
     Client,
     Server,
+}
+
+#[derive(Debug)]
+struct RemoteKeys {
+    keys: (Vec<u8>, AesKey, Vec<u8>),
+    expires_at: DateTime,
 }
 
 /// Holds all of the security information related to this session
@@ -63,7 +70,14 @@ pub struct SecureChannel {
     /// Our nonce generated while handling open secure channel
     local_nonce: Vec<u8>,
     /// Client (i.e. other end's set of keys) Symmetric Signing Key, Encrypt Key, IV
-    remote_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
+    ///
+    /// This is a map of channel token ids and their respective keys. We need to keep
+    /// the old keys around as the client should accept messages secured by an expired
+    /// SecurityToken for up to 25 % of the token lifetime.
+    ///
+    /// See the "OpenSecureChannel" section in the spec for more info:
+    /// https://reference.opcfoundation.org/Core/Part4/v105/docs/5.5.2
+    remote_keys: HashMap<u32, RemoteKeys>,
     /// Server (i.e. our end's set of keys) Symmetric Signing Key, Decrypt Key, IV
     local_keys: Option<(Vec<u8>, AesKey, Vec<u8>)>,
     /// Decoding options
@@ -88,7 +102,7 @@ impl SecureChannel {
             private_key: None,
             remote_cert: None,
             local_keys: None,
-            remote_keys: None,
+            remote_keys: HashMap::new(),
             decoding_options: DecodingOptions::default(),
         }
     }
@@ -121,7 +135,7 @@ impl SecureChannel {
             private_key,
             remote_cert: None,
             local_keys: None,
-            remote_keys: None,
+            remote_keys: HashMap::new(),
             decoding_options,
         }
     }
@@ -226,10 +240,10 @@ impl SecureChannel {
             false
         } else {
             // Check if secure channel 75% close to expiration in which case send a renew
-            let renew_lifetime = (self.token_lifetime() * 3) / 4;
-            let renew_lifetime = TimeDelta::try_milliseconds(renew_lifetime as i64).unwrap();
+            let renew_lifetime = (self.token_lifetime * 3) / 4;
+            let renew_lifetime = Duration::milliseconds(renew_lifetime as i64);
             // Renew the token?
-            DateTime::now() - self.token_created_at() > renew_lifetime
+            DateTime::now() - self.token_created_at > renew_lifetime
         }
     }
 
@@ -356,7 +370,7 @@ impl SecureChannel {
     /// are used to secure Messages sent by the Server.
     ///
     pub fn derive_keys(&mut self) {
-        self.remote_keys = Some(
+        self.insert_remote_keys(
             self.security_policy
                 .make_secure_channel_keys(&self.local_nonce, &self.remote_nonce),
         );
@@ -366,16 +380,11 @@ impl SecureChannel {
         );
         trace!("Remote nonce = {:?}", self.remote_nonce);
         trace!("Local nonce = {:?}", self.local_nonce);
-        trace!("Derived remote keys = {:?}", self.remote_keys);
+        trace!(
+            "Derived remote keys = {:?}",
+            self.get_remote_keys(self.token_id)
+        );
         trace!("Derived local keys = {:?}", self.local_keys);
-    }
-
-    /// Test if the token has expired yet
-    pub fn token_has_expired(&self) -> bool {
-        let token_created_at = self.token_created_at;
-        let token_expires =
-            token_created_at + TimeDelta::try_seconds(self.token_lifetime as i64).unwrap();
-        DateTime::now().ge(&token_expires)
     }
 
     /// Calculates the signature size for a message depending on the supplied security header
@@ -739,11 +748,20 @@ impl SecureChannel {
                 encrypted_range
             );
 
+            let SecurityHeader::Symmetric(security_header) = security_header else {
+                error!(
+                    "Expected symmetric security header, got {:?}",
+                    security_header
+                );
+                return Err(StatusCode::BadUnexpectedError);
+            };
+
             let mut decrypted_data = vec![0u8; message_size];
             let decrypted_size = self.symmetric_decrypt_and_verify(
                 src,
                 signed_range,
                 encrypted_range,
+                security_header.token_id,
                 &mut decrypted_data,
             )?;
 
@@ -1048,8 +1066,33 @@ impl SecureChannel {
         self.local_keys.as_ref().unwrap()
     }
 
-    fn remote_keys(&self) -> &(Vec<u8>, AesKey, Vec<u8>) {
-        self.remote_keys.as_ref().unwrap()
+    fn insert_remote_keys(&mut self, keys: (Vec<u8>, AesKey, Vec<u8>)) {
+        // First remove any expired keys.
+        self.remote_keys
+            .retain(|_, v| DateTime::now() < v.expires_at);
+
+        let expires_at = (self.token_lifetime as f32 * 1.25).ceil();
+        let expires_at = Duration::milliseconds(expires_at as i64);
+
+        // Then insert the new keys to ensure there is
+        // always at least one set of keys available.
+        self.remote_keys.insert(
+            self.token_id,
+            RemoteKeys {
+                keys,
+                expires_at: self.token_created_at + expires_at,
+            },
+        );
+    }
+
+    fn get_remote_keys(&self, token_id: u32) -> Result<&(Vec<u8>, AesKey, Vec<u8>), StatusCode> {
+        match self.remote_keys.get(&token_id) {
+            Some(remote_keys) => Ok(&remote_keys.keys),
+            None => {
+                error!("No remote keys found for token: {}", token_id);
+                Err(StatusCode::BadUnexpectedError)
+            }
+        }
     }
 
     fn encryption_keys(&self) -> (&AesKey, &[u8]) {
@@ -1061,13 +1104,13 @@ impl SecureChannel {
         &(self.local_keys()).0
     }
 
-    fn decryption_keys(&self) -> (&AesKey, &[u8]) {
-        let keys = self.remote_keys();
-        (&keys.1, &keys.2)
+    fn decryption_keys(&self, token_id: u32) -> Result<(&AesKey, &[u8]), StatusCode> {
+        let keys = self.get_remote_keys(token_id)?;
+        Ok((&keys.1, &keys.2))
     }
 
-    fn verification_key(&self) -> &[u8] {
-        &(self.remote_keys()).0
+    fn verification_key(&self, token_id: u32) -> Result<&[u8], StatusCode> {
+        Ok(&(self.get_remote_keys(token_id))?.0)
     }
 
     /// Encode data using security. Destination buffer is expected to be same size as src and expected
@@ -1178,6 +1221,7 @@ impl SecureChannel {
         src: &[u8],
         signed_range: Range<usize>,
         encrypted_range: Range<usize>,
+        token_id: u32,
         dst: &mut [u8],
     ) -> Result<usize, StatusCode> {
         match self.security_mode {
@@ -1198,7 +1242,7 @@ impl SecureChannel {
                     signed_range,
                     signed_range.end
                 );
-                let verification_key = self.verification_key();
+                let verification_key = self.verification_key(token_id)?;
                 self.security_policy.symmetric_verify_signature(
                     verification_key,
                     &dst[signed_range.clone()],
@@ -1222,7 +1266,7 @@ impl SecureChannel {
 
                 // Decrypt encrypted portion
                 let mut decrypted_tmp = vec![0u8; ciphertext_size + 16]; // tmp includes +16 for blocksize
-                let (key, iv) = self.decryption_keys();
+                let (key, iv) = self.decryption_keys(token_id)?;
 
                 trace!(
                     "Secure decrypt called with encrypted range {:?}",
@@ -1250,7 +1294,7 @@ impl SecureChannel {
                     signed_range,
                     signature_range
                 );
-                let verification_key = self.verification_key();
+                let verification_key = self.verification_key(token_id)?;
                 self.security_policy.symmetric_verify_signature(
                     verification_key,
                     &dst[signed_range],
