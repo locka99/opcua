@@ -33,7 +33,7 @@ To use the server crate we need to add a dependency to the `Cargo.toml`.
 
 ```
 [dependencies]
-opcua = { "0.12", features = ["server"] }
+opcua = { version = "0.12", features = ["server"] }
 ```
 
 ## Import types
