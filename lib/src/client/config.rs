@@ -161,8 +161,6 @@ pub struct Performance {
     pub(crate) ignore_clock_skew: bool,
     /// Maximum number of monitored items per request when recreating subscriptions on session recreation.
     pub(crate) recreate_monitored_items_chunk: usize,
-    /// Maximum number of inflight messages.
-    pub(crate) max_inflight_messages: usize,
 }
 
 /// Client OPC UA configuration
@@ -218,8 +216,6 @@ pub struct ClientConfig {
     /// Minimum publish interval. Setting this higher will make sure that subscriptions
     /// publish together, which may reduce the number of publish requests if you have a lot of subscriptions.
     pub(crate) min_publish_interval: Duration,
-    /// Maximum number of inflight publish requests before further requests are skipped.
-    pub(crate) max_inflight_publish: usize,
 
     /// Requested session timeout in milliseconds
     pub(crate) session_timeout: u32,
@@ -358,7 +354,6 @@ impl ClientConfig {
             request_timeout: Duration::from_secs(60),
             min_publish_interval: Duration::from_secs(1),
             publish_timeout: Duration::from_secs(60),
-            max_inflight_publish: 2,
             session_timeout: 0,
             decoding_options: DecodingOptions {
                 max_array_length: decoding_options.max_array_length,
@@ -372,7 +367,6 @@ impl ClientConfig {
             performance: Performance {
                 ignore_clock_skew: false,
                 recreate_monitored_items_chunk: 1000,
-                max_inflight_messages: 20,
             },
             session_name: "Rust OPC UA Client".into(),
         }

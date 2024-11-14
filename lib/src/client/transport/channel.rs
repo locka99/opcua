@@ -25,6 +25,11 @@ use crate::client::{
     },
 };
 
+// This is an arbitrary limit which should never be reached in practice,
+// it's just a safety net to prevent the client from consuming too much
+// memory if it gets into an unexpected (bad) state.
+const MAX_INFLIGHT_MESSAGES: usize = 1_000_000;
+
 /// Wrapper around an open secure channel
 pub struct AsyncSecureChannel {
     session_info: SessionInfo,
@@ -236,7 +241,7 @@ impl AsyncSecureChannel {
                 );
             }
 
-            let (send, recv) = tokio::sync::mpsc::channel(self.transport_config.max_inflight);
+            let (send, recv) = tokio::sync::mpsc::channel(MAX_INFLIGHT_MESSAGES);
             let transport = TcpTransport::connect(
                 self.secure_channel.clone(),
                 recv,

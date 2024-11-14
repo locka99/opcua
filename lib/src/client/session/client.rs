@@ -364,7 +364,6 @@ impl Client {
             Arc::default(),
             TransportConfiguration {
                 max_pending_incoming: 5,
-                max_inflight: self.config.performance.max_inflight_messages,
                 send_buffer_size: self.config.decoding_options.max_chunk_size,
                 recv_buffer_size: self.config.decoding_options.max_incoming_chunk_size,
                 max_message_size: self.config.decoding_options.max_message_size,

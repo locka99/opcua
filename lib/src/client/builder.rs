@@ -246,12 +246,6 @@ impl ClientBuilder {
         self
     }
 
-    /// Maximum number of pending publish requests.
-    pub fn max_inflight_publish(mut self, max_inflight_publish: usize) -> Self {
-        self.config.max_inflight_publish = max_inflight_publish;
-        self
-    }
-
     /// Sets the session timeout period, in milliseconds.
     pub fn session_timeout(mut self, session_timeout: u32) -> Self {
         self.config.session_timeout = session_timeout;
@@ -270,12 +264,6 @@ impl ClientBuilder {
     /// This is the maximum number of monitored items to create per request.
     pub fn recreate_monitored_items_chunk(mut self, recreate_monitored_items_chunk: usize) -> Self {
         self.config.performance.recreate_monitored_items_chunk = recreate_monitored_items_chunk;
-        self
-    }
-
-    /// Maximum number of inflight messages.
-    pub fn max_inflight_messages(mut self, max_inflight_messages: usize) -> Self {
-        self.config.performance.max_inflight_messages = max_inflight_messages;
         self
     }
 

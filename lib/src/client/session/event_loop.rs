@@ -280,6 +280,7 @@ impl SessionActivityLoop {
         futures::stream::unfold(self, |mut slf| async move {
             match slf.tick_gen.next().await {
                 SessionTickEvent::KeepAlive => {
+                    let now = Instant::now();
                     let res = slf
                         .inner
                         .read(
@@ -293,11 +294,19 @@ impl SessionActivityLoop {
                             1f64,
                         )
                         .await;
+                    let elapsed = now.elapsed();
 
-                    let value = match res.map(|r| r.into_iter().next()) {
-                        Ok(Some(dv)) => dv,
-                        // Should not be possible, this would be a bug in the server, assume everything
-                        // is terrible.
+                    let data_value = match res.map(|r| r.into_iter().next()) {
+                        Ok(Some(data_value)) => {
+                            // Only update if the request was successful to avoid
+                            // skewing the roundtrip time by processing timeouts.
+                            slf.inner
+                                .publish_limits_watch_tx
+                                .send_modify(|limits| limits.update_message_roundtrip(elapsed));
+                            data_value
+                        }
+                        // Should not be possible, this would be a bug in
+                        // the server, assume everything is terrible.
                         Ok(None) => {
                             return Some((
                                 SessionActivity::KeepAliveFailed(StatusCode::BadUnknownResponse),
@@ -307,24 +316,19 @@ impl SessionActivityLoop {
                         Err(e) => return Some((SessionActivity::KeepAliveFailed(e), slf)),
                     };
 
-                    let Some(status): Option<u8> = value.value.and_then(|v| v.try_into().ok())
-                    else {
-                        return Some((
-                            SessionActivity::KeepAliveFailed(StatusCode::BadUnknownResponse),
-                            slf,
-                        ));
-                    };
-
-                    match status {
-                        // ServerState::Running
-                        0 => Some((SessionActivity::KeepAliveSucceeded, slf)),
-                        s => {
+                    match data_value.value.and_then(|v| v.try_into().ok()) {
+                        Some(0) => Some((SessionActivity::KeepAliveSucceeded, slf)),
+                        Some(s) => {
                             warn!("Keep alive failed, non-running status code {s}");
                             Some((
                                 SessionActivity::KeepAliveFailed(StatusCode::BadServerHalted),
                                 slf,
                             ))
                         }
+                        None => Some((
+                            SessionActivity::KeepAliveFailed(StatusCode::BadUnknownResponse),
+                            slf,
+                        )),
                     }
                 }
             }

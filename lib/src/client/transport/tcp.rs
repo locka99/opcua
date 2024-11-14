@@ -35,7 +35,6 @@ pub(crate) struct TcpTransport {
 #[derive(Debug, Clone)]
 pub struct TransportConfiguration {
     pub max_pending_incoming: usize,
-    pub max_inflight: usize,
     pub send_buffer_size: usize,
     pub recv_buffer_size: usize,
     pub max_message_size: usize,
@@ -59,12 +58,7 @@ impl TcpTransport {
             };
 
         Ok(Self {
-            state: TransportState::new(
-                secure_channel,
-                outgoing_recv,
-                config.max_pending_incoming,
-                config.max_inflight,
-            ),
+            state: TransportState::new(secure_channel, outgoing_recv, config.max_pending_incoming),
             read: framed_read,
             write: writer,
             send_buffer: SendBuffer::new(

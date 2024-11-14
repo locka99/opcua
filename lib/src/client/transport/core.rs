@@ -32,8 +32,6 @@ pub(super) struct TransportState {
     outgoing_recv: tokio::sync::mpsc::Receiver<OutgoingMessage>,
     /// State of pending requests
     message_states: HashMap<u32, MessageState>,
-    /// Maximum number of inflight requests, or None if unlimited.
-    max_inflight: usize,
     /// Secure channel
     pub(super) secure_channel: Arc<RwLock<SecureChannel>>,
     /// Max pending incoming messages
@@ -61,13 +59,11 @@ impl TransportState {
         secure_channel: Arc<RwLock<SecureChannel>>,
         outgoing_recv: tokio::sync::mpsc::Receiver<OutgoingMessage>,
         max_pending_incoming: usize,
-        max_inflight: usize,
     ) -> Self {
         Self {
             secure_channel,
             outgoing_recv,
             message_states: HashMap::new(),
-            max_inflight,
             max_pending_incoming,
             last_received_sequence_number: 0,
         }
@@ -86,29 +82,24 @@ impl TransportState {
                 None => Either::Right(futures::future::pending::<()>()),
             };
 
-            // Only listen for outgoing messages if the number of inflight messages is below the limit.
-            if self.max_inflight > self.message_states.len() {
-                tokio::select! {
-                    _ = timeout_fut => {
-                        continue;
-                    }
-                    outgoing = self.outgoing_recv.recv() => {
-                        let Some(outgoing) = outgoing else {
-                            return None;
-                        };
-                        let request_id = send_buffer.next_request_id();
-                        if let Some(callback) = outgoing.callback {
-                            self.message_states.insert(request_id, MessageState {
-                                callback,
-                                chunks: Vec::new(),
-                                deadline: outgoing.deadline,
-                            });
-                        }
-                        break Some((outgoing.request, request_id));
-                    }
+            tokio::select! {
+                _ = timeout_fut => {
+                    continue;
                 }
-            } else {
-                timeout_fut.await;
+                outgoing = self.outgoing_recv.recv() => {
+                    let Some(outgoing) = outgoing else {
+                        return None;
+                    };
+                    let request_id = send_buffer.next_request_id();
+                    if let Some(callback) = outgoing.callback {
+                        self.message_states.insert(request_id, MessageState {
+                            callback,
+                            chunks: Vec::new(),
+                            deadline: outgoing.deadline,
+                        });
+                    }
+                    break Some((outgoing.request, request_id));
+                }
             }
         }
     }

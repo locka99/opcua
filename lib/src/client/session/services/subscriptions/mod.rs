@@ -449,3 +449,46 @@ impl Subscription {
         }
     }
 }
+
+#[derive(Debug)]
+pub(crate) struct PublishLimits {
+    message_roundtrip: Duration,
+    publish_interval: Duration,
+    subscriptions: usize,
+    min_publish_requests: usize,
+    max_publish_requests: usize,
+}
+
+impl PublishLimits {
+    const MIN_MESSAGE_ROUNDTRIP: Duration = Duration::from_millis(10);
+    const REQUESTS_PER_SUBSCRIPTION: usize = 2;
+
+    pub fn new() -> Self {
+        Self {
+            message_roundtrip: Self::MIN_MESSAGE_ROUNDTRIP,
+            publish_interval: Duration::ZERO,
+            subscriptions: 0,
+            min_publish_requests: 0,
+            max_publish_requests: 0,
+        }
+    }
+
+    pub fn update_message_roundtrip(&mut self, message_roundtrip: Duration) {
+        self.message_roundtrip = message_roundtrip.max(Self::MIN_MESSAGE_ROUNDTRIP);
+        self.calculate_publish_limits();
+    }
+
+    pub fn update_subscriptions(&mut self, subscriptions: usize, publish_interval: Duration) {
+        self.subscriptions = subscriptions;
+        self.publish_interval = publish_interval;
+        self.calculate_publish_limits();
+    }
+
+    fn calculate_publish_limits(&mut self) {
+        self.min_publish_requests = self.subscriptions * Self::REQUESTS_PER_SUBSCRIPTION;
+        self.max_publish_requests = (self.message_roundtrip.as_millis() as f32
+            / self.publish_interval.as_millis() as f32)
+            .ceil() as usize
+            * (self.min_publish_requests);
+    }
+}
