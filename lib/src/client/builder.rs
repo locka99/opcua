@@ -260,8 +260,8 @@ impl ClientBuilder {
 
     /// Sets whether the client should ignore clock skew so the client can make a successful
     /// connection to the server, even when the client and server clocks are out of sync.
-    pub fn ignore_clock_skew(mut self) -> Self {
-        self.config.performance.ignore_clock_skew = true;
+    pub fn ignore_clock_skew(mut self, ignore_clock_skew: bool) -> Self {
+        self.config.performance.ignore_clock_skew = ignore_clock_skew;
         self
     }
 
