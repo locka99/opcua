@@ -82,17 +82,18 @@ impl ClientUserToken {
                 );
                 valid = false;
             }
-        } else {
-            if self.cert_path.is_none() && self.private_key_path.is_none() {
-                error!(
-                    "User token {} fails to provide a password or certificate info.",
-                    self.user
-                );
-                valid = false;
-            } else if self.cert_path.is_none() || self.private_key_path.is_none() {
-                error!("User token {} fails to provide both a certificate path and a private key path.", self.user);
-                valid = false;
-            }
+        } else if self.cert_path.is_none() && self.private_key_path.is_none() {
+            error!(
+                "User token {} fails to provide a password or certificate info.",
+                self.user
+            );
+            valid = false;
+        } else if self.cert_path.is_none() || self.private_key_path.is_none() {
+            error!(
+                "User token {} fails to provide both a certificate path and a private key path.",
+                self.user
+            );
+            valid = false;
         }
         valid
     }
@@ -202,6 +203,9 @@ pub struct ClientConfig {
     /// Maximum number of times to attempt to reconnect to the server before giving up.
     /// -1 retries forever
     pub(crate) session_retry_limit: i32,
+    /// Transfer (or recreate if transfers are not supported) subscriptions to
+    /// the new session when reconnecting.
+    pub(crate) transfer_on_reconnect: bool,
 
     /// Initial delay for exponential backoff when reconnecting to the server.
     pub(crate) session_retry_initial: Duration,
@@ -215,8 +219,9 @@ pub struct ClientConfig {
     /// Timeout for publish requests, separate from normal timeout since
     /// subscriptions are often more time sensitive.
     pub(crate) publish_timeout: Duration,
-    /// Minimum publish interval. Setting this higher will make sure that subscriptions
-    /// publish together, which may reduce the number of publish requests if you have a lot of subscriptions.
+    /// Minimum publish interval. Setting this higher will make sure that
+    /// subscriptions publish together, which may reduce the number of publish
+    /// requests if you have a lot of subscriptions.
     pub(crate) min_publish_interval: Duration,
     /// Maximum number of inflight publish requests before further requests are skipped.
     pub(crate) max_inflight_publish: usize,
@@ -354,6 +359,7 @@ impl ClientConfig {
             session_retry_limit: SessionRetryPolicy::DEFAULT_RETRY_LIMIT as i32,
             session_retry_initial: Duration::from_secs(1),
             session_retry_max: Duration::from_secs(30),
+            transfer_on_reconnect: true,
             keep_alive_interval: Duration::from_secs(10),
             request_timeout: Duration::from_secs(60),
             min_publish_interval: Duration::from_secs(1),

@@ -208,6 +208,13 @@ impl ClientBuilder {
         self
     }
 
+    /// Sets whether the client should transfer (or recreate if transfers are
+    /// not supported) subscriptions to the new session when reconnecting.
+    pub fn transfer_on_reconnect(mut self, transfer_on_reconnect: bool) -> Self {
+        self.config.transfer_on_reconnect = transfer_on_reconnect;
+        self
+    }
+
     /// Initial time between retries when backing off on session reconnects.
     pub fn session_retry_initial(mut self, session_retry_initial: Duration) -> Self {
         self.config.session_retry_initial = session_retry_initial;

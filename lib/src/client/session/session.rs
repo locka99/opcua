@@ -51,10 +51,11 @@ pub struct Session {
     pub(super) application_description: ApplicationDescription,
     pub(super) request_timeout: Duration,
     pub(super) publish_timeout: Duration,
-    pub(super) recreate_monitored_items_chunk: usize,
     pub(super) session_timeout: f64,
     pub(super) max_inflight_publish: usize,
+    pub(super) recreate_monitored_items_chunk: usize,
     pub subscription_state: Mutex<SubscriptionState>,
+    pub(super) transfer_on_reconnect: bool,
     pub(super) monitored_item_handle: AtomicHandle,
     pub(super) trigger_publish_tx: tokio::sync::watch::Sender<Instant>,
 }
@@ -106,6 +107,7 @@ impl Session {
             max_inflight_publish: config.max_inflight_publish,
             recreate_monitored_items_chunk: config.performance.recreate_monitored_items_chunk,
             subscription_state: Mutex::new(SubscriptionState::new(config.min_publish_interval)),
+            transfer_on_reconnect: config.transfer_on_reconnect,
             monitored_item_handle: AtomicHandle::new(1000),
             trigger_publish_tx,
         });
