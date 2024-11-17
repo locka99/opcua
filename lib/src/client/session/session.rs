@@ -150,17 +150,13 @@ impl Session {
     async fn wait_for_state(&self, connected: bool) -> bool {
         let mut rx = self.state_watch_rx.clone();
 
-        let res = match rx
+        let res = rx
             .wait_for(|s| {
                 connected && matches!(*s, SessionState::Connected)
                     || !connected && matches!(*s, SessionState::Disconnected)
             })
             .await
-        {
-            Ok(_) => true,
-            Err(_) => false,
-        };
-
+            .is_ok();
         res
     }
 
