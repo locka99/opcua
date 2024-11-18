@@ -17,4 +17,4 @@ COPY --from=builder /build/samples/demo-server/log4rs.yaml ./
 COPY --from=builder /build/lib/src/server/html/index.html ./
 EXPOSE 4855
 EXPOSE 8585
-CMD ["/app/opcua-demo-server --raise-events --config /app/server.conf"]
+CMD ["/app/opcua-demo-server", "--raise-events", "--config", "/app/server.conf"]
