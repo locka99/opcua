@@ -1071,8 +1071,8 @@ impl SecureChannel {
         self.remote_keys
             .retain(|_, v| DateTime::now() < v.expires_at);
 
-        let expires_at = (self.token_lifetime as f32 * 1.25).ceil();
-        let expires_at = Duration::milliseconds(expires_at as i64);
+        let expires_in = (self.token_lifetime as f32 * 1.25).ceil();
+        let expires_in = Duration::milliseconds(expires_in as i64);
 
         // Then insert the new keys to ensure there is
         // always at least one set of keys available.
@@ -1080,7 +1080,7 @@ impl SecureChannel {
             self.token_id,
             RemoteKeys {
                 keys,
-                expires_at: self.token_created_at + expires_at,
+                expires_at: self.token_created_at + expires_in,
             },
         );
     }
