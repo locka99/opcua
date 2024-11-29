@@ -146,25 +146,27 @@ fn main() {
             .build()
             .unwrap();
 
+        let handle = runtime.handle();
+
         // Start the http server, used for metrics
-        start_http_server(&runtime, &server, args.content_path.to_str().unwrap());
+        start_http_server(&handle, &server, args.content_path.to_str().unwrap());
 
         // Run the server. This does not ordinarily exit so you must Ctrl+C to terminate
         Server::run_server_on_runtime(
-            runtime,
+            handle,
             Server::new_server_task(Arc::new(RwLock::new(server))),
             true,
         );
     }
 }
 
-fn start_http_server(runtime: &tokio::runtime::Runtime, server: &Server, content_path: &str) {
+fn start_http_server(handle: &tokio::runtime::Handle, server: &Server, content_path: &str) {
     let server_state = server.server_state();
     let connections = server.connections();
     let metrics = server.server_metrics();
     // The index.html is in a path relative to the working dir.
     let _ = http::run_http_server(
-        runtime,
+        handle,
         "127.0.0.1:8585",
         content_path,
         server_state,

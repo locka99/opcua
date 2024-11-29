@@ -240,7 +240,7 @@ impl Server {
             tokio::runtime::Builder::new_current_thread()
         };
         let runtime = builder.enable_all().build().unwrap();
-        Self::run_server_on_runtime(runtime, server_task, true);
+        Self::run_server_on_runtime(runtime.handle(), server_task, true);
     }
 
     /// Allow the server to be run on a caller supplied runtime. If block is set, the task
@@ -248,7 +248,7 @@ impl Server {
     /// returned by the function. Spawning might be suitable if the runtime is being used for other
     /// async tasks.
     pub fn run_server_on_runtime<F>(
-        runtime: tokio::runtime::Runtime,
+        handle: &tokio::runtime::Handle,
         server_task: F,
         block: bool,
     ) -> Option<tokio::task::JoinHandle<<F as futures::Future>::Output>>
@@ -257,11 +257,11 @@ impl Server {
         F::Output: Send + 'static,
     {
         if block {
-            runtime.block_on(server_task);
+            handle.block_on(server_task);
             info!("Server has finished");
             None
         } else {
-            Some(runtime.spawn(server_task))
+            Some(handle.spawn(server_task))
         }
     }
 

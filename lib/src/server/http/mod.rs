@@ -6,7 +6,7 @@ use std::{path::PathBuf, sync::Arc, thread};
 
 use actix_files as fs;
 use actix_web::{web, App, HttpResponse, HttpServer, Responder, Result};
-use tokio::runtime::Runtime;
+use tokio::runtime::Handle;
 
 use crate::sync::*;
 
@@ -73,7 +73,7 @@ async fn metrics(data: web::Data<AppState>) -> impl Responder {
 
 /// Runs an http server on the specified binding address, serving out the supplied server metrics
 pub fn run_http_server(
-    runtime: &Runtime,
+    handle: &Handle,
     address: &str,
     content_path: &str,
     server_state: Arc<RwLock<ServerState>>,
@@ -87,7 +87,7 @@ pub fn run_http_server(
     // Getting this working was very painful since Actix HttpServer does not implement Send trait, so the
     // code has to run on a single thread, but also async and through Tokio.
 
-    let runtime_handle = runtime.handle().clone();
+    let runtime_handle = handle.clone();
     thread::spawn(move || {
         info!(
             "HTTP server is running on http://{}/ to provide OPC UA server metrics",
