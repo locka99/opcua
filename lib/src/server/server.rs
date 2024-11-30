@@ -12,6 +12,7 @@ use tokio::{
     sync::oneshot::{self, Sender},
     time::{interval_at, Duration, Instant},
 };
+use tokio_util::sync::CancellationToken;
 
 use crate::core::{config::Config, prelude::*};
 use crate::crypto::*;
@@ -220,19 +221,21 @@ impl Server {
     /// Calling this function consumes the server.
     pub fn run(self) {
         let server = Arc::new(RwLock::new(self));
-        Self::run_server(server);
+        //FIXME; What API do we we want? for now just creating a dummy token
+        let cancel_token = CancellationToken::new();
+        Self::run_server(server, cancel_token);
     }
 
     /// Runs the supplied server and blocks until it completes either by aborting or
     /// by error.
-    pub fn run_server(server: Arc<RwLock<Server>>) {
+    pub fn run_server(server: Arc<RwLock<Server>>, cancel_token: CancellationToken) {
         let single_threaded_executor = {
             let server = trace_read_lock!(server);
             let server_state = trace_read_lock!(server.server_state);
             let config = trace_read_lock!(server_state.config);
             config.performance.single_threaded_executor
         };
-        let server_task = Self::new_server_task(server);
+        let server_task = Self::new_server_task(server, cancel_token);
         // Launch
         let mut builder = if !single_threaded_executor {
             tokio::runtime::Builder::new_multi_thread()
@@ -266,7 +269,7 @@ impl Server {
     }
 
     /// Returns the main server task - the loop that waits for connections and processes them.
-    pub async fn new_server_task(server: Arc<RwLock<Server>>) {
+    pub async fn new_server_task(server: Arc<RwLock<Server>>, cancel_token: CancellationToken) {
         // Get the address and discovery url
         let (sock_addr, discovery_server_url) = {
             let server = trace_read_lock!(server);
@@ -296,7 +299,9 @@ impl Server {
             None => {
                 error!("Cannot resolve server address, check configuration of server");
             }
-            Some(sock_addr) => Self::server_task(server, sock_addr, discovery_server_url).await,
+            Some(sock_addr) => {
+                Self::server_task(server, sock_addr, discovery_server_url, cancel_token).await
+            }
         }
     }
 
@@ -304,6 +309,7 @@ impl Server {
         server: Arc<RwLock<Server>>,
         sock_addr: A,
         discovery_server_url: Option<String>,
+        cancel_token: CancellationToken,
     ) {
         // This is returned as the main server task
         info!("Waiting for Connection");
@@ -374,6 +380,9 @@ impl Server {
             } => {}
             _ = rx_abort => {
                 info!("abort received");
+            }
+            _ = cancel_token.cancelled() => {
+                info!("Cancellation token triggered, shutting down server");
             }
         }
         info!("main server task is finished");
