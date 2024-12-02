@@ -277,10 +277,16 @@ impl Session {
             if let SupportedMessage::SetPublishingModeResponse(response) = response {
                 process_service_result(&response.response_header)?;
                 {
-                    // Clear out all subscriptions, assuming the delete worked
+                    // Update all subscriptions, assuming the update worked
                     let mut subscription_state = trace_lock!(self.subscription_state);
                     subscription_state.set_publishing_mode(subscription_ids, publishing_enabled);
                 }
+
+                if publishing_enabled {
+                    // Send an async publish request for these newly enabled subscriptions
+                    let _ = self.trigger_publish_tx.send(Instant::now());
+                }
+
                 session_debug!(self, "set_publishing_mode success");
                 Ok(response.results.unwrap())
             } else {
