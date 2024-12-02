@@ -42,6 +42,9 @@ pub trait OnSubscriptionNotification: Send + Sync {
 
     /// Called for each received event.
     fn on_event(&mut self, _event_fields: Option<Vec<Variant>>, _item: &MonitoredItem) {}
+
+    /// Called after others events, when message is fully handled.
+    fn on_packet_handled(&mut self) {}
 }
 
 /// A convenient wrapper around a set of callback functions that implements [OnSubscriptionNotification]
@@ -447,5 +450,7 @@ impl Subscription {
                 }
             }
         }
+
+        self.callback.on_packet_handled();
     }
 }
