@@ -12,8 +12,6 @@ extern crate serde_derive;
 extern crate actix_web;
 #[cfg(test)]
 extern crate serde_json;
-#[macro_use]
-extern crate derivative;
 
 // Synchronization structs. This is a wrapper mod around `parking_lot` types so opcua users don't have
 // to reference that other crate.

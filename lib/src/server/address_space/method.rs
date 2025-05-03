@@ -6,8 +6,7 @@
 
 use std::sync::Arc;
 
-use crate::sync::*;
-use crate::types::service_types::{Argument, MethodAttributes};
+use derive_more::Debug;
 
 use super::{
     address_space::MethodCallback,
@@ -15,6 +14,8 @@ use super::{
     node::{Node, NodeBase},
     variable::VariableBuilder,
 };
+use crate::sync::*;
+use crate::types::service_types::{Argument, MethodAttributes};
 
 use crate::server::session::SessionManager;
 
@@ -76,13 +77,12 @@ impl MethodBuilder {
 }
 
 /// A `Method` is a type of node within the `AddressSpace`.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct Method {
     base: Base,
     executable: bool,
     user_executable: bool,
-    #[derivative(Debug = "ignore")]
+    #[debug(skip)]
     callback: Option<MethodCallback>,
 }
 
