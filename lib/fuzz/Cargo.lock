@@ -551,7 +551,6 @@ dependencies = [
  "byteorder",
  "bytes",
  "chrono",
- "derivative",
  "env_logger",
  "foreign-types",
  "futures",

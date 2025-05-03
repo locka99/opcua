@@ -7,6 +7,8 @@
 use std::convert::{Into, TryFrom};
 use std::sync::Arc;
 
+use derive_more::Debug;
+
 use crate::sync::*;
 use crate::types::service_types::VariableAttributes;
 
@@ -149,11 +151,10 @@ impl VariableBuilder {
     }
 }
 
-// Note we use derivative builder macro so we can skip over the value getter / setter
+// Note we use derive_more builder macro so we can skip over the value getter / setter
 
 /// A `Variable` is a type of node within the `AddressSpace`.
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub struct Variable {
     base: Base,
     data_type: NodeId,
@@ -164,9 +165,9 @@ pub struct Variable {
     user_access_level: u8,
     array_dimensions: Option<Vec<u32>>,
     minimum_sampling_interval: Option<f64>,
-    #[derivative(Debug = "ignore")]
+    #[debug(skip)]
     value_setter: Option<Arc<Mutex<dyn AttributeSetter + Send>>>,
-    #[derivative(Debug = "ignore")]
+    #[debug(skip)]
     value_getter: Option<Arc<Mutex<dyn AttributeGetter + Send>>>,
 }
 
