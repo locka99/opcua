@@ -25,8 +25,11 @@ use crate::types::{
     string::*,
 };
 
+use crate::puffin::types::OpcuaProtocolTypes;
+use extractable_macro::Extractable;
+
 /// The kind of identifier, numeric, string, guid or byte
-#[derive(Eq, PartialEq, Clone, Debug, Hash)]
+#[derive(Eq, PartialEq, Clone, Debug, Hash, Serialize, Deserialize)]
 pub enum Identifier {
     Numeric(u32),
     String(UAString),
@@ -125,13 +128,18 @@ impl fmt::Display for NodeIdError {
 impl std::error::Error for NodeIdError {}
 
 /// An identifier for a node in the address space of an OPC UA Server.
-#[derive(PartialEq, Eq, Clone, Debug, Hash)]
+// serde DERIVED (not the serde_json/JsonNodeId human-readable form) for postcard round-trip safety.
+#[derive(PartialEq, Eq, Clone, Debug, Hash, Extractable, Serialize, Deserialize)]
+#[extractable(OpcuaProtocolTypes)]
 pub struct NodeId {
     /// The index for a namespace
     pub namespace: u16,
     /// The identifier for the node in the address space
+    #[extractable_ignore] // BinaryEncoder is not implemented.
     pub identifier: Identifier,
 }
+
+crate::impl_codec_p!(NodeId);
 
 impl fmt::Display for NodeId {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -162,115 +170,6 @@ impl fmt::Display for NodeId {
 //      The field is omitted if the NamespaceIndex equals 0.
 //      For the non-reversible encoding, the field is the NamespaceUri associated with the NamespaceIndex, encoded as a JSON string.
 //      A NamespaceIndex of 1 is always encoded as a JSON number.
-
-#[derive(Serialize, Deserialize)]
-struct JsonNodeId {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Type")]
-    id_type: Option<u32>,
-    #[serde(rename = "Id")]
-    id: serde_json::Value,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "Namespace")]
-    namespace: Option<serde_json::Value>,
-}
-
-impl Serialize for NodeId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let (id_type, id) = match &self.identifier {
-            Identifier::Numeric(id) => (None, json!(id)),
-            Identifier::String(id) => (Some(1), json!(id.as_ref())),
-            Identifier::Guid(id) => (Some(2), json!(id.to_string())),
-            Identifier::ByteString(id) => (Some(3), json!(id.as_base64())),
-        };
-        // Omit namespace if it is 0
-        let namespace = if self.namespace == 0 {
-            None
-        } else {
-            Some(json!(self.namespace))
-        };
-
-        let json = JsonNodeId {
-            id_type,
-            id,
-            namespace,
-        };
-        json.serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for NodeId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let v = JsonNodeId::deserialize(deserializer)?;
-        // Only namespace index is supported. Spec says namespace uri can go there too, but not for this code it wonn't.
-        let namespace = if let Some(namespace) = v.namespace {
-            let namespace = namespace
-                .as_u64()
-                .ok_or_else(|| de::Error::custom("Expected numeric namespace index"))?;
-            if namespace > u16::MAX as u64 {
-                return Err(de::Error::custom("Numeric namespace index is out of range"));
-            }
-            namespace as u16
-        } else {
-            0
-        };
-        // Validate and extract
-        let id_type = v.id_type.unwrap_or(0);
-        match id_type {
-            0 => {
-                // Numeric
-                let v =
-                    v.id.as_u64()
-                        .ok_or_else(|| de::Error::custom("Expected Numeric identifier"))?;
-                Ok(NodeId::new(namespace, v as u32))
-            }
-            1 => {
-                // String
-                let v =
-                    v.id.as_str()
-                        .ok_or_else(|| de::Error::custom("Expected String identifier"))?;
-                if v.is_empty() {
-                    Err(de::Error::custom("String identifier is empty"))
-                } else {
-                    Ok(NodeId::new(namespace, String::from(v)))
-                }
-            }
-            2 => {
-                // Guid
-                let v =
-                    v.id.as_str()
-                        .ok_or_else(|| de::Error::custom("Expected Guid identifier"))?;
-                if v.is_empty() {
-                    Err(de::Error::custom("Guid identifier is empty"))
-                } else {
-                    let v = Guid::from_str(v)
-                        .map_err(|_| de::Error::custom("Error parsing Guid identifier"))?;
-                    Ok(NodeId::new(namespace, v))
-                }
-            }
-            3 => {
-                // Bytestring
-                let v =
-                    v.id.as_str()
-                        .ok_or_else(|| de::Error::custom("Expected ByteString identifier"))?;
-                if v.is_empty() {
-                    Err(de::Error::custom("ByteString identifier is empty"))
-                } else {
-                    let v = ByteString::from_base64(v)
-                        .ok_or_else(|| de::Error::custom("Error parsing ByteString identifier"))?;
-                    Ok(NodeId::new(namespace, v))
-                }
-            }
-            _ => Err(de::Error::custom("Invalid IdType")),
-        }
-    }
-}
 
 impl BinaryEncoder<NodeId> for NodeId {
     fn byte_len(&self) -> usize {
@@ -367,7 +266,7 @@ impl BinaryEncoder<NodeId> for NodeId {
                 NodeId::new(namespace, value)
             }
             _ => {
-                error!("Unrecognized node id type {}", identifier);
+                //error!("Unrecognized node id type {}", identifier);
                 return Err(StatusCode::BadDecodingError);
             }
         };
@@ -562,3 +461,6 @@ impl NodeId {
         matches!(self.identifier, Identifier::ByteString(_))
     }
 }
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(NodeId);

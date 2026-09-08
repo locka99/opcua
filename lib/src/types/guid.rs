@@ -16,29 +16,10 @@ use uuid::Uuid;
 use crate::types::encoding::*;
 
 /// A Guid is a 16 byte Globally Unique Identifier.
-#[derive(Eq, PartialEq, Clone, Hash)]
+// serde DERIVED (uuid has the `serde` feature) for postcard round-trip safety — see byte_string.rs.
+#[derive(Eq, PartialEq, Clone, Hash, Serialize, Deserialize)]
 pub struct Guid {
     uuid: Uuid,
-}
-
-impl Serialize for Guid {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        self.uuid.to_string().serialize(serializer)
-    }
-}
-
-impl<'de> Deserialize<'de> for Guid {
-    fn deserialize<D>(deserializer: D) -> Result<Guid, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let s = String::deserialize(deserializer)?;
-        let guid = Guid::from_str(&s).map_err(|_| D::Error::custom("Cannot parse uuid"))?;
-        Ok(guid)
-    }
 }
 
 impl fmt::Display for Guid {

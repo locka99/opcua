@@ -13,7 +13,8 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct CloseSessionRequest {
     pub request_header: RequestHeader,
     pub delete_subscriptions: bool,
@@ -51,3 +52,16 @@ impl BinaryEncoder<CloseSessionRequest> for CloseSessionRequest {
         })
     }
 }
+
+crate::impl_codec_p!(CloseSessionRequest);
+
+impl Default for CloseSessionRequest {
+    fn default() -> Self {
+        CloseSessionRequest {
+            request_header: RequestHeader::default(),
+            delete_subscriptions: true
+        }
+    }
+}
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(CloseSessionRequest);

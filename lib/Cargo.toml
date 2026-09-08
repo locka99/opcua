@@ -42,6 +42,7 @@ vendored-openssl = ["openssl/vendored"]
 http = ["actix-files", "actix-web"]
 
 [dependencies]
+comparable = "=0.5.5"
 log = "0.4"
 chrono = { version = "0.4", features = ["serde"] }
 # Enable deadlock_detection if there are any deadlocks in sync code
@@ -51,6 +52,7 @@ tokio = { version = "1", features = ["full"] }
 tokio-util = { version = "0.7", features = ["codec"] }
 lazy_static = "1.4.0"
 regex = "1.7"
+paste = "1.0.6"
 serde = "1.0"
 serde_derive = "1.0"
 serde_yaml = "0.9"
@@ -74,6 +76,8 @@ actix-web = { version = "4.4", optional = true }
 actix-files = { version = "0.6", optional = true }
 arbitrary = { version = "1", optional = true, features = ["derive"] }
 arc-swap = "1.6.0"
+puffin = { path = "../../../puffin", version = "0.1.0"}
+extractable-macro = { path = "../../../extractable-macro", version = "0.0.1"}
 
 [dev-dependencies]
 tempdir = "0.3"

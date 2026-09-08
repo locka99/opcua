@@ -30,9 +30,7 @@ impl Chunker {
             SupportedMessage::OpenSecureChannelRequest(_)
             | SupportedMessage::OpenSecureChannelResponse(_) => MessageChunkType::OpenSecureChannel,
             SupportedMessage::CloseSecureChannelRequest(_)
-            | SupportedMessage::CloseSecureChannelResponse(_) => {
-                MessageChunkType::CloseSecureChannel
-            }
+            | SupportedMessage::CloseSecureChannelResponse(_) => MessageChunkType::CloseSecureChannel,
             _ => MessageChunkType::Message,
         }
     }

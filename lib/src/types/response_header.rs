@@ -14,13 +14,19 @@ use crate::types::{
 };
 
 /// The `ResponseHeader` contains information common to every response from server to client.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct ResponseHeader {
+    #[extractable_ignore]
     pub timestamp: UtcTime,
     pub request_handle: IntegerId,
+    #[extractable_ignore]
     pub service_result: StatusCode,
+    #[extractable_ignore]
     pub service_diagnostics: DiagnosticInfo,
+    #[extractable_ignore]
     pub string_table: Option<Vec<UAString>>,
+    #[extractable_ignore]
     pub additional_header: ExtensionObject,
 }
 
@@ -65,6 +71,7 @@ impl BinaryEncoder<ResponseHeader> for ResponseHeader {
         })
     }
 }
+crate::impl_codec_p!(ResponseHeader);
 
 impl ResponseHeader {
     pub fn new_good(request_header: &RequestHeader) -> ResponseHeader {
@@ -109,3 +116,6 @@ impl ResponseHeader {
         }
     }
 }
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(ResponseHeader);

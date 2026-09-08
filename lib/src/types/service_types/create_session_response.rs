@@ -15,7 +15,8 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct CreateSessionResponse {
     pub response_header: ResponseHeader,
     pub session_id: NodeId,
@@ -24,6 +25,7 @@ pub struct CreateSessionResponse {
     pub server_nonce: ByteString,
     pub server_certificate: ByteString,
     pub server_endpoints: Option<Vec<EndpointDescription>>,
+    #[extractable_ignore]
     pub server_software_certificates: Option<Vec<SignedSoftwareCertificate>>,
     pub server_signature: SignatureData,
     pub max_request_message_size: u32,
@@ -95,3 +97,24 @@ impl BinaryEncoder<CreateSessionResponse> for CreateSessionResponse {
         })
     }
 }
+crate::impl_codec_p!(CreateSessionResponse);
+
+impl Default for CreateSessionResponse {
+    fn default() -> Self {
+        CreateSessionResponse {
+            response_header: ResponseHeader::null(),
+            session_id: NodeId::null(),
+            authentication_token: NodeId::null(),
+            revised_session_timeout: 0.0,
+            server_nonce: ByteString::null(),
+            server_certificate: ByteString::null(),
+            server_endpoints: None,
+            server_software_certificates: None,
+            server_signature: SignatureData::null(),
+            max_request_message_size: 0
+        }
+    }
+}
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(CreateSessionResponse);

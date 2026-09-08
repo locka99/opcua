@@ -14,10 +14,15 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+//use crate::puffin::types::OpcuaProtocolTypes;
+//use extractable_macro::Extractable;
+
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct ActivateSessionRequest {
     pub request_header: RequestHeader,
     pub client_signature: SignatureData,
+    #[extractable_ignore]
     pub client_software_certificates: Option<Vec<SignedSoftwareCertificate>>,
     pub locale_ids: Option<Vec<UAString>>,
     pub user_identity_token: ExtensionObject,
@@ -73,3 +78,19 @@ impl BinaryEncoder<ActivateSessionRequest> for ActivateSessionRequest {
         })
     }
 }
+crate::impl_codec_p!(ActivateSessionRequest);
+
+impl Default for ActivateSessionRequest {
+    fn default() -> Self {
+        ActivateSessionRequest {
+            request_header: RequestHeader::default(),
+            client_signature: SignatureData::null(),
+            client_software_certificates: None,
+            locale_ids: None,
+            user_identity_token: ExtensionObject::null(),
+            user_token_signature: SignatureData::null()
+        }
+    }
+}
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(ActivateSessionRequest);

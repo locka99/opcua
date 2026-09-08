@@ -11,6 +11,9 @@ use crate::types::{encoding::*, status_codes::StatusCode};
 use bitflags;
 use std::io::{Read, Write};
 
+use extractable_macro::Extractable;
+use crate::puffin::types::OpcuaProtocolTypes;
+
 /// The possible encodings for a NodeId value.
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum NodeIdType {
@@ -820,7 +823,8 @@ impl BinaryEncoder<StructureType> for StructureType {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub enum ApplicationType {
     Server = 0,
     Client = 1,
@@ -851,8 +855,10 @@ impl BinaryEncoder<ApplicationType> for ApplicationType {
         }
     }
 }
+crate::impl_codec_p!(ApplicationType);
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub enum MessageSecurityMode {
     Invalid = 0,
     None = 1,
@@ -883,8 +889,10 @@ impl BinaryEncoder<MessageSecurityMode> for MessageSecurityMode {
         }
     }
 }
+crate::impl_codec_p!(MessageSecurityMode);
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub enum UserTokenType {
     Anonymous = 0,
     UserName = 1,
@@ -915,8 +923,10 @@ impl BinaryEncoder<UserTokenType> for UserTokenType {
         }
     }
 }
+crate::impl_codec_p!(UserTokenType);
 
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Copy, Clone, PartialEq, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub enum SecurityTokenRequestType {
     Issue = 0,
     Renew = 1,
@@ -943,6 +953,7 @@ impl BinaryEncoder<SecurityTokenRequestType> for SecurityTokenRequestType {
         }
     }
 }
+crate::impl_codec_p!(SecurityTokenRequestType);
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum NodeAttributesMask {
@@ -1589,3 +1600,9 @@ impl BinaryEncoder<ExceptionDeviationFormat> for ExceptionDeviationFormat {
         }
     }
 }
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(ApplicationType);
+crate::dummy_comparable!(MessageSecurityMode);
+crate::dummy_comparable!(UserTokenType);
+crate::dummy_comparable!(SecurityTokenRequestType);

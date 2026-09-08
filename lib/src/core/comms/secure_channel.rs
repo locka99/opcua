@@ -454,7 +454,7 @@ impl SecureChannel {
         }
     }
 
-    // Takes an unpadded message chunk and adds padding as well as space to the end to accomodate a signature.
+    // Takes an unpadded message chunk and adds padding as well as space to the end to accommodate a signature.
     // Also modifies the message size to include the new padding/signature
     fn add_space_for_padding_and_signature(
         &self,
@@ -985,7 +985,7 @@ impl SecureChannel {
                 signed_range_dst,
                 signature_range_dst
             );
-            // Keysize for padding is publickey length if avaiable
+            // Keysize for padding is publickey length if available
             let key_size = if let Some(rem) = &self.cert {
                 if let Ok(cert) = rem.public_key() {
                     cert.size()

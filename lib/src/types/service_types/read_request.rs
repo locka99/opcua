@@ -14,10 +14,13 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct ReadRequest {
     pub request_header: RequestHeader,
+    #[extractable_ignore]
     pub max_age: f64,
+    #[extractable_ignore]
     pub timestamps_to_return: TimestampsToReturn,
     pub nodes_to_read: Option<Vec<ReadValueId>>,
 }
@@ -62,3 +65,18 @@ impl BinaryEncoder<ReadRequest> for ReadRequest {
         })
     }
 }
+
+crate::impl_codec_p!(ReadRequest);
+
+impl Default for ReadRequest {
+    fn default() -> Self {
+        ReadRequest {
+            request_header: RequestHeader::default(),
+            max_age: 0.0,
+            timestamps_to_return: TimestampsToReturn::Invalid,
+            nodes_to_read: None
+        }
+    }
+}
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(ReadRequest);

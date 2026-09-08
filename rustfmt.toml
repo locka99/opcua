@@ -1,0 +1,5 @@
+disable_all_formatting = true
+ignore = [
+    "target/*",
+    "3rd-party/*",
+]

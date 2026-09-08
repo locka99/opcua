@@ -83,3 +83,38 @@ impl BinaryEncoder<EndpointDescription> for EndpointDescription {
         })
     }
 }
+crate::impl_codec!(EndpointDescription);
+impl puffin::codec::VecCodecWoSize for EndpointDescription {}
+
+use puffin::protocol::Extractable;
+use puffin::trace::{Knowledge, Source};
+use crate::puffin::types::OpcuaProtocolTypes;
+use crate::puffin::query::OpcuaQueryMatcher;
+
+impl Extractable<OpcuaProtocolTypes> for EndpointDescription {
+    fn extract_knowledge<'a>(
+        &'a self,
+        knowledges: &mut Vec<Knowledge<'a, OpcuaProtocolTypes>>,
+        _: Option<OpcuaQueryMatcher>,
+        source: &'a Source,
+    ) -> Result<(), puffin::error::Error> {
+        let matcher = match &self.security_mode {
+            &MessageSecurityMode::Sign => Some(OpcuaQueryMatcher::EnndpointSignMode),
+            _ => None
+        };
+        knowledges.push(Knowledge {
+            source,
+            matcher,
+            data: self
+        });
+        self.endpoint_url.extract_knowledge(knowledges, matcher, source)?;
+        self.server.extract_knowledge(knowledges, matcher, source)?;
+        self.server_certificate.extract_knowledge(knowledges, matcher, source)?;
+        self.security_policy_uri.extract_knowledge(knowledges, matcher, source)?;
+        self.user_identity_tokens.extract_knowledge(knowledges, matcher, source)?;
+        self.transport_profile_uri.extract_knowledge(knowledges, matcher, source)?;
+        self.security_level.extract_knowledge(knowledges, matcher, source)?;
+        Ok(())
+    }
+}
+crate::dummy_comparable!(EndpointDescription);

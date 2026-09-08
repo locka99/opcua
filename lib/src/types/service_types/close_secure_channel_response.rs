@@ -13,7 +13,8 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct CloseSecureChannelResponse {
     pub response_header: ResponseHeader,
 }
@@ -44,3 +45,14 @@ impl BinaryEncoder<CloseSecureChannelResponse> for CloseSecureChannelResponse {
         Ok(CloseSecureChannelResponse { response_header })
     }
 }
+crate::impl_codec_p!(CloseSecureChannelResponse);
+
+impl Default for CloseSecureChannelResponse {
+    fn default() -> Self {
+        CloseSecureChannelResponse {
+            response_header: ResponseHeader::null()
+        }
+    }
+}
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(CloseSecureChannelResponse);

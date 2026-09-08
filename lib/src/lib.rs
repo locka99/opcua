@@ -74,6 +74,7 @@ pub mod crypto;
 #[cfg(feature = "server")]
 pub mod server;
 pub mod types;
+pub mod puffin;
 
 // Turns hex string to array bytes. Function was extracted & adapted from the deprecated
 // crate rustc-serialize. Function panics if the string is invalid.

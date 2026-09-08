@@ -22,7 +22,8 @@ use crate::types::{encoding::*, string::*};
 ///        NamespaceUriassociated with the NamespaceIndexportion of the QualifiedNameis encoded as
 ///        JSON string unless the NamespaceIndexis 1 or if NamespaceUriis unknown. In these cases,
 ///        the NamespaceIndexis encoded as a JSON number.
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 #[serde(rename_all = "PascalCase")]
 pub struct QualifiedName {
     /// The namespace index
@@ -113,3 +114,7 @@ impl QualifiedName {
         self.namespace_index == 0 && self.name.is_null()
     }
 }
+
+crate::impl_codec_p!(QualifiedName);
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(QualifiedName);

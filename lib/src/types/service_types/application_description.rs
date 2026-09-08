@@ -13,7 +13,8 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct ApplicationDescription {
     pub application_uri: UAString,
     pub product_uri: UAString,
@@ -76,3 +77,7 @@ impl BinaryEncoder<ApplicationDescription> for ApplicationDescription {
         })
     }
 }
+crate::impl_codec_p!(ApplicationDescription);
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(ApplicationDescription);

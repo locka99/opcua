@@ -7,16 +7,21 @@ use std::{
     io::{Read, Write},
 };
 
+use crate::puffin::types::OpcuaProtocolTypes;
 use crate::types::{
     data_types::*, date_time::DateTime, diagnostic_info::DiagnosticBits, encoding::*,
     extension_object::ExtensionObject, node_id::NodeId, string::UAString,
 };
 
+use extractable_macro::Extractable;
+
 /// The `RequestHeader` contains information common to every request from a client to the server.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub struct RequestHeader {
     /// The secret Session identifier used to verify that the request is associated with
     /// the Session. The SessionAuthenticationToken type is defined in 7.31.
+    // /!\ It is an UInt32 identifier in fact...
     pub authentication_token: NodeId,
     /// The time the Client sent the request. The parameter is only used for diagnostic and logging
     /// purposes in the server.
@@ -64,6 +69,7 @@ pub struct RequestHeader {
     ///     The contents of the inner diagnostic info structure are determined by other bits in the
     ///     mask. Note that setting this bit could cause multiple levels of nested
     ///     diagnostic info structures to be returned.
+    #[extractable_ignore]
     pub return_diagnostics: DiagnosticBits,
     /// An identifier that identifies the Client’s security audit log entry associated with
     /// this request. An empty string value means that this parameter is not used. The AuditEntryId
@@ -83,8 +89,11 @@ pub struct RequestHeader {
     /// value of 0 indicates no timeout.
     pub timeout_hint: u32,
     /// Reserved for future use. Applications that do not understand the header should ignore it.
+    #[extractable_ignore]
     pub additional_header: ExtensionObject,
 }
+
+crate::impl_codec_p!(RequestHeader);
 
 impl Default for RequestHeader {
     fn default() -> Self {
@@ -167,3 +176,6 @@ impl RequestHeader {
         RequestHeader::new(&NodeId::null(), &DateTime::now(), 1)
     }
 }
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(RequestHeader);

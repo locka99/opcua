@@ -16,7 +16,8 @@ use crate::types::{encoding::*, string::*};
 /// Text       The Textportion of LocalizedTextvalues shall be encoded as a JSON string.
 
 /// A human readable text with an optional locale identifier.
-#[derive(PartialEq, Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Default, Debug, Clone, Serialize, Deserialize, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 #[serde(rename_all = "PascalCase")]
 pub struct LocalizedText {
     /// The locale. Omitted from stream if null or empty
@@ -108,6 +109,7 @@ impl BinaryEncoder<LocalizedText> for LocalizedText {
         Ok(LocalizedText { locale, text })
     }
 }
+crate::impl_codec_p!(LocalizedText);
 
 impl LocalizedText {
     pub fn new(locale: &str, text: &str) -> LocalizedText {
@@ -124,3 +126,6 @@ impl LocalizedText {
         }
     }
 }
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(LocalizedText);

@@ -4,13 +4,16 @@
 
 use std::io::{Read, Write};
 
+use crate::crypto::{SecurityPolicy, Thumbprint, X509};
+use crate::puffin::types::OpcuaProtocolTypes;
 use crate::types::{constants, status_code::StatusCode, *};
 
-use crate::crypto::{SecurityPolicy, Thumbprint, X509};
+use extractable_macro::Extractable;
 
 /// Holds the security header associated with the chunk. Secure channel requests use an asymmetric
 /// security header, regular messages use a symmetric security header.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub enum SecurityHeader {
     Asymmetric(AsymmetricSecurityHeader),
     Symmetric(SymmetricSecurityHeader),
@@ -35,8 +38,11 @@ impl BinaryEncoder<SecurityHeader> for SecurityHeader {
         unimplemented!();
     }
 }
+crate::impl_codec_p!(SecurityHeader);
 
-#[derive(Debug, Clone, PartialEq)]
+
+#[derive(Debug, Clone, PartialEq, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub struct SymmetricSecurityHeader {
     pub token_id: u32,
 }
@@ -55,8 +61,11 @@ impl BinaryEncoder<SymmetricSecurityHeader> for SymmetricSecurityHeader {
         Ok(SymmetricSecurityHeader { token_id })
     }
 }
+crate::impl_codec_p!(SymmetricSecurityHeader);
 
-#[derive(Debug, Clone, PartialEq)]
+
+#[derive(Debug, Clone, PartialEq, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub struct AsymmetricSecurityHeader {
     pub security_policy_uri: UAString,
     pub sender_certificate: ByteString,
@@ -145,8 +154,11 @@ impl AsymmetricSecurityHeader {
         }
     }
 }
+crate::impl_codec_p!(AsymmetricSecurityHeader);
 
-#[derive(Debug, Clone, PartialEq)]
+
+#[derive(Debug, Clone, PartialEq, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub struct SequenceHeader {
     pub sequence_number: u32,
     pub request_id: u32,
@@ -173,3 +185,10 @@ impl BinaryEncoder<SequenceHeader> for SequenceHeader {
         })
     }
 }
+crate::impl_codec_p!(SequenceHeader);
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(SecurityHeader);
+crate::dummy_comparable!(SymmetricSecurityHeader);
+crate::dummy_comparable!(AsymmetricSecurityHeader);
+crate::dummy_comparable!(SequenceHeader);

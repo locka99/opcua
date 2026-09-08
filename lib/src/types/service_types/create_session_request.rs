@@ -14,7 +14,8 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct CreateSessionRequest {
     pub request_header: RequestHeader,
     pub client_description: ApplicationDescription,
@@ -87,3 +88,23 @@ impl BinaryEncoder<CreateSessionRequest> for CreateSessionRequest {
         })
     }
 }
+crate::impl_codec_p!(CreateSessionRequest);
+
+impl Default for CreateSessionRequest {
+    fn default() -> Self {
+        CreateSessionRequest {
+            request_header: RequestHeader::default(),
+            client_description: ApplicationDescription::default(),
+            server_uri: UAString::null(),
+            endpoint_url: UAString::null(),
+            session_name: UAString::null(),
+            client_nonce: ByteString::null(),
+            client_certificate: ByteString::null(),
+            requested_session_timeout: 0.0,
+            max_response_message_size: 0,
+        }
+    }
+}
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(CreateSessionRequest);

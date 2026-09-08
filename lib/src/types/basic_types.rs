@@ -186,3 +186,4 @@ impl BinaryEncoder<f64> for f64 {
         read_f64(stream)
     }
 }
+

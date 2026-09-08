@@ -13,7 +13,8 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct ServiceFault {
     pub response_header: ResponseHeader,
 }
@@ -44,3 +45,15 @@ impl BinaryEncoder<ServiceFault> for ServiceFault {
         Ok(ServiceFault { response_header })
     }
 }
+crate::impl_codec_p!(ServiceFault);
+
+impl std::default::Default for ServiceFault {
+    fn default() -> Self {
+        ServiceFault {
+            response_header: ResponseHeader::null()
+        }
+    }
+}
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(ServiceFault);

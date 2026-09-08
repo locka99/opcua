@@ -38,10 +38,12 @@ pub enum ExtensionObjectEncoding {
 }
 
 /// An extension object holds a serialized object identified by its node id.
-#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 #[serde(rename_all = "PascalCase")]
 pub struct ExtensionObject {
     pub node_id: NodeId,
+    #[extractable_ignore]
     pub body: ExtensionObjectEncoding,
 }
 
@@ -111,6 +113,7 @@ impl BinaryEncoder<ExtensionObject> for ExtensionObject {
         Ok(ExtensionObject { node_id, body })
     }
 }
+crate::impl_codec_p!(ExtensionObject);
 
 impl ExtensionObject {
     /// Creates a null extension object, i.e. one with no value or payload
@@ -179,3 +182,6 @@ impl ExtensionObject {
         }
     }
 }
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(ExtensionObject);

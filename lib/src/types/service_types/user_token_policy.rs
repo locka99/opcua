@@ -66,3 +66,46 @@ impl BinaryEncoder<UserTokenPolicy> for UserTokenPolicy {
         })
     }
 }
+crate::impl_codec!(UserTokenPolicy);
+impl puffin::codec::VecCodecWoSize for UserTokenPolicy {}
+
+use puffin::protocol::Extractable;
+use puffin::trace::{Knowledge, Source};
+use crate::puffin::types::OpcuaProtocolTypes;
+use crate::puffin::query::OpcuaQueryMatcher;
+
+impl Extractable<OpcuaProtocolTypes> for UserTokenPolicy {
+    fn extract_knowledge<'a>(
+        &'a self,
+        knowledges: &mut Vec<Knowledge<'a, OpcuaProtocolTypes>>,
+        matcher: Option<OpcuaQueryMatcher>,
+        source: &'a Source,
+    ) -> Result<(), puffin::error::Error> {
+        if let Some(OpcuaQueryMatcher::EnndpointSignMode) = matcher {
+            let matcher = match self.token_type {
+                UserTokenType::Anonymous => Some(OpcuaQueryMatcher::PolicyIdAnonymous),
+                UserTokenType::UserName => Some(OpcuaQueryMatcher::PolicyIdPassword),
+                UserTokenType::Certificate => Some(OpcuaQueryMatcher::PolicyIdCertificate),
+                UserTokenType::IssuedToken => None,
+            };
+            knowledges.push(Knowledge {
+                source,
+                matcher,
+                data: self
+            });
+            self.policy_id.extract_knowledge(knowledges, matcher, source)?;
+        } else {
+            knowledges.push(Knowledge {
+                source,
+                matcher,
+                data: self
+            });
+            self.policy_id.extract_knowledge(knowledges, matcher, source)?;
+            self.issued_token_type.extract_knowledge(knowledges, matcher, source)?;
+            self.issuer_endpoint_url.extract_knowledge(knowledges, matcher, source)?;
+            self.security_policy_uri.extract_knowledge(knowledges, matcher, source)?;
+        }
+        Ok(())
+    }
+}
+crate::dummy_comparable!(UserTokenPolicy);

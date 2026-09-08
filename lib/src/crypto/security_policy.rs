@@ -614,7 +614,7 @@ impl SecurityPolicy {
         decryption_key
             .private_decrypt(src, dst, padding)
             .map_err(|_| {
-                error!("Asymmetric decryption failed");
+                //error!("Asymmetric decryption failed");
                 StatusCode::BadSecurityChecksFailed
             })
     }

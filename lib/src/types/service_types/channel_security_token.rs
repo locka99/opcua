@@ -13,10 +13,12 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct ChannelSecurityToken {
     pub channel_id: u32,
     pub token_id: u32,
+    #[extractable_ignore]
     pub created_at: DateTime,
     pub revised_lifetime: u32,
 }
@@ -61,3 +63,18 @@ impl BinaryEncoder<ChannelSecurityToken> for ChannelSecurityToken {
         })
     }
 }
+crate::impl_codec_p!(ChannelSecurityToken);
+
+impl Default for ChannelSecurityToken{
+    fn default() -> Self {
+        ChannelSecurityToken {
+            channel_id: 0,
+            token_id: 0,
+            created_at: DateTime::epoch(),
+            revised_lifetime: 0,
+        }
+    }
+}
+
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(ChannelSecurityToken);

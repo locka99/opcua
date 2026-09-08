@@ -12,11 +12,14 @@ use crate::types::{
     response_header::ResponseHeader, service_types::impls::MessageInfo,
     service_types::ChannelSecurityToken,
 };
+use std::default::Default;
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct OpenSecureChannelResponse {
     pub response_header: ResponseHeader,
+    #[extractable_ignore]
     pub server_protocol_version: u32,
     pub security_token: ChannelSecurityToken,
     pub server_nonce: ByteString,
@@ -62,3 +65,17 @@ impl BinaryEncoder<OpenSecureChannelResponse> for OpenSecureChannelResponse {
         })
     }
 }
+crate::impl_codec_p!(OpenSecureChannelResponse);
+
+impl Default for OpenSecureChannelResponse {
+   fn default() -> Self {
+        OpenSecureChannelResponse {
+            response_header: ResponseHeader::null(),
+            server_protocol_version: 0,
+            security_token: ChannelSecurityToken::default(),
+            server_nonce: ByteString::null()
+        }
+    }
+}
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(OpenSecureChannelResponse);

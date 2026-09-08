@@ -6,8 +6,8 @@
 #include <open62541/plugin/log_stdout.h>
 #include <open62541/server_config_default.h>
 
-// This is mostly cut and pasted together from tutorials to mimic the same behaviour as found in simple-server
-// and the node-opcua/server.js
+// This is mostly cut and pasted together from tutorials to mimic the same behaviour as found in
+// simple-server and the node-opcua/server.js
 //
 // "ns=2;s=v1", Int32, increments every 500ms
 // "ns=2;s=v2", Boolean, flips every 500ms
@@ -16,13 +16,14 @@
 
 UA_Boolean running = true;
 
-static void stopHandler(int sig) {
+static void stopHandler(int sig)
+{
     UA_LOG_INFO(UA_Log_Stdout, UA_LOGCATEGORY_USERLAND, "received ctrl-c");
     running = false;
 }
 
-static void
-addVariable(UA_Server *server, short nsIdx, const std::string &name, int type) {
+static void addVariable(UA_Server *server, short nsIdx, const std::string &name, int type)
+{
     /* Define the attribute of the myInteger variable node */
     auto attr = UA_VariableAttributes_default;
     attr.description = UA_LOCALIZEDTEXT_ALLOC("en-US", name.c_str());
@@ -35,19 +36,27 @@ addVariable(UA_Server *server, short nsIdx, const std::string &name, int type) {
     auto qualifiedName = UA_QUALIFIEDNAME_ALLOC(nsIdx, name.c_str());
     auto parentNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
     auto parentReferenceNodeId = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
-    UA_Server_addVariableNode(server, nodeId, parentNodeId,
-                              parentReferenceNodeId, qualifiedName,
-                              UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE), attr, NULL, NULL);
+    UA_Server_addVariableNode(server,
+                              nodeId,
+                              parentNodeId,
+                              parentReferenceNodeId,
+                              qualifiedName,
+                              UA_NODEID_NUMERIC(0, UA_NS0ID_BASEDATAVARIABLETYPE),
+                              attr,
+                              NULL,
+                              NULL);
 }
 
-int main(void) {
+int main(void)
+{
     signal(SIGINT, stopHandler);
     signal(SIGTERM, stopHandler);
 
     auto *server = UA_Server_new();
     UA_ServerConfig_setDefault(UA_Server_getConfig(server));
 
-    // Add some variables (NOTE this code is not going to free any memory but for this simple example that does not matter)
+    // Add some variables (NOTE this code is not going to free any memory but for this simple
+    // example that does not matter)
     auto idx = UA_Server_addNamespace(server, "foo");
     addVariable(server, idx, "v1", UA_TYPES_INT32);
     addVariable(server, idx, "v2", UA_TYPES_BOOLEAN);

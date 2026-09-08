@@ -211,7 +211,7 @@ impl From<x509::X509> for X509 {
 impl X509 {
     pub fn from_der(der: &[u8]) -> Result<Self, X509Error> {
         x509::X509::from_der(der).map(X509::from).map_err(|_| {
-            error!("Cannot produce an x509 cert from the data supplied");
+            //error!("Cannot produce an x509 cert from the data supplied");
             X509Error
         })
     }

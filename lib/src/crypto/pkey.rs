@@ -227,8 +227,8 @@ impl PrivateKey {
                     oaep_sha256::decrypt(&rsa, src, dst)
                 } else {
                     rsa.private_decrypt(src, dst, rsa_padding)
-                }.map_err(|err| {
-                    error!("Decryption failed for key size {}, src idx {}, dst idx {}, padding {:?}, error - {:?}", cipher_text_block_size, src_idx, dst_idx, padding, err);
+                }.map_err(|_err| {
+                    //error!("Decryption failed for key size {}, src idx {}, dst idx {}, padding {:?}, error - {:?}", cipher_text_block_size, src_idx, dst_idx, padding, err);
                     PKeyError
                 })?
             };

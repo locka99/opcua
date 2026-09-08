@@ -14,11 +14,14 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, extractable_macro::Extractable)]
+#[extractable(crate::puffin::types::OpcuaProtocolTypes)]
 pub struct ActivateSessionResponse {
     pub response_header: ResponseHeader,
     pub server_nonce: ByteString,
+    #[extractable_ignore]
     pub results: Option<Vec<StatusCode>>,
+    #[extractable_ignore]
     pub diagnostic_infos: Option<Vec<DiagnosticInfo>>,
 }
 
@@ -62,3 +65,17 @@ impl BinaryEncoder<ActivateSessionResponse> for ActivateSessionResponse {
         })
     }
 }
+crate::impl_codec_p!(ActivateSessionResponse);
+
+impl Default for ActivateSessionResponse {
+    fn default() -> Self {
+        ActivateSessionResponse {
+            response_header: ResponseHeader::null(),
+            server_nonce: ByteString::null(),
+            results: None,
+            diagnostic_infos: None
+        }
+    }
+}
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(ActivateSessionResponse);

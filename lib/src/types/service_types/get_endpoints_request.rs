@@ -13,7 +13,11 @@ use crate::types::{
 };
 use std::io::{Read, Write};
 
-#[derive(Debug, Clone, PartialEq)]
+use extractable_macro::Extractable;
+use crate::puffin::types::OpcuaProtocolTypes;
+
+#[derive(Debug, Clone, PartialEq, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub struct GetEndpointsRequest {
     pub request_header: RequestHeader,
     pub endpoint_url: UAString,
@@ -61,3 +65,18 @@ impl BinaryEncoder<GetEndpointsRequest> for GetEndpointsRequest {
         })
     }
 }
+
+crate::impl_codec_p!(GetEndpointsRequest);
+
+impl Default for GetEndpointsRequest {
+    fn default() -> Self {
+        GetEndpointsRequest {
+            request_header: RequestHeader::default(),
+            endpoint_url: UAString::null(),
+            locale_ids: None,
+            profile_uris: None,
+        }
+    }
+}
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(GetEndpointsRequest);

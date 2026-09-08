@@ -21,6 +21,13 @@ use super::{
     },
 };
 
+use puffin::error::Error;
+use puffin::protocol::Extractable;
+use puffin::trace::{Knowledge, Source};
+use crate::puffin::query::OpcuaQueryMatcher;
+use crate::puffin::types::OpcuaProtocolTypes;
+use extractable_macro::Extractable;
+
 /// The size of a chunk header, used by several places
 pub const MESSAGE_CHUNK_HEADER_SIZE: usize = 12;
 
@@ -57,6 +64,28 @@ pub struct MessageChunkHeader {
     pub message_size: u32,
     /// Secure channel id
     pub secure_channel_id: u32,
+}
+
+impl Extractable<OpcuaProtocolTypes> for MessageChunkHeader {
+    fn extract_knowledge<'a> (
+        &'a self,
+        knowledges: &mut Vec<Knowledge<'a, OpcuaProtocolTypes>>,
+        _: Option<OpcuaQueryMatcher>,
+        source: &'a Source
+    ) -> Result<(), Error> {
+        let matcher = match &self.message_type {
+            MessageChunkType::OpenSecureChannel => Some(OpcuaQueryMatcher::OpenSecureChannelResponse),
+            _ => None
+        };
+        knowledges.push(Knowledge {
+            source,
+            matcher,
+            data: self
+        });
+        // all fields are ignored, except:
+        self.secure_channel_id.extract_knowledge(knowledges, matcher, source)?;
+        Ok(())
+    }
 }
 
 impl BinaryEncoder<MessageChunkHeader> for MessageChunkHeader {
@@ -122,13 +151,15 @@ impl BinaryEncoder<MessageChunkHeader> for MessageChunkHeader {
         })
     }
 }
+crate::impl_codec_p!(MessageChunkHeader);
 
 impl MessageChunkHeader {}
 
 /// A chunk holds a message or a portion of a message, if the message has been split into multiple chunks.
 /// The chunk's data may be signed and encrypted. To extract the message requires all the chunks
 /// to be available in sequence so they can be formed back into the message.
-#[derive(Debug)]
+#[derive(Debug, Clone, Extractable)]
+#[extractable(OpcuaProtocolTypes)]
 pub struct MessageChunk {
     /// All of the chunk's data including headers, payload, padding, signature
     pub data: Vec<u8>,
@@ -181,6 +212,7 @@ impl BinaryEncoder<MessageChunk> for MessageChunk {
         }
     }
 }
+crate::impl_codec_p!(MessageChunk);
 
 impl MessageChunk {
     pub fn new(
@@ -316,3 +348,16 @@ impl MessageChunk {
         ChunkInfo::new(self, secure_channel)
     }
 }
+
+impl Default for MessageChunkHeader {
+    fn default() -> Self {
+        MessageChunkHeader{
+            message_type: MessageChunkType::OpenSecureChannel,
+            is_final: MessageIsFinalType::Final,
+            message_size: 0,
+            secure_channel_id: 0
+    }}
+}
+// Non-recursing dummy Comparable (opts OPC UA out of differential knowledge comparison)
+crate::dummy_comparable!(MessageChunk);
+crate::dummy_comparable!(MessageChunkHeader);
